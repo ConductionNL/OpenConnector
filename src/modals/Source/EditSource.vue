@@ -8,7 +8,7 @@ import { sourceStore, navigationStore } from '../../store/store.js'
 		label-id="editSource"
 		@close="closeModal">
 		<div class="modalContent">
-			<h2>{{ sourceItem.id ? 'Edit' : 'Add' }} Source</h2>
+			<h2>{{ sourceItem?.id ? 'Edit' : 'Add' }} Source</h2>
 			<NcNoteCard v-if="success" type="success">
 				<p>Source successfully added</p>
 			</NcNoteCard>

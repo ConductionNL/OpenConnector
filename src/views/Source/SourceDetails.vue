@@ -51,83 +51,11 @@ import { sourceStore, navigationStore, logStore } from '../../store/store.js'
 				</div>
 				<div class="tabContainer">
 					<BTabs content-class="mt-3" justified>
-						<BTab title="Configurations">
-							<div v-if="sourceStore.sourceItem?.configuration !== null && Object.keys(sourceStore.sourceItem?.configuration).length > 0">
-								<NcListItem v-for="(value, key, i) in sourceStore.sourceItem?.configuration"
-									:key="`${key}${i}`"
-									:name="key"
-									:bold="false"
-									:force-display-actions="true"
-									:active="sourceStore.sourceConfigurationKey === key"
-									@click="setActiveSourceConfigurationKey(key)">
-									<template #icon>
-										<FileCogOutline
-											:class="sourceStore.sourceConfigurationKey === key && 'selectedZaakIcon'"
-											disable-menu
-											:size="44" />
-									</template>
-									<template #subname>
-										{{ value }}
-									</template>
-									<template #actions>
-										<NcActionButton @click="editSourceConfiguration(key)">
-											<template #icon>
-												<Pencil :size="20" />
-											</template>
-											Edit
-										</NcActionButton>
-										<NcActionButton @click="deleteSourceConfiguration(key)">
-											<template #icon>
-												<Delete :size="20" />
-											</template>
-											Delete
-										</NcActionButton>
-									</template>
-								</NcListItem>
-							</div>
-							<div v-if="sourceStore.sourceItem?.configuration === null || Object.keys(sourceStore.sourceItem?.configuration).length === 0" class="tabPanel">
-								No configurations found
-							</div>
+						<BTab title="Endpoints" active>
+							No endpoints found
 						</BTab>
-						<BTab title="Mappings">
-							<div v-if="sourceStore?.sourceItem?.mappings?.length">
-								<NcListItem v-for="(character, i) in filterCharacters"
-									:key="character.id + i"
-									:name="character.name"
-									:bold="false"
-									:force-display-actions="true">
-									<template #icon>
-										<BriefcaseAccountOutline disable-menu
-											:size="44" />
-									</template>
-									<template #subname>
-										{{ character.description }}
-									</template>
-								</NcListItem>
-							</div>
-							<div v-if="!sourceStore?.sourceItem?.mappings?.length" class="tabPanel">
-								No mappings found
-							</div>
-						</BTab>
-						<BTab title="Jobs">
-							<div v-if="sourceStore?.sourceItem?.jobs?.length">
-								<NcListItem v-for="(character, i) in filterCharacters"
-									:key="character.id + i"
-									:name="character.name"
-									:bold="false"
-									:force-display-actions="true">
-									<template #icon>
-										<BriefcaseAccountOutline disable-menu
-											:size="44" />
-									</template>
-									<template #subname>
-										{{ character.description }}
-									</template>
-								</NcListItem>
-							</div>
-							<div v-if="!sourceStore?.sourceItem?.jobs?.length" class="tabPanel">
-								No jobs found
-							</div>
+						<BTab title="Synchronizations">
+							No synchronizations found
 						</BTab>
 						<BTab title="Logs">
 							<div v-if="sourceStore.sourceLogs?.length">
@@ -182,10 +110,7 @@ import DotsHorizontal from 'vue-material-design-icons/DotsHorizontal.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 import Sync from 'vue-material-design-icons/Sync.vue'
-import BriefcaseAccountOutline from 'vue-material-design-icons/BriefcaseAccountOutline.vue'
 import TimelineQuestionOutline from 'vue-material-design-icons/TimelineQuestionOutline.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
-import FileCogOutline from 'vue-material-design-icons/FileCogOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import MathLog from 'vue-material-design-icons/MathLog.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
