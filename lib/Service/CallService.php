@@ -2,6 +2,7 @@
 
 namespace OCA\OpenConnector\Service;
 
+use Adbar\Dot;
 use OCA\OpenConnector\Service\AuthenticationService;
 use OCA\OpenConnector\Service\MappingService;
 use OCA\OpenConnector\Db\Source;
@@ -53,7 +54,7 @@ class CallService
 		bool $asynchronous = false,
 		bool $createCertificates = true,
 		bool $overruleAuth = false
-	): CallLog 
+	): CallLog
 	{
 		$this->source = $source;
 
@@ -62,12 +63,12 @@ class CallService
 			$callLog = new CallLog();
 			$callLog->setSourceId($this->source->getId());
 			$callLog->setStatusCode(409);
-			$callLog->setStatusMessage("This source is not enabled");	
+			$callLog->setStatusMessage("This source is not enabled");
 			$callLog->setCreatedAt(new \DateTime());
 			$callLog->setUpdatedAt(new \DateTime());
 
 			$this->callLogMapper->insert($callLog);
-	
+
 			return $callLog;
 		}
 
@@ -76,18 +77,18 @@ class CallService
 			$callLog = new CallLog();
 			$callLog->setSourceId($this->source->getId());
 			$callLog->setStatusCode(409);
-			$callLog->setStatusMessage("This source has no location");	
+			$callLog->setStatusMessage("This source has no location");
 			$callLog->setCreatedAt(new \DateTime());
 			$callLog->setUpdatedAt(new \DateTime());
 
 			$this->callLogMapper->insert($callLog);
-	
+
 			return $callLog;
 		}
 
 		// Check if the source has a configuration and merge it with the given config
 		if (empty($this->source->getConfiguration()) === false) {
-			$config = array_merge_recursive($config, $this->source->getConfiguration());
+			$config = array_merge_recursive($config, $this->applyConfigDot($this->source->getConfiguration()));
 		}
 
 		// Check if the config has a Content-Type header and overwrite it if it does
@@ -98,8 +99,8 @@ class CallService
 		// decapiitilized fall back for content-type
 		if (isset($config['headers']['content-type']) === true) {
 			$overwriteContentType = $config['headers']['content-type'];
-		}        
-		
+		}
+
 		// Make sure we do not have an array of accept headers but just one value
 		if (isset($config['headers']['accept']) === true && is_array($config['headers']['accept']) === true) {
 			$config['headers']['accept'] = $config['headers']['accept'][0];
@@ -114,7 +115,7 @@ class CallService
 		// We want to suprres guzzle exceptions and return the response instead
 		$config['http_errors'] = false;
 
-		// Set the URL to call and add an endpoint if needed	
+		// Set the URL to call and add an endpoint if needed
 		$url = $this->source->getLocation().$endpoint;
 
 		// Set authentication if needed. @todo: create  the authentication service
@@ -123,9 +124,8 @@ class CallService
 		// Let's log the call.
 		$this->source->setLastCall(new \DateTime());
 		// @todo: save the source
-
-		// Let's make the call.		
-		$time_start = microtime(true); 
+		// Let's make the call.
+		$time_start = microtime(true);
 		try {
 			if ($asynchronous === false) {
 			   $response = $this->client->request($method, $url, $config);
@@ -152,7 +152,7 @@ class CallService
 				'size' => $response->getBody()->getSize(),
 				'remoteIp' => $response->getHeaderLine('X-Real-IP') ?: $response->getHeaderLine('X-Forwarded-For') ?: null,
 				'headers' => $response->getHeaders(),
-				'body' => $response->getBody()->getContents(),				
+				'body' => $response->getBody()->getContents(),
 			]
 		];
 
@@ -168,5 +168,35 @@ class CallService
 		$this->callLogMapper->insert($callLog);
 
 		return $callLog;
+	}
+
+	/**
+	 * Uses Adbar Dot to place the values of keys with a dot in it in the $config array
+	 * to the correct position in the then updated multidimensional $config array.
+	 *
+	 * @param array $config The config array.
+	 *
+	 * @return array The updated config array.
+	 */
+	private function applyConfigDot(array $config): array
+	{
+		$dotConfig = new Dot($config);
+		$unsetKeys = [];
+
+		// Check if there are keys containing a dot we want to map to a different position in the $config array.
+		foreach ($config as $key => $value) {
+			if (str_contains($key, '.')) {
+				$dotConfig->set($key, $value);
+				$unsetKeys[] = $key;
+			}
+		}
+
+		// Remove the old keys containing a dot that we mapped to a different position in the $config array.
+		$config = $dotConfig->all();
+		foreach ($unsetKeys as $key) {
+			unset($config[$key]);
+		}
+
+		return $config;
 	}
 }
