@@ -1,129 +1,122 @@
 /* eslint-disable no-console */
 import { defineStore } from 'pinia'
 import { Endpoint } from '../../entities/index.js'
+import { MissingParameterError, ValidationError } from '../../services/errors/index.js'
 
-export const useEndpointStore = defineStore(
-	'endpoint', {
-		state: () => ({
-			endpointItem: false,
-			endpointList: [],
-		}),
-		actions: {
-			setEndpointItem(endpointItem) {
-				this.endpointItem = endpointItem && new Endpoint(endpointItem)
-				console.log('Active endpoint item set to ' + endpointItem)
-			},
-			setEndpointList(endpointList) {
-				this.endpointList = endpointList.map(
-					(endpointItem) => new Endpoint(endpointItem),
-				)
-				console.log('Endpoint list set to ' + endpointList.length + ' items')
-			},
-			/* istanbul ignore next */ // ignore this for Jest until moved into a service
-			async refreshEndpointList(search = null) {
-				// @todo this might belong in a service?
-				let endpoint = '/index.php/apps/openconnector/api/endpoints'
-				if (search !== null && search !== '') {
-					endpoint = endpoint + '?_search=' + search
-				}
-				return fetch(endpoint, {
-					method: 'GET',
-				})
-					.then(
-						(response) => {
-							response.json().then(
-								(data) => {
-									this.setEndpointList(data.results)
-								},
-							)
-						},
-					)
-					.catch(
-						(err) => {
-							console.error(err)
-						},
-					)
-			},
-			// New function to get a single endpoint
-			async getEndpoint(id) {
-				const endpoint = `/index.php/apps/openconnector/api/endpoints/${id}`
-				try {
-					const response = await fetch(endpoint, {
-						method: 'GET',
-					})
-					const data = await response.json()
-					this.setEndpointItem(data)
-					return data
-				} catch (err) {
-					console.error(err)
-					throw err
-				}
-			},
-			// Delete an endpoint
-			deleteEndpoint() {
-				if (!this.endpointItem || !this.endpointItem.id) {
-					throw new Error('No endpoint item to delete')
-				}
+export const useEndpointStore = defineStore('endpoint', {
+	state: () => ({
+		endpointItem: false,
+		endpointList: [],
+	}),
+	actions: {
+		setEndpointItem(endpointItem) {
+			this.endpointItem = endpointItem && new Endpoint(endpointItem)
+			console.log('Active endpoint item set to ' + endpointItem)
+		},
+		setEndpointList(endpointList) {
+			this.endpointList = endpointList.map(
+				(endpointItem) => new Endpoint(endpointItem),
+			)
+			console.log('Endpoint list set to ' + endpointList.length + ' items')
+		},
+		/* istanbul ignore next */ // ignore this for Jest until moved into a service
+		async refreshEndpointList(search = null) {
+			// @todo this might belong in a service?
+			let endpoint = '/index.php/apps/openconnector/api/endpoints'
+			if (search !== null && search !== '') {
+				endpoint = endpoint + '?_search=' + search
+			}
 
-				console.log('Deleting endpoint...')
+			const response = await fetch(endpoint, {
+				method: 'GET',
+			})
 
-				const endpoint = `/index.php/apps/openconnector/api/endpoints/${this.endpointItem.id}`
+			const data = (await response.json()).results
+			const entities = data.map(endpointItem => new Endpoint(endpointItem))
 
-				return fetch(endpoint, {
-					method: 'DELETE',
-				})
-					.then((response) => {
-						this.refreshEndpointList()
-					})
-					.catch((err) => {
-						console.error('Error deleting endpoint:', err)
-						throw err
-					})
-			},
-			// Create or save an endpoint from store
-			saveEndpoint() {
-				if (!this.endpointItem) {
-					throw new Error('No endpoint item to save')
-				}
+			this.setEndpointList(data)
 
-				console.log('Saving endpoint...')
+			return { response, data, entities }
+		},
+		// New function to get a single endpoint
+		async getEndpoint(id) {
+			const endpoint = `/index.php/apps/openconnector/api/endpoints/${id}`
 
-				const isNewEndpoint = !this.endpointItem.id
-				const endpoint = isNewEndpoint
-					? '/index.php/apps/openconnector/api/endpoints'
-					: `/index.php/apps/openconnector/api/endpoints/${this.endpointItem.id}`
-				const method = isNewEndpoint ? 'POST' : 'PUT'
+			const response = await fetch(endpoint, {
+				method: 'GET',
+			})
 
-				// Create a copy of the endpoint item and remove empty properties
-				const endpointToSave = { ...this.endpointItem }
-				Object.keys(endpointToSave).forEach(key => {
-					if (endpointToSave[key] === '' || (Array.isArray(endpointToSave[key]) && !endpointToSave[key].length)) {
-						delete endpointToSave[key]
-					}
-				})
+			const data = await response.json()
+			const entity = new Endpoint(data)
 
-				return fetch(
-					endpoint,
-					{
-						method,
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify(endpointToSave),
+			this.setEndpointItem(data)
+
+			return { response, data, entity }
+		},
+		// Delete an endpoint
+		async deleteEndpoint(endpointItem) {
+			if (!endpointItem) {
+				throw new MissingParameterError('endpointItem')
+			}
+
+			console.log('Deleting endpoint...')
+
+			const endpoint = `/index.php/apps/openconnector/api/endpoints/${endpointItem.id}`
+
+			const response = await fetch(endpoint, {
+				method: 'DELETE',
+			})
+
+			response.ok && this.setEndpointItem(null)
+			this.refreshEndpointList()
+
+			return { response }
+		},
+		// Create or save an endpoint from store
+		async saveEndpoint(endpointItem) {
+			if (!endpointItem) {
+				throw new MissingParameterError('endpointItem')
+			}
+
+			// convert to an entity
+			endpointItem = new Endpoint(endpointItem)
+
+			// verify data with Zod
+			const validationResult = endpointItem.validate()
+			if (!validationResult.success) {
+				console.error(validationResult.error)
+				console.log(validationResult)
+				throw new ValidationError(validationResult.error)
+			}
+
+			console.log('Saving endpoint...')
+
+			const isNewEndpoint = !endpointItem.id
+			const endpoint = isNewEndpoint
+				? '/index.php/apps/openconnector/api/endpoints'
+				: `/index.php/apps/openconnector/api/endpoints/${endpointItem.id}`
+			const method = isNewEndpoint ? 'POST' : 'PUT'
+
+			const response = await fetch(
+				endpoint,
+				{
+					method,
+					headers: {
+						'Content-Type': 'application/json',
 					},
-				)
-					.then((response) => response.json())
-					.then((data) => {
-						this.setEndpointItem(data)
-						console.log('Endpoint saved')
-						// Refresh the endpoint list
-						return this.refreshEndpointList()
-					})
-					.catch((err) => {
-						console.error('Error saving endpoint:', err)
-						throw err
-					})
-			},
+					body: JSON.stringify({
+						...endpointItem,
+					}),
+				},
+			)
+
+			const data = await response.json()
+			const entity = new Endpoint(data)
+
+			this.setEndpointItem(data)
+			this.refreshEndpointList()
+
+			return { response, data, entity }
 		},
 	},
-)
+})

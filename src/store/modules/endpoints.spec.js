@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { setActivePinia, createPinia } from 'pinia'
 
-import { useEndpointStore } from './endpoint.js'
+import { useEndpointStore } from './endpoints.js'
 import { Endpoint, mockEndpoint } from '../../entities/index.js'
 
 describe('Endpoint Store', () => {

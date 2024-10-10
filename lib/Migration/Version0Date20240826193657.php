@@ -49,18 +49,18 @@ use OCP\Migration\SimpleMigrationStep;
 			$table->addColumn('description', Types::TEXT, ['notnull' => false]);
 			$table->addColumn('reference', Types::STRING, ['notnull' => false, 'length' => 255]);
 			$table->addColumn('version', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '0.0.1']);
-			$table->addColumn('endpoint', Types::STRING, ['notnull' => true, 'length' => 255]);
-			$table->addColumn('endpointArray', Types::JSON, ['notnull' => false]);
-			$table->addColumn('endpointRegex', Types::STRING, ['notnull' => false, 'length' => 255]);
-			$table->addColumn('method', Types::STRING, ['notnull' => true, 'length' => 10]);
-			$table->addColumn('targetType', Types::STRING, ['notnull' => true, 'length' => 255]);
-			$table->addColumn('targetId', Types::STRING, ['notnull' => true, 'length' => 255]);
+			$table->addColumn('endpoint', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
+			$table->addColumn('endpoint_array', Types::JSON, ['notnull' => false]);
+			$table->addColumn('endpoint_regex', Types::STRING, ['notnull' => false, 'length' => 255]);
+			$table->addColumn('method', Types::STRING, ['notnull' => true, 'length' => 10, 'default' => '']);
+			$table->addColumn('target_type', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
+			$table->addColumn('target_id', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
 			$table->addColumn('created', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']);
 			$table->addColumn('updated', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']);
 			$table->setPrimaryKey(['id']);
 			$table->addIndex(['uuid'], 'openconnector_endpoints_uuid_index');
 			$table->addIndex(['endpoint'], 'openconnector_endpoints_endpoint_index');
-			$table->addIndex(['endpointRegex'], 'openconnector_endpoints_endpoint_regex_index');
+			$table->addIndex(['endpoint_regex'], 'openconnector_endpoints_endpoint_regex_index');
 		}
 
 		if (!$schema->hasTable('openconnector_jobs')) {

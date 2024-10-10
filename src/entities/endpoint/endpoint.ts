@@ -4,49 +4,54 @@ import { TEndpoint } from './endpoint.types'
 export class Endpoint implements TEndpoint {
 
 	public id: string
+	public uuid: string
 	public name: string
-	public description: string | null
+	public description: string
+	public reference: string
 	public version: string
-	public path: string
+	public endpoint: string
+	public endpointArray: string[]
+	public endpointRegex: string
 	public method: string
-	public isEnabled: boolean
-	public dateCreated: string | null
-	public dateModified: string | null
-	public headers: object | null
-	public parameters: object | null
-	public responseSchema: object | null
-	public authentication: string | null
-	public rateLimit: number | null
-	public caching: boolean
-	public timeout: number | null
+	public targetType: string
+	public targetId: string
+	public created: string
+	public updated: string
 
 	constructor(endpoint: TEndpoint) {
 		this.id = endpoint.id || ''
+		this.uuid = endpoint.uuid || ''
 		this.name = endpoint.name || ''
-		this.description = endpoint.description || null
+		this.description = endpoint.description || ''
+		this.reference = endpoint.reference || ''
 		this.version = endpoint.version || '0.0.0'
-		this.path = endpoint.path || ''
+		this.endpoint = endpoint.endpoint || ''
+		this.endpointArray = endpoint.endpointArray ?? []
+		this.endpointRegex = endpoint.endpointRegex || ''
 		this.method = endpoint.method || 'GET'
-		this.isEnabled = endpoint.isEnabled ?? true
-		this.dateCreated = endpoint.dateCreated || null
-		this.dateModified = endpoint.dateModified || null
-		this.headers = endpoint.headers || null
-		this.parameters = endpoint.parameters || null
-		this.responseSchema = endpoint.responseSchema || null
-		this.authentication = endpoint.authentication || null
-		this.rateLimit = endpoint.rateLimit || null
-		this.caching = endpoint.caching ?? false
-		this.timeout = endpoint.timeout || null
+		this.targetType = endpoint.targetType || ''
+		this.targetId = endpoint.targetId || ''
+		this.created = endpoint.created || ''
+		this.updated = endpoint.updated || ''
 	}
 
+	// validate data before posting
+	// id's are optional, meaning that the id property is not required to exist on the posted content, NOT that it can be empty / '0'
 	public validate(): SafeParseReturnType<TEndpoint, unknown> {
 		const schema = z.object({
-			id: z.string().uuid(),
+			id: z.string().optional(),
+			uuid: z.string().uuid().or(z.literal('')).optional(),
 			name: z.string().max(255),
+			description: z.string(),
+			reference: z.string(),
 			version: z.string(),
-			path: z.string(),
+			endpoint: z.string(),
+			endpointArray: z.string().array(),
+			endpointRegex: z.string(),
 			method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']),
-			isEnabled: z.boolean()
+			targetType: z.string(),
+			created: z.string().datetime().or(z.literal('')).optional(),
+			updated: z.string().datetime().or(z.literal('')).optional(),
 		})
 
 		return schema.safeParse({ ...this })

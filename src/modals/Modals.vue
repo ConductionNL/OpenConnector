@@ -1,5 +1,7 @@
 <template>
 	<div>
+		<EditEndpoint />
+		<DeleteEndpoint />
 		<DeleteSource />
 		<EditSource />
 		<TestSource />
@@ -27,6 +29,9 @@
 
 <script>
 import { navigationStore } from '../store/store.js'
+
+import EditEndpoint from './Endpoint/EditEndpoint.vue'
+import DeleteEndpoint from './Endpoint/DeleteEndpoint.vue'
 import EditSource from './Source/EditSource.vue'
 import TestSource from './TestSource/TestSource.vue'
 import DeleteSource from './Source/DeleteSource.vue'
@@ -53,6 +58,8 @@ import ViewJobLog from './Log/ViewJobLog.vue'
 export default {
 	name: 'Modals',
 	components: {
+		EditEndpoint,
+		DeleteEndpoint,
 		DeleteSource,
 		EditSource,
 		TestSource,

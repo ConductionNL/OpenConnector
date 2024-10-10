@@ -22,7 +22,7 @@ import { endpointStore, navigationStore, searchStore } from '../../store/store.j
 						</template>
 						Ververs
 					</NcActionButton>
-					<NcActionButton @click="endpointStore.setEndpointItem({}); navigationStore.setModal('editEndpoint')">
+					<NcActionButton @click="endpointStore.setEndpointItem(null); navigationStore.setModal('editEndpoint')">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
