@@ -1,5 +1,5 @@
 <script setup>
-import { endpointStore, navigationStore } from '../../store/store.js'
+import { consumerStore, navigationStore } from '../../store/store.js'
 </script>
 
 <template>
@@ -8,20 +8,20 @@ import { endpointStore, navigationStore } from '../../store/store.js'
 			<div>
 				<div class="detailHeader">
 					<h1 class="h1">
-						{{ endpointStore.endpointItem.name }}
+						{{ consumerStore.consumerItem.name }}
 					</h1>
 
 					<NcActions :primary="true" menu-name="Acties">
 						<template #icon>
 							<DotsHorizontal :size="20" />
 						</template>
-						<NcActionButton @click="navigationStore.setModal('editEndpoint')">
+						<NcActionButton @click="navigationStore.setModal('editConsumer')">
 							<template #icon>
 								<Pencil :size="20" />
 							</template>
 							Bewerken
 						</NcActionButton>
-						<NcActionButton @click="navigationStore.setDialog('deleteEndpoint')">
+						<NcActionButton @click="navigationStore.setDialog('deleteConsumer')">
 							<template #icon>
 								<TrashCanOutline :size="20" />
 							</template>
@@ -30,66 +30,50 @@ import { endpointStore, navigationStore } from '../../store/store.js'
 					</NcActions>
 				</div>
 
-				<span>{{ endpointStore.endpointItem.description }}</span>
+				<span>{{ consumerStore.consumerItem.description }}</span>
 
 				<div class="detailGrid">
 					<div class="gridContent gridFullWidth">
 						<b>uuid:</b>
-						<p>{{ endpointStore.endpointItem.uuid }}</p>
+						<p>{{ consumerStore.consumerItem.uuid }}</p>
 					</div>
 					<div class="gridContent gridFullWidth" />
 
 					<div class="gridContent gridFullWidth">
 						<b>Name:</b>
-						<p>{{ endpointStore.endpointItem.name }}</p>
+						<p>{{ consumerStore.consumerItem.name }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
 						<b>Description:</b>
-						<p>{{ endpointStore.endpointItem.description }}</p>
+						<p>{{ consumerStore.consumerItem.description }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
-						<b>Reference:</b>
-						<p>{{ endpointStore.endpointItem.reference }}</p>
+						<b>Domains:</b>
+						<p>{{ consumerStore.consumerItem.domains.join(', ') }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
-						<b>Version:</b>
-						<p>{{ endpointStore.endpointItem.version }}</p>
+						<b>IP's:</b>
+						<p>{{ consumerStore.consumerItem.ips.join(', ') }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
-						<b>Endpoint:</b>
-						<p>{{ endpointStore.endpointItem.endpoint }}</p>
+						<b>Authorization Type:</b>
+						<p>{{ consumerStore.consumerItem.authorizationType }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
-						<b>Endpoint Array:</b>
-						<p>{{ endpointStore.endpointItem.endpointArray.join(', ') }}</p>
-					</div>
-					<div class="gridContent gridFullWidth">
-						<b>Endpoint Regex:</b>
-						<p>{{ endpointStore.endpointItem.endpointRegex }}</p>
-					</div>
-					<div class="gridContent gridFullWidth">
-						<b>Method:</b>
-						<p>{{ endpointStore.endpointItem.method }}</p>
-					</div>
-					<div class="gridContent gridFullWidth">
-						<b>Target Type:</b>
-						<p>{{ endpointStore.endpointItem.targetType }}</p>
-					</div>
-					<div class="gridContent gridFullWidth">
-						<b>Target Id:</b>
-						<p>{{ endpointStore.endpointItem.targetId }}</p>
+						<b>Authorization Configuration:</b>
+						<p>{{ JSON.stringify(consumerStore.consumerItem.authorizationConfiguration) }}</p>
 					</div>
 
 					<div class="gridContent gridFullWidth">
 						<b>created:</b>
-						<p>{{ endpointStore.endpointItem.created }}</p>
+						<p>{{ new Date(consumerStore.consumerItem.created).toLocaleDateString() }}</p>
 					</div>
 					<div class="gridContent gridFullWidth">
 						<b>updated:</b>
-						<p>{{ endpointStore.endpointItem.updated }}</p>
+						<p>{{ new Date(consumerStore.consumerItem.updated).toLocaleDateString() }}</p>
 					</div>
 				</div>
-				<!-- Add more endpoint-specific details here -->
+				<!-- Add more consumer-specific details here -->
 			</div>
 		</div>
 	</div>
@@ -102,7 +86,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 export default {
-	name: 'EndpointDetails',
+	name: 'ConsumerDetails',
 	components: {
 		NcActions,
 		NcActionButton,

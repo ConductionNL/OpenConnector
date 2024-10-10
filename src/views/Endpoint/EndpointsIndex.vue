@@ -16,7 +16,7 @@ import { endpointStore, navigationStore } from '../../store/store.js'
 					<Api />
 				</template>
 				<template #action>
-					<NcButton type="primary" @click="endpointStore.setEndpointItem({}); navigationStore.setModal('editEndpoint')">
+					<NcButton type="primary" @click="endpointStore.setEndpointItem(null); navigationStore.setModal('editEndpoint')">
 						Endpoint toevoegen
 					</NcButton>
 				</template>

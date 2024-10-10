@@ -1,18 +1,16 @@
 export type TEndpoint = {
     id?: string
+    uuid: string
     name: string
-    description?: string | null
+    description: string
+    reference: string
     version: string
-    path: string
+    endpoint: string
+    endpointArray: string[]
+    endpointRegex: string
     method: string
-    isEnabled?: boolean
-    dateCreated?: string | null
-    dateModified?: string | null
-    headers?: object | null
-    parameters?: object | null
-    responseSchema?: object | null
-    authentication?: string | null
-    rateLimit?: number | null
-    caching?: boolean
-    timeout?: number | null
+    targetType: string
+    targetId: string
+    created: string
+    updated: string
 }

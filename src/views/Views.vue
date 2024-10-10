@@ -9,6 +9,7 @@ import { navigationStore } from '../store/store.js'
 			<Dashboard v-if="navigationStore.selected === 'dashboard'" />
 			<SourcesIndex v-if="navigationStore.selected === 'sources'" />
 			<EndpointsIndex v-if="navigationStore.selected === 'endpoints'" />
+			<ConsumersIndex v-if="navigationStore.selected === 'consumers'" />
 			<WebhooksIndex v-if="navigationStore.selected === 'webhooks'" />
 			<JobsIndex v-if="navigationStore.selected === 'jobs'" />
 			<MappingsIndex v-if="navigationStore.selected === 'mappings'" />
@@ -22,6 +23,7 @@ import { NcAppContent } from '@nextcloud/vue'
 import Dashboard from './dashboard/DashboardIndex.vue'
 import SourcesIndex from './Source/SourcesIndex.vue'
 import EndpointsIndex from './Endpoint/EndpointsIndex.vue'
+import ConsumersIndex from './Consumer/ConsumersIndex.vue'
 import WebhooksIndex from './Webhook/WebhooksIndex.vue'
 import JobsIndex from './Job/JobsIndex.vue'
 import MappingsIndex from './Mapping/MappingsIndex.vue'
@@ -34,6 +36,7 @@ export default {
 		NcAppContent,
 		SourcesIndex,
 		EndpointsIndex,
+		ConsumersIndex,
 		WebhooksIndex,
 		JobsIndex,
 		MappingsIndex,

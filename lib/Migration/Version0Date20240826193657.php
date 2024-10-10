@@ -49,18 +49,18 @@ use OCP\Migration\SimpleMigrationStep;
 			$table->addColumn('description', Types::TEXT, ['notnull' => false]);
 			$table->addColumn('reference', Types::STRING, ['notnull' => false, 'length' => 255]);
 			$table->addColumn('version', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '0.0.1']);
-			$table->addColumn('endpoint', Types::STRING, ['notnull' => true, 'length' => 255]);
-			$table->addColumn('endpointArray', Types::JSON, ['notnull' => false]);
-			$table->addColumn('endpointRegex', Types::STRING, ['notnull' => false, 'length' => 255]);
-			$table->addColumn('method', Types::STRING, ['notnull' => true, 'length' => 10]);
-			$table->addColumn('targetType', Types::STRING, ['notnull' => true, 'length' => 255]);
-			$table->addColumn('targetId', Types::STRING, ['notnull' => true, 'length' => 255]);
+			$table->addColumn('endpoint', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
+			$table->addColumn('endpoint_array', Types::JSON, ['notnull' => false]);
+			$table->addColumn('endpoint_regex', Types::STRING, ['notnull' => false, 'length' => 255]);
+			$table->addColumn('method', Types::STRING, ['notnull' => true, 'length' => 10, 'default' => '']);
+			$table->addColumn('target_type', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
+			$table->addColumn('target_id', Types::STRING, ['notnull' => true, 'length' => 255, 'default' => '']);
 			$table->addColumn('created', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']);
 			$table->addColumn('updated', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']);
 			$table->setPrimaryKey(['id']);
 			$table->addIndex(['uuid'], 'openconnector_endpoints_uuid_index');
 			$table->addIndex(['endpoint'], 'openconnector_endpoints_endpoint_index');
-			$table->addIndex(['endpointRegex'], 'openconnector_endpoints_endpoint_regex_index');
+			$table->addIndex(['endpoint_regex'], 'openconnector_endpoints_endpoint_regex_index');
 		}
 
 		if (!$schema->hasTable('openconnector_jobs')) {
@@ -226,8 +226,8 @@ use OCP\Migration\SimpleMigrationStep;
             $table->addColumn('description', Types::TEXT, ['notnull' => false]); // The description of the consumer
             $table->addColumn('domains', Types::JSON, ['notnull' => false]); // The domains the consumer is allowed to run from
             $table->addColumn('ips', Types::JSON, ['notnull' => false]); // The ips the consumer is allowed to run from
-            $table->addColumn('authorizationType', Types::STRING, ['notnull' => false, 'length' => 255]); // The authorization type of the consumer, should be one of the following: 'none', 'basic', 'bearer', 'apiKey', 'oauth2', 'jwt'. Keep in mind that the consumer needs to be able to handle the authorization type.
-            $table->addColumn('authorizationConfiguration', Types::TEXT, ['notnull' => false]); // The authorization configuration of the consumer
+            $table->addColumn('authorization_type', Types::STRING, ['notnull' => false, 'length' => 255]); // The authorization type of the consumer, should be one of the following: 'none', 'basic', 'bearer', 'apiKey', 'oauth2', 'jwt'. Keep in mind that the consumer needs to be able to handle the authorization type.
+            $table->addColumn('authorization_configuration', Types::TEXT, ['notnull' => false]); // The authorization configuration of the consumer
             $table->addColumn('created', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']); // the date and time the consumer was created
             $table->addColumn('updated', Types::DATETIME, ['notnull' => true, 'default' => 'CURRENT_TIMESTAMP']); // the date and time the consumer was updated
             $table->setPrimaryKey(['id']);

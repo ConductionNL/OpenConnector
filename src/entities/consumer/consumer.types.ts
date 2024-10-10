@@ -1,14 +1,12 @@
 export type TConsumer = {
-    id: string
+    id: number
     uuid: string
     name: string
-    description: string | null
-    reference: string | null
-    version: string
+    description: string
     domains: string[]
     ips: string[]
-    authorizationType: string | null
+    authorizationType: 'none' | 'basic' | 'bearer' | 'apiKey' | 'oauth2' | 'jwt'
     authorizationConfiguration: string[][]
-    created: string | null
-    updated: string | null
+    created: string
+    updated: string
 }

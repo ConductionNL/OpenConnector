@@ -1,5 +1,5 @@
 <script setup>
-import { endpointStore, navigationStore, searchStore } from '../../store/store.js'
+import { consumerStore, navigationStore, searchStore } from '../../store/store.js'
 </script>
 
 <template>
@@ -12,47 +12,47 @@ import { endpointStore, navigationStore, searchStore } from '../../store/store.j
 					label="Search"
 					class="searchField"
 					trailing-button-icon="close"
-					@trailing-button-click="endpointStore.refreshEndpointList()">
+					@trailing-button-click="consumerStore.refreshConsumerList()">
 					<Magnify :size="20" />
 				</NcTextField>
 				<NcActions>
-					<NcActionButton @click="endpointStore.refreshEndpointList()">
+					<NcActionButton @click="consumerStore.refreshConsumerList()">
 						<template #icon>
 							<Refresh :size="20" />
 						</template>
 						Ververs
 					</NcActionButton>
-					<NcActionButton @click="endpointStore.setEndpointItem(null); navigationStore.setModal('editEndpoint')">
+					<NcActionButton @click="consumerStore.setConsumerItem(null); navigationStore.setModal('editConsumer')">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
-						Endpoint toevoegen
+						Consumer toevoegen
 					</NcActionButton>
 				</NcActions>
 			</div>
-			<div v-if="endpointStore.endpointList && endpointStore.endpointList.length > 0">
-				<NcListItem v-for="(endpoint, i) in endpointStore.endpointList"
-					:key="`${endpoint}${i}`"
-					:name="endpoint.name"
-					:active="endpointStore.endpointItem?.id === endpoint?.id"
+			<div v-if="consumerStore.consumerList && consumerStore.consumerList.length > 0">
+				<NcListItem v-for="(consumer, i) in consumerStore.consumerList"
+					:key="`${consumer}${i}`"
+					:name="consumer.name"
+					:active="consumerStore.consumerItem?.id === consumer?.id"
 					:force-display-actions="true"
-					@click="endpointStore.setEndpointItem(endpoint)">
+					@click="consumerStore.setConsumerItem(consumer)">
 					<template #icon>
-						<Api :class="endpointStore.endpointItem?.id === endpoint.id && 'selectedEndpointIcon'"
+						<Api :class="consumerStore.consumerItem?.id === consumer.id && 'selectedConsumerIcon'"
 							disable-menu
 							:size="44" />
 					</template>
 					<template #subname>
-						{{ endpoint?.description }}
+						{{ consumer?.description }}
 					</template>
 					<template #actions>
-						<NcActionButton @click="endpointStore.setEndpointItem(endpoint); navigationStore.setModal('editEndpoint')">
+						<NcActionButton @click="consumerStore.setConsumerItem(consumer); navigationStore.setModal('editConsumer')">
 							<template #icon>
 								<Pencil />
 							</template>
 							Bewerken
 						</NcActionButton>
-						<NcActionButton @click="endpointStore.setEndpointItem(endpoint); navigationStore.setDialog('deleteEndpoint')">
+						<NcActionButton @click="consumerStore.setConsumerItem(consumer); navigationStore.setDialog('deleteConsumer')">
 							<template #icon>
 								<TrashCanOutline />
 							</template>
@@ -63,14 +63,14 @@ import { endpointStore, navigationStore, searchStore } from '../../store/store.j
 			</div>
 		</ul>
 
-		<NcLoadingIcon v-if="!endpointStore.endpointList"
+		<NcLoadingIcon v-if="!consumerStore.consumerList"
 			class="loadingIcon"
 			:size="64"
 			appearance="dark"
-			name="Endpoints aan het laden" />
+			name="Consumers aan het laden" />
 
-		<div v-if="!endpointStore.endpointList.length" class="emptyListHeader">
-			Er zijn nog geen endpoints gedefinieerd.
+		<div v-if="!consumerStore.consumerList.length" class="emptyListHeader">
+			Er zijn nog geen consumers gedefinieerd.
 		</div>
 	</NcAppContentList>
 </template>
@@ -85,7 +85,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 export default {
-	name: 'EndpointsList',
+	name: 'ConsumersList',
 	components: {
 		NcListItem,
 		NcActions,
@@ -102,7 +102,7 @@ export default {
 		TrashCanOutline,
 	},
 	mounted() {
-		endpointStore.refreshEndpointList()
+		consumerStore.refreshConsumerList()
 	},
 }
 </script>

@@ -2,7 +2,7 @@
 
 namespace OCA\OpenConnector\Db;
 
-use OCA\OpenConnector\Db\Mapping;
+use OCA\OpenConnector\Db\Endpoint;
 use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -16,7 +16,7 @@ class EndpointMapper extends QBMapper
 		parent::__construct($db, 'openconnector_endpoints');
 	}
 
-	public function find(int $id): Mapping
+	public function find(int $id): Endpoint
 	{
 		$qb = $this->db->getQueryBuilder();
 
@@ -58,9 +58,9 @@ class EndpointMapper extends QBMapper
 		return $this->findEntities(query: $qb);
 	}
 
-	public function createFromArray(array $object): Mapping
+	public function createFromArray(array $object): Endpoint
 	{
-		$obj = new Mapping();
+		$obj = new Endpoint();
 		$obj->hydrate($object);
 		// Set uuid
 		if($obj->getUuid() === null){
@@ -69,7 +69,7 @@ class EndpointMapper extends QBMapper
 		return $this->insert(entity: $obj);
 	}
 
-	public function updateFromArray(int $id, array $object): Mapping
+	public function updateFromArray(int $id, array $object): Endpoint
 	{
 		$obj = $this->find($id);
 		$obj->hydrate($object);
