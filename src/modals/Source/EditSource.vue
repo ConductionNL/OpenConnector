@@ -36,7 +36,8 @@ import { sourceStore, navigationStore } from '../../store/store.js'
 					<NcTextField
 						id="location"
 						label="location*"
-						:value.sync="sourceItem.location" />
+						:value.sync="sourceItem.location"
+						:helper-text="`The location of the source will never end on a /. If a / is added it will be removed on saving.`" />
 				</div>
 			</form>
 

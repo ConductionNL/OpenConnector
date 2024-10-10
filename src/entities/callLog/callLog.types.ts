@@ -11,6 +11,6 @@ export type TCallLog = {
     responseBody?: any
     duration: number
     error?: string | null
-    createdAt: string
-    updatedAt?: string | null
+    created: string
+    updated?: string | null
 }

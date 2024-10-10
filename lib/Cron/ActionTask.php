@@ -7,23 +7,26 @@ use OCA\OpenConnector\Db\JobLog;
 use OCA\OpenConnector\Db\JobLogMapper;
 use OCP\BackgroundJob\TimedJob;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\BackgroundJob\IJobList;     
+use OCP\BackgroundJob\IJobList;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\Uid\Uuid;
+use DateInterval;
+use DateTime;
 
 /**
  * This class is used to run the action tasks for the OpenConnector app. It hooks into the cron job list and runs the classes that are set as the job class in the job.
- * 
+ *
  * @package OCA\OpenConnector\Cron
  */
 class ActionTask extends TimedJob
-{    
+{
     private JobMapper $jobMapper;
     private JobLogMapper $jobLogMapper;
     private IJobList $jobList;
-    private ContainerInterface $containerInterface; 
+    private ContainerInterface $containerInterface;
 
-    public function __construct(        
-        ITimeFactory $time, 
+    public function __construct(
+        ITimeFactory $time,
         JobMapper $jobMapper,
         JobLogMapper $jobLogMapper,
         IJobList $jobList,
@@ -40,12 +43,19 @@ class ActionTask extends TimedJob
         // Delay until low-load time
         //$this->setTimeSensitivity(\OCP\BackgroundJob\IJob::TIME_SENSITIVE);
         // Or $this->setTimeSensitivity(\OCP\BackgroundJob\IJob::TIME_INSENSITIVE);
-        
+
         // Only run one instance of this job at a time
         //$this->setAllowParallelRuns(false);
     }
 
-    //@todo: make this a bit more generic :')
+	/**
+	 * @todo
+	 * @todo: make this a bit more generic :')
+	 *
+	 * @param $argument
+	 *
+	 * @return JobLog|void
+	 */
     public function run($argument)
     {
         // if we do not have a job id then everything is wrong
@@ -53,7 +63,7 @@ class ActionTask extends TimedJob
             return;
         }
 
-        // lets get the job, the user might have deleted it in the mean time
+        // Let's get the job, the user might have deleted it in the mean time
         try {
             $job = $this->jobMapper->find($argument['jobId']);
         } catch (Exception $e) {
@@ -66,15 +76,19 @@ class ActionTask extends TimedJob
         }
 
         // if the next run is in the the future, we don't need to do anything
-        if ($job->getNextRun() && $job->getNextRun() > $this->time->getTime()) {
+        if ($job->getNextRun() && $job->getNextRun() > new DateTime()) {
             return;
         }
 
-		$time_start = microtime(true); 
-        
+		$time_start = microtime(true);
+
         $action =  $this->containerInterface->get($job->getJobClass());
-        $result = $action->run($job->getArguments());
-        
+        $arguments = $job->getArguments();
+        if(!is_array($arguments)){
+            $arguments = [];
+        }
+        $result = $action->run($arguments);
+
         $time_end = microtime(true);
         $executionTime = ( $time_end - $time_start ) * 1000;
 
@@ -85,19 +99,20 @@ class ActionTask extends TimedJob
 
 
         // Update the job
-        //$job->setLastRun($this->time->getTime());
-        //$job->setNextRun($this->time->getTime() + $job->getInterval());
-        //$this->jobMapper->update($job);
+        $job->setLastRun(new DateTime());
+        $job->setNextRun(new DateTime());
+        $this->jobMapper->update($job);
 
         // Log the job
         $jobLog = new JobLog();
+        $jobLog->setUuid(Uuid::v4());
         $jobLog->setJobId($job->getId());
         $jobLog->setJobClass($job->getJobClass());
         $jobLog->setJobListId($job->getJobListId());
         $jobLog->setArguments($job->getArguments());
-        //$jobLog->setLastRun($job->getLastRun());
-        //$jobLog->setNextRun($job->getNextRun());
-        //$jobLog->setExecutionTime($executionTime);
+        $jobLog->setLastRun($job->getLastRun());
+        $jobLog->setNextRun($job->getNextRun());
+        $jobLog->setExecutionTime($executionTime);
 
         // Get the result and set it to the job log
         if (is_array($result)) {
@@ -114,7 +129,7 @@ class ActionTask extends TimedJob
 
         $this->jobLogMapper->insert($jobLog);
 
-        // Lets report back about what we have just done
+        // Let's report back about what we have just done
         return $jobLog;
     }
 

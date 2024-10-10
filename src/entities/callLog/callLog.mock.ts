@@ -14,8 +14,8 @@ export const mockCallLogData = (): TCallLog[] => [
 		responseBody: { users: [] },
 		duration: 150,
 		error: null,
-		createdAt: '2023-06-01T12:00:00Z',
-		updatedAt: null,
+		created: '2023-06-01T12:00:00Z',
+		updated: null,
 	},
 	{
 		id: '4c3edd34-a90d-4d2a-8894-adb5836ecde8',
@@ -29,8 +29,8 @@ export const mockCallLogData = (): TCallLog[] => [
 		responseBody: { id: '123', message: 'Post created successfully' },
 		duration: 200,
 		error: null,
-		createdAt: '2023-06-02T14:30:00Z',
-		updatedAt: null,
+		created: '2023-06-02T14:30:00Z',
+		updated: null,
 	},
 ]
 

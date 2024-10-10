@@ -3,13 +3,13 @@ import { logStore, navigationStore } from '../../store/store.js'
 </script>
 
 <template>
-	<NcModal v-if="navigationStore.modal === 'viewLog'"
+	<NcModal v-if="navigationStore.modal === 'viewJobLog'"
 		ref="modalRef"
-		label-id="viewLog"
+		label-id="viewJobLog"
 		@close="closeModal">
 		<div class="logModalContent">
 			<div class="logModalContentHeader">
-				<h2>View Log</h2>
+				<h2>View Job Log</h2>
 			</div>
 
 			<strong>Standard</strong>
@@ -20,14 +20,19 @@ import { logStore, navigationStore } from '../../store/store.js'
 					<td class="keyColumn">
 						{{ key }}
 					</td>
-					<td>{{ value }}</td>
+					<td v-if="typeof value === 'string' && (key === 'created' || key === 'updated' || key === 'expires' || key === 'lastRun' || key === 'nextRun')">
+						{{ new Date(value).toLocaleString() }}
+					</td>
+					<td v-else>
+						{{ value }}
+					</td>
 				</tr>
 			</table>
 			<br>
 
-			<strong>Created At</strong>
+			<strong>Arguments</strong>
 			<table>
-				<tr v-for="(value, key) in createdAtItems"
+				<tr v-for="(value, key) in argumentsItems"
 					:key="key">
 					<td class="keyColumn">
 						{{ key }}
@@ -37,9 +42,9 @@ import { logStore, navigationStore } from '../../store/store.js'
 			</table>
 			<br>
 
-			<strong>Request</strong>
+			<strong>Stack Trace</strong>
 			<table>
-				<tr v-for="(value, key) in requestItems"
+				<tr v-for="(value, key) in stackTraceItems"
 					:key="key">
 					<td class="keyColumn">
 						{{ key }}
@@ -47,38 +52,6 @@ import { logStore, navigationStore } from '../../store/store.js'
 					<td>{{ value }}</td>
 				</tr>
 			</table>
-			<br>
-			<div>
-				<strong>Response</strong>
-				<table>
-					<tr v-for="(value, key) in responseItems"
-						:key="key">
-						<td v-if="key !== 'body' && key !== 'headers'" class="keyColumn">
-							{{ key }}
-						</td>
-						<td v-if="key !== 'body' && key !== 'headers'">
-							{{ value }}
-						</td>
-					</tr>
-				</table>
-				<span>headers</span>
-				<table class="responseHeadersTable">
-					<tr v-for="(value, key) in headersItems"
-						:key="key">
-						<td class="keyColumn">
-							{{ key }}
-						</td>
-						<td>{{ value }}</td>
-					</tr>
-				</table>
-
-				<div>
-					<span>body</span>
-					<div class="responseBody">
-						{{ responseItems.body }}
-					</div>
-				</div>
-			</div>
 		</div>
 	</NcModal>
 </template>
@@ -89,7 +62,7 @@ import {
 } from '@nextcloud/vue'
 
 export default {
-	name: 'ViewLog',
+	name: 'ViewJobLog',
 	components: {
 		NcModal,
 	},
@@ -97,17 +70,15 @@ export default {
 		return {
 			hasUpdated: false,
 			standardItems: {},
-			requestItems: {},
-			responseItems: {},
-			headersItems: {},
-			createdAtItems: {},
+			stackTraceItems: {},
+			argumentsItems: {},
 		}
 	},
 	mounted() {
 		logStore.viewLogItem && this.splitItems()
 	},
 	updated() {
-		if (navigationStore.modal === 'viewLog' && !this.hasUpdated) {
+		if (navigationStore.modal === 'viewJobLog' && !this.hasUpdated) {
 			logStore.viewLogItem && this.splitItems()
 			this.hasUpdated = true
 		}
@@ -115,26 +86,18 @@ export default {
 	methods: {
 		splitItems() {
 			Object.entries(logStore.viewLogItem).forEach(([key, value]) => {
-				if (key === 'request' || key === 'response' || key === 'createdAt') {
+				if (key === 'stackTrace' || key === 'arguments') {
 					this[`${key}Items`] = { ...value }
 				} else {
 					this.standardItems = { ...this.standardItems, [key]: value }
 				}
-			})
-			this.headersToObject()
-		},
-		headersToObject() {
-			Object.entries(this.requestItems).forEach(([key, value]) => {
-				this.headersItems = { ...this.headersItems, [key]: value }
 			})
 		},
 		closeModal() {
 			navigationStore.setModal(false)
 			this.hasUpdated = false
 			this.standardItems = {}
-			this.requestItems = {}
-			this.responseItems = {}
-			this.createdAtItems = {}
+			this.stackTraceItems = {}
 			this.headersItems = {}
 		},
 	},

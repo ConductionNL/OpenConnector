@@ -8,11 +8,13 @@ use OCP\AppFramework\Db\Entity;
 
 /**
  * This class is used to define a contract for a synchronization. Or in other words, a contract between a source and target object.
- * 
+ *
  * @package OCA\OpenConnector\Db
  */
 class SynchronizationContract extends Entity implements JsonSerializable
 {
+    protected ?string $uuid = null;
+    protected ?string $version = null;
 	protected ?string $synchronizationId = null; // The synchronization that this contract belongs to
 	// Source
 	protected ?string $sourceId = null; // The id of the object in the source
@@ -27,11 +29,13 @@ class SynchronizationContract extends Entity implements JsonSerializable
 	protected ?DateTime $targetLastChecked = null; // The last checked date of the object in the target
 	protected ?DateTime $targetLastSynced = null; // The last synced date of the object in the target
 	// General
-	protected ?DateTime $created = null; // the date and time the synchronization was created	
+	protected ?DateTime $created = null; // the date and time the synchronization was created
 	protected ?DateTime $updated = null; // the date and time the synchronization was updated
 
 
 	public function __construct() {
+        $this->addType('uuid', 'string');
+        $this->addType('version', 'string');
 		$this->addType('synchronizationId', 'string');
 		$this->addType('sourceId', 'string');
 		$this->addType('sourceHash', 'string');
@@ -60,7 +64,7 @@ class SynchronizationContract extends Entity implements JsonSerializable
 	{
 		$jsonFields = $this->getJsonFields();
 
-		foreach($object as $key => $value) {
+		foreach ($object as $key => $value) {
 			if (in_array($key, $jsonFields) === true && $value === []) {
 				$value = [];
 			}
@@ -81,7 +85,9 @@ class SynchronizationContract extends Entity implements JsonSerializable
 	{
 		return [
 			'id' => $this->id,
-			'synchronizationId' => $this->synchronization,
+			'uuid' => $this->uuid,
+			'version' => $this->version,
+			'synchronizationId' => $this->synchronizationId,
 			'sourceId' => $this->sourceId,
 			'sourceHash' => $this->sourceHash,
 			'sourceLastChanged' => $this->sourceLastChanged,

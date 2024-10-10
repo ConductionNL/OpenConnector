@@ -7,26 +7,26 @@ use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 class SynchronizationContractLog extends Entity implements JsonSerializable
-{    
-	protected ?string $synchronizationId = null; // the id of the synchronization in the synchronization
-	protected ?string $jobListId = null; // the id of the job in the job list
-	protected ?string $jobClass = 'OCA\OpenConnector\Action\PingAction';
-	protected ?array $arguments = null;
-	protected ?int $executionTime = 3600; // the execution time in seconds
-	protected ?string $userId = null; // the user which the job is running for security reasons
-	protected ?DateTime $lastRun = null; // the last time the job was run
-	protected ?DateTime $nextRun = null; // the next time the job will be run
-	protected ?DateTime $created = null; // the date and time the job was created	
+{
+    protected ?string $uuid = null;
+    protected ?string $synchronizationId = null;
+    protected ?string $synchronizationContractId = null;
+    protected ?array $source = [];
+    protected ?array $target = [];
+    protected ?string $userId = null;
+    protected ?string $sessionId = null;
+    protected ?DateTime $expires = null;
+    protected ?DateTime $created = null;
 
     public function __construct() {
-        $this->addType('jobId', 'string');
-        $this->addType('jobListId', 'string');
-        $this->addType('jobClass', 'string');
-        $this->addType('arguments', 'json');
-        $this->addType('executionTime', 'integer');
+        $this->addType('uuid', 'string');
+        $this->addType('synchronizationId', 'string');
+        $this->addType('synchronizationContractId', 'string');
+        $this->addType('source', 'json');
+        $this->addType('target', 'json');
         $this->addType('userId', 'string');
-        $this->addType('lastRun', 'datetime');
-        $this->addType('nextRun', 'datetime');
+        $this->addType('sessionId', 'string');
+        $this->addType('expires', 'datetime');
         $this->addType('created', 'datetime');
     }
 
@@ -43,7 +43,7 @@ class SynchronizationContractLog extends Entity implements JsonSerializable
     {
         $jsonFields = $this->getJsonFields();
 
-        foreach($object as $key => $value) {
+        foreach ($object as $key => $value) {
             if (in_array($key, $jsonFields) === true && $value === []) {
                 $value = [];
             }
@@ -64,14 +64,14 @@ class SynchronizationContractLog extends Entity implements JsonSerializable
     {
         return [
             'id' => $this->id,
-            'jobId' => $this->jobId,
-            'jobListId' => $this->jobListId,
-            'jobClass' => $this->jobClass,
-            'arguments' => $this->arguments,
-            'executionTime' => $this->executionTime,
+            'uuid' => $this->uuid,
+            'synchronizationId' => $this->synchronizationId,
+            'synchronizationContractId' => $this->synchronizationContractId,
+            'source' => $this->source,
+            'target' => $this->target,
             'userId' => $this->userId,
-            'lastRun' => $this->lastRun,
-            'nextRun' => $this->nextRun,
+            'sessionId' => $this->sessionId,
+            'expires' => $this->expires,
             'created' => $this->created,
         ];
     }

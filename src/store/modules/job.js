@@ -112,14 +112,10 @@ export const useJobStore = defineStore(
 					})
 			},
 			// Test a job
-			testJob(testJobItem) {
+			testJob() {
 				if (!this.jobItem) {
 					throw new Error('No job item to test')
 				}
-				if (!testJobItem) {
-					throw new Error('No testobject to test')
-				}
-
 				console.log('Testing job...')
 
 				const endpoint = `/index.php/apps/openconnector/api/jobs-test/${this.jobItem.id}`

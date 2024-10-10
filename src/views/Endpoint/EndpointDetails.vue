@@ -33,6 +33,10 @@ import { endpointStore, navigationStore } from '../../store/store.js'
 
 				<div class="detailGrid">
 					<div class="gridContent gridFullWidth">
+						<b>id:</b>
+						<p>{{ endpointStore.endpointItem.uuid }}</p>
+					</div>
+					<div class="gridContent gridFullWidth">
 						<b>URL:</b>
 						<p>{{ endpointStore.endpointItem.url }}</p>
 					</div>

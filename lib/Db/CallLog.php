@@ -7,7 +7,8 @@ use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 class CallLog extends Entity implements JsonSerializable
-{    
+{
+    protected ?string $uuid = null;
     protected ?int $statusCode = null;
     protected ?string $statusMessage = null;
     protected ?array $request = null;
@@ -15,10 +16,13 @@ class CallLog extends Entity implements JsonSerializable
     protected ?int $sourceId = null;
     protected ?int $actionId = null;
     protected ?int $synchronizationId = null;
+    protected ?string $userId = null;
+    protected ?string $sessionId = null;
     protected ?DateTime $expires = null;
-    protected ?DateTime $createdAt = null;
+    protected ?DateTime $created = null;
 
     public function __construct() {
+        $this->addType('uuid', 'string');
         $this->addType('statusCode', 'integer');
         $this->addType('statusMessage', 'string');
         $this->addType('request', 'json');
@@ -26,8 +30,10 @@ class CallLog extends Entity implements JsonSerializable
         $this->addType('sourceId', 'integer');
         $this->addType('actionId', 'integer');
         $this->addType('synchronizationId', 'integer');
+        $this->addType('userId', 'string');
+        $this->addType('sessionId', 'string');
         $this->addType('expires', 'datetime');
-        $this->addType('createdAt', 'datetime');
+        $this->addType('created', 'datetime');
     }
 
     public function getJsonFields(): array
@@ -43,7 +49,7 @@ class CallLog extends Entity implements JsonSerializable
     {
         $jsonFields = $this->getJsonFields();
 
-        foreach($object as $key => $value) {
+        foreach ($object as $key => $value) {
             if (in_array($key, $jsonFields) === true && $value === []) {
                 $value = [];
             }
@@ -64,15 +70,18 @@ class CallLog extends Entity implements JsonSerializable
     {
         return [
             'id' => $this->id,
+            'uuid' => $this->uuid,
             'statusCode' => $this->statusCode,
             'statusMessage' => $this->statusMessage,
             'request' => $this->request,
             'response' => $this->response,
             'sourceId' => $this->sourceId,
             'actionId' => $this->actionId,
-            'synchronizationId' => $this->synchronizationId,
+            'synchronizationId' => $this->synchronizationId,            
+            'userId' => $this->userId,
+            'sessionId' => $this->sessionId,
             'expires' => $this->expires,
-            'createdAt' => $this->createdAt,
+            'created' => $this->created,
         ];
     }
 }

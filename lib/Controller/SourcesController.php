@@ -36,7 +36,7 @@ class SourcesController extends Controller
 
     /**
      * Returns the template of the main app's page
-     * 
+     *
      * This method renders the main page of the application, adding any necessary data to the template.
      *
      * @NoAdminRequired
@@ -45,17 +45,17 @@ class SourcesController extends Controller
      * @return TemplateResponse The rendered template response
      */
     public function page(): TemplateResponse
-    {           
+    {
         return new TemplateResponse(
             'openconnector',
             'index',
             []
         );
     }
-    
+
     /**
      * Retrieves a list of all sources
-     * 
+     *
      * This method returns a JSON response containing an array of all sources in the system.
      *
      * @NoAdminRequired
@@ -77,7 +77,7 @@ class SourcesController extends Controller
 
     /**
      * Retrieves a single source by its ID
-     * 
+     *
      * This method returns a JSON response containing the details of a specific source.
      *
      * @NoAdminRequired
@@ -97,7 +97,7 @@ class SourcesController extends Controller
 
     /**
      * Creates a new source
-     * 
+     *
      * This method creates a new source based on POST data.
      *
      * @NoAdminRequired
@@ -114,17 +114,17 @@ class SourcesController extends Controller
                 unset($data[$key]);
             }
         }
-        
+
         if (isset($data['id'])) {
             unset($data['id']);
         }
-        
+
         return new JSONResponse($this->sourceMapper->createFromArray(object: $data));
     }
 
     /**
      * Updates an existing source
-     * 
+     *
      * This method updates an existing source based on its ID.
      *
      * @NoAdminRequired
@@ -150,7 +150,7 @@ class SourcesController extends Controller
 
     /**
      * Deletes a source
-     * 
+     *
      * This method deletes a source based on its ID.
      *
      * @NoAdminRequired
@@ -168,7 +168,7 @@ class SourcesController extends Controller
 
     /**
      * Retrieves call logs for a source
-     * 
+     *
      * This method returns all the call logs associated with a source based on its ID.
      *
      * @NoAdminRequired
@@ -180,8 +180,7 @@ class SourcesController extends Controller
     public function logs(int $id): JSONResponse
     {
         try {
-            $source = $this->sourceMapper->find($id);
-            $callLogs = $this->callLogMapper->findAll(null, null, ['source_id' => $source->getId()]);
+            $callLogs = $this->callLogMapper->findAll(null, null, ['source_id' =>  $id]);
             return new JSONResponse($callLogs);
         } catch (DoesNotExistException $e) {
             return new JSONResponse(['error' => 'Source not found'], 404);
@@ -190,7 +189,7 @@ class SourcesController extends Controller
 
     /**
      * Test a source
-     * 
+     *
      * This method fires a test call to the source and returns the response.
      *
      * @NoAdminRequired
@@ -260,8 +259,8 @@ class SourcesController extends Controller
         }
 
         // fire the call
-        
-        $time_start = microtime(true); 
+
+        $time_start = microtime(true);
         $callLog = $callService->call($source, $endpoint, $method, $config);
         $time_end = microtime(true);
 

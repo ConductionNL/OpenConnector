@@ -15,8 +15,8 @@ export class CallLog implements TCallLog {
 	public responseBody?: any
 	public duration: number
 	public error?: string | null
-	public createdAt: string
-	public updatedAt?: string | null
+	public created: string
+	public updated?: string | null
 
 	constructor(callLog: TCallLog) {
 		this.id = callLog.id
@@ -30,8 +30,8 @@ export class CallLog implements TCallLog {
 		this.responseBody = callLog.responseBody
 		this.duration = callLog.duration
 		this.error = callLog.error || null
-		this.createdAt = callLog.createdAt
-		this.updatedAt = callLog.updatedAt || null
+		this.created = callLog.created
+		this.updated = callLog.updated || null
 	}
 
 	public validate(): SafeParseReturnType<TCallLog, unknown> {
@@ -47,8 +47,8 @@ export class CallLog implements TCallLog {
 			responseBody: z.any().optional(),
 			duration: z.number().positive(),
 			error: z.string().nullable().optional(),
-			createdAt: z.string().datetime(),
-			updatedAt: z.string().datetime().nullable().optional()
+			created: z.string().datetime(),
+			updated: z.string().datetime().nullable().optional()
 		})
 
 		return schema.safeParse({ ...this })

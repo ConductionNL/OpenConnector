@@ -45,6 +45,10 @@ import { sourceStore, navigationStore, logStore } from '../../store/store.js'
 
 				<div class="detailGrid">
 					<div class="gridContent gridFullWidth">
+						<b>id:</b>
+						<p>{{ sourceStore.sourceItem.uuid }}</p>
+					</div>
+					<div class="gridContent gridFullWidth">
 						<b>location:</b>
 						<p>{{ sourceStore.sourceItem.location }}</p>
 					</div>
@@ -138,18 +142,14 @@ import { sourceStore, navigationStore, logStore } from '../../store/store.js'
 									:bold="false"
 									:counter-number="log.statusCode"
 									:force-display-actions="true"
-									:active="logStore.activeLogKey === log?.id"
-									@click="logStore.setActiveLogKey(log.id)">
-									<template #counter-number>
-										<MathLog disable-menu
-											:size="44" />
-									</template>
+									:active="logStore.activeLogKey === `sourceLog-${log.id}`"
+									@click="setActiveSourceLog(log.id)">
 									<template #icon>
 										<TimelineQuestionOutline disable-menu
 											:size="44" />
 									</template>
 									<template #subname>
-										{{ log.createdAt.date }} - {{ log.createdAt.timezone }}
+										{{ new Date(log.created).toLocaleString() }}
 									</template>
 									<template #actions>
 										<NcActionButton @click="viewLog(log)">
@@ -187,7 +187,6 @@ import TimelineQuestionOutline from 'vue-material-design-icons/TimelineQuestionO
 import Delete from 'vue-material-design-icons/Delete.vue'
 import FileCogOutline from 'vue-material-design-icons/FileCogOutline.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import MathLog from 'vue-material-design-icons/MathLog.vue'
 import EyeOutline from 'vue-material-design-icons/EyeOutline.vue'
 
 export default {
@@ -222,12 +221,19 @@ export default {
 		},
 		viewLog(log) {
 			logStore.setViewLogItem(log)
-			navigationStore.setModal('viewLog')
+			navigationStore.setModal('viewSourceLog')
 		},
 		setActiveSourceConfigurationKey(sourceConfigurationKey) {
 			if (sourceStore.sourceConfigurationKey === sourceConfigurationKey) {
 				sourceStore.setSourceConfigurationKey(false)
 			} else { sourceStore.setSourceConfigurationKey(sourceConfigurationKey) }
+		},
+		setActiveSourceLog(sourceLogId) {
+			if (logStore.activeLogKey === `sourceLog-${sourceLogId}`) {
+				logStore.setActiveLogKey(null)
+			} else {
+				logStore.setActiveLogKey(`sourceLog-${sourceLogId}`)
+			}
 		},
 		refreshSourceLogs() {
 			sourceStore.refreshSourceLogs()

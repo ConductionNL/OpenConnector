@@ -4,7 +4,28 @@
   --OC-margin-30: 30px;
   --OC-margin-40: 40px;
   --OC-margin-50: 50px;
+  --OC-color-status-background-debug: #f2f2f2;
+  --OC-color-status-debug: #4a4a4a;
+  --OC-color-status-background-success: #d4edda;
+  --OC-color-status-success: #155724;
+  --OC-color-status-background-info: #cce5ff;
+  --OC-color-status-info: #004085;
+  --OC-color-status-background-notice: #d1ecf1;
+  --OC-color-status-notice: #0c5460;
+  --OC-color-status-background-warning: #fff3cd;
+  --OC-color-status-warning: #856404;
+  --OC-color-status-background-error: #ffc061;
+  --OC-color-status-error: #59401a;
+  --OC-color-status-background-critical: #f8d7da;
+  --OC-color-status-critical: #721c24;
+  --OC-color-status-background-alert: #ff959e;
+  --OC-color-status-alert: #480f14;
+  --OC-color-status-background-emergency: #000000;
+  --OC-color-status-emergency: #ffffff;
 }
+
+
+
 
 /* Pages */
 .pageHeader {

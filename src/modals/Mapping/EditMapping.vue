@@ -27,16 +27,6 @@ import { mappingStore, navigationStore } from '../../store/store.js'
 						id="description"
 						label="Description"
 						:value.sync="mappingItem.description" />
-
-					<NcTextField
-						id="reference"
-						label="Reference"
-						:value.sync="mappingItem.reference" />
-
-					<NcTextField
-						id="version"
-						label="Version"
-						:value.sync="mappingItem.version" />
 				</div>
 			</form>
 
@@ -83,8 +73,6 @@ export default {
 			mappingItem: {
 				name: '',
 				description: '',
-				reference: '',
-				version: '',
 			},
 			success: false,
 			loading: false,
@@ -121,8 +109,6 @@ export default {
 				id: null,
 				name: '',
 				description: '',
-				reference: '',
-				version: '',
 			}
 		},
 		async editMapping() {

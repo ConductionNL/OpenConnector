@@ -8,6 +8,7 @@ use OCP\AppFramework\Db\Entity;
 
 class Mapping extends Entity implements JsonSerializable
 {
+    protected ?string $uuid = null;
 	protected ?string $reference = null;
 	protected ?string $version = null;
 	protected ?string $name = null;
@@ -20,6 +21,7 @@ class Mapping extends Entity implements JsonSerializable
 	protected ?DateTime $dateModified = null;
 
 	public function __construct() {
+        $this->addType('uuid', 'string');
 		$this->addType('reference', 'string');
 		$this->addType('version', 'string');
 		$this->addType('name', 'string');
@@ -45,7 +47,7 @@ class Mapping extends Entity implements JsonSerializable
 	{
 		$jsonFields = $this->getJsonFields();
 
-		foreach($object as $key => $value) {
+		foreach ($object as $key => $value) {
 			if (in_array($key, $jsonFields) === true && $value === []) {
 				$value = [];
 			}
@@ -66,16 +68,17 @@ class Mapping extends Entity implements JsonSerializable
 	{
 		return [
 			'id' => $this->id,
-			'reference' => $this->reference,
-			'version' => $this->version,
+			'uuid' => $this->uuid,
 			'name' => $this->name,
 			'description' => $this->description,
+			'version' => $this->version,
+			'reference' => $this->reference,
 			'mapping' => $this->mapping,
 			'unset' => $this->unset,
 			'cast' => $this->cast,
 			'passTrough' => $this->passTrough,
-			'dateCreated' => $this->dateCreated,
-			'dateModified' => $this->dateModified,
+			'dateCreated' => isset($this->dateCreated) ? $this->dateCreated->format('c') : null,
+			'dateModified' => isset($this->dateModified) ? $this->dateModified->format('c') : null,
 		];
 	}
 }

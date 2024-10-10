@@ -83,6 +83,9 @@ export const useSourceStore = defineStore(
 			},
 			// New function to get source logs
 			async refreshSourceLogs() {
+				if (!this.sourceItem?.id) {
+					return console.warn('No source item to refresh logs')
+				}
 				const endpoint = `/index.php/apps/openconnector/api/sources-logs/${this.sourceItem.id}`
 				try {
 					const response = await fetch(endpoint, {

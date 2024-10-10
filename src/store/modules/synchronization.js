@@ -7,6 +7,8 @@ export const useSynchronizationStore = defineStore(
 		state: () => ({
 			synchronizationItem: false,
 			synchronizationList: [],
+			synchronizationContracts: [],
+			synchronizationLogs: [],
 		}),
 		actions: {
 			setSynchronizationItem(synchronizationItem) {
@@ -18,6 +20,18 @@ export const useSynchronizationStore = defineStore(
 					(synchronizationItem) => new Synchronization(synchronizationItem),
 				)
 				console.log('Synchronization list set to ' + synchronizationList.length + ' items')
+			},
+			setSynchronizationContracts(synchronizationContracts) {
+				this.synchronizationContracts = synchronizationContracts.map(
+					(synchronizationContract) => new SynchronizationContract(synchronizationContract),
+				)
+				console.log('Synchronization contracts set to ' + synchronizationContracts.length + ' items')
+			},
+			setSynchronizationLogs(synchronizationLogs) {
+				this.synchronizationLogs = synchronizationLogs.map(
+					(synchronizationLog) => new SynchronizationLog(synchronizationLog),
+				)
+				console.log('Synchronization logs set to ' + synchronizationLogs.length + ' items')
 			},
 			/* istanbul ignore next */ // ignore this for Jest until moved into a service
 			async refreshSynchronizationList(search = null) {
@@ -34,6 +48,56 @@ export const useSynchronizationStore = defineStore(
 							response.json().then(
 								(data) => {
 									this.setSynchronizationList(data.results)
+								},
+							)
+						},
+					)
+					.catch(
+						(err) => {
+							console.error(err)
+						},
+					)
+			},
+			/* istanbul ignore next */ // ignore this for Jest until moved into a service
+			async refreshSynchronizationContracts(search = null) {
+				// @todo this might belong in a service?
+				let endpoint = `/index.php/apps/openconnector/api/synchronizations-contracts/${this.synchronizationItem.id}`
+				if (search !== null && search !== '') {
+					endpoint = endpoint + '?_search=' + search
+				}
+				return fetch(endpoint, {
+					method: 'GET',
+				})
+					.then(
+						(response) => {
+							response.json().then(
+								(data) => {
+									this.setSynchronizationContracts(data.results)
+								},
+							)
+						},
+					)
+					.catch(
+						(err) => {
+							console.error(err)
+						},
+					)
+			},
+			/* istanbul ignore next */ // ignore this for Jest until moved into a service
+			async refreshSynchronizationLogs(search = null) {
+				// @todo this might belong in a service?
+				let endpoint = `/index.php/apps/openconnector/api/synchronizations-logs/${this.synchronizationItem.id}`
+				if (search !== null && search !== '') {
+					endpoint = endpoint + '?_search=' + search
+				}
+				return fetch(endpoint, {
+					method: 'GET',
+				})
+					.then(
+						(response) => {
+							response.json().then(
+								(data) => {
+									this.setSynchronizationLogs(data.results)
 								},
 							)
 						},

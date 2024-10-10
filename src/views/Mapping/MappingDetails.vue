@@ -45,6 +45,10 @@ import { mappingStore, navigationStore } from '../../store/store.js'
 
 				<div class="detailGrid">
 					<div class="gridContent gridFullWidth">
+						<b>id:</b>
+						<p>{{ mappingStore.mappingItem.uuid }}</p>
+					</div>
+					<div class="gridContent gridFullWidth">
 						<b>Reference:</b>
 						<p>{{ mappingStore.mappingItem.reference }}</p>
 					</div>

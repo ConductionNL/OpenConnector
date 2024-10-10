@@ -20,7 +20,7 @@ import { navigationStore } from '../store/store.js'
 					<Api :size="20" />
 				</template>
 			</NcAppNavigationItem>
-			<NcAppNavigationItem :active="navigationStore.selected === 'webhooks'" name="Webhooks" @click="navigationStore.setSelected('webhooks')">
+			<NcAppNavigationItem :active="navigationStore.selected === 'consumers'" name="Consumers" @click="navigationStore.setSelected('consumers')">
 				<template #icon>
 					<Webhook :size="20" />
 				</template>
@@ -30,9 +30,18 @@ import { navigationStore } from '../store/store.js'
 					<SitemapOutline :size="20" />
 				</template>
 			</NcAppNavigationItem>
-			<NcAppNavigationItem :active="navigationStore.selected === 'jobs'" name="Jobs" @click="navigationStore.setSelected('jobs')">
+			<NcAppNavigationItem :active="navigationStore.selected === 'jobs'" name="Jobs" @click="navigationStore.setSelected('jobs')" :allowCollapse="true" :open="true">
 				<template #icon>
 					<Update :size="20" />
+				</template>
+			</NcAppNavigationItem>
+			<NcAppNavigationItem :active="navigationStore.selected === 'notifications'" name="Cloud Events" @click="navigationStore.setSelected('notifications')">
+				<template #icon>
+					<CloudUploadOutline :size="20" />
+				</template>
+				<template>
+					<NcAppNavigationItem name="Subscriber List" />
+					<NcAppNavigationItem name="Events" />
 				</template>
 			</NcAppNavigationItem>
 			<NcAppNavigationItem :active="navigationStore.selected === 'synchronizations'" name="Synchronization" @click="navigationStore.setSelected('synchronizations')">
@@ -59,7 +68,7 @@ import Webhook from 'vue-material-design-icons/Webhook.vue'
 import SitemapOutline from 'vue-material-design-icons/SitemapOutline.vue'
 import Update from 'vue-material-design-icons/Update.vue'
 import VectorPolylinePlus from 'vue-material-design-icons/VectorPolylinePlus.vue'
-
+import CloudUploadOutline from 'vue-material-design-icons/CloudUploadOutline.vue'
 export default {
 	name: 'MainMenu',
 	components: {
@@ -75,6 +84,7 @@ export default {
 		SitemapOutline,
 		Update,
 		VectorPolylinePlus,
+		CloudUploadOutline,
 	},
 	methods: {
 		openLink(url, type = '') {

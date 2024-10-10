@@ -6,6 +6,8 @@ use OCA\OpenConnector\Service\ObjectService;
 use OCA\OpenConnector\Service\SearchService;
 use OCA\OpenConnector\Db\Synchronization;
 use OCA\OpenConnector\Db\SynchronizationMapper;
+use OCA\OpenConnector\Db\SynchronizationContractMapper;
+use OCA\OpenConnector\Db\SynchronizationContractLogMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
@@ -25,10 +27,13 @@ class SynchronizationsController extends Controller
         $appName,
         IRequest $request,
         private readonly IAppConfig $config,
-        private readonly SynchronizationMapper $synchronizationMapper
+        private readonly SynchronizationMapper $synchronizationMapper,
+        private readonly SynchronizationContractMapper $synchronizationContractMapper,
+        private readonly SynchronizationContractLogMapper $synchronizationContractLogMapper
     )
     {
-        parent::__construct($appName, $request);
+        parent::__construct($appName, $request);    
+
     }
 
     /**
@@ -161,5 +166,47 @@ class SynchronizationsController extends Controller
         $this->synchronizationMapper->delete($this->synchronizationMapper->find((int) $id));
 
         return new JSONResponse([]);
+    }
+
+    /**
+     * Retrieves call logs for a job
+     *
+     * This method returns all the call logs associated with a source based on its ID.
+     *
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     *
+     * @param int $id The ID of the source to retrieve logs for
+     * @return JSONResponse A JSON response containing the call logs
+     */
+    public function contracts(int $id): JSONResponse
+    {
+        try {
+            $contracts = $this->synchronizationContractMapper->findAll($null, null, ['synchronization_id' => $id]);
+            return new JSONResponse($contracts);
+        } catch (DoesNotExistException $e) {
+            return new JSONResponse(['error' => 'Contracts not found'], 404);
+        }
+    }
+
+    /**
+     * Retrieves call logs for a job
+     *
+     * This method returns all the call logs associated with a source based on its ID.
+     *
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     *
+     * @param int $id The ID of the source to retrieve logs for
+     * @return JSONResponse A JSON response containing the call logs
+     */
+    public function logs(int $id): JSONResponse
+    {
+        try {
+            $logs = $this->synchronizationContractLogMapper->findAll(null, null, ['synchronization_id' => $id]);
+            return new JSONResponse($logs);
+        } catch (DoesNotExistException $e) {
+            return new JSONResponse(['error' => 'Logs not found'], 404);
+        }
     }
 }

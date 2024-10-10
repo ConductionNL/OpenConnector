@@ -35,7 +35,7 @@ import { jobStore, navigationStore } from '../../store/store.js'
 
 					<NcInputField
 						type="number"
-						label="Intraval"
+						label="Interval"
 						:value.sync="jobItem.interval" />
 
 					<NcInputField

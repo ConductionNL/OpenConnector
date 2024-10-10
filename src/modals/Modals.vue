@@ -20,7 +20,8 @@
 		<DeleteJobArgument />
 		<EditSourceConfiguration />
 		<DeleteSourceConfiguration />
-		<ViewLog />
+		<ViewSourceLog />
+		<ViewJobLog />
 	</div>
 </template>
 
@@ -42,11 +43,12 @@ import EditJobArgument from './JobArgument/EditJobArgument.vue'
 import DeleteJobArgument from './JobArgument/DeleteJobArgument.vue'
 import EditSourceConfiguration from './SourceConfiguration/EditSourceConfiguration.vue'
 import DeleteSourceConfiguration from './SourceConfiguration/DeleteSourceConfiguration.vue'
-import ViewLog from './Log/ViewLog.vue'
+import ViewSourceLog from './Log/ViewSourceLog.vue'
 import EditMappingMapping from './mappingMapping/EditMappingMapping.vue'
 import DeleteMappingMapping from './mappingMapping/DeleteMappingMapping.vue'
 import EditMappingCast from './mappingCast/EditMappingCast.vue'
 import DeleteMappingCast from './mappingCast/DeleteMappingCast.vue'
+import ViewJobLog from './Log/ViewJobLog.vue'
 
 export default {
 	name: 'Modals',
@@ -67,11 +69,12 @@ export default {
 		DeleteJobArgument,
 		EditSourceConfiguration,
 		DeleteSourceConfiguration,
-		ViewLog,
+		ViewSourceLog,
 		EditMappingMapping,
 		DeleteMappingMapping,
 		EditMappingCast,
 		DeleteMappingCast,
+		ViewJobLog,
 	},
 	setup() {
 		return {

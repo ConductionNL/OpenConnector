@@ -11,8 +11,8 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IAppConfig;
 use OCP\IRequest;
-use OCP\BackgroundJob\IJobList;     
-use OCA\OpenConnector\Db\JobLogMapper;  
+use OCP\BackgroundJob\IJobList;
+use OCA\OpenConnector\Db\JobLogMapper;
 use OCA\OpenConnector\Service\JobService;
 
 class JobsController extends Controller
@@ -40,7 +40,7 @@ class JobsController extends Controller
 
     /**
      * Returns the template of the main app's page
-     * 
+     *
      * This method renders the main page of the application, adding any necessary data to the template.
      *
      * @NoAdminRequired
@@ -49,17 +49,17 @@ class JobsController extends Controller
      * @return TemplateResponse The rendered template response
      */
     public function page(): TemplateResponse
-    {           
+    {
         return new TemplateResponse(
             'openconnector',
             'index',
             []
         );
     }
-    
+
     /**
      * Retrieves a list of all jobs
-     * 
+     *
      * This method returns a JSON response containing an array of all jobs in the system.
      *
      * @NoAdminRequired
@@ -81,7 +81,7 @@ class JobsController extends Controller
 
     /**
      * Retrieves a single job by its ID
-     * 
+     *
      * This method returns a JSON response containing the details of a specific job.
      *
      * @NoAdminRequired
@@ -101,7 +101,7 @@ class JobsController extends Controller
 
     /**
      * Creates a new job
-     * 
+     *
      * This method creates a new job based on POST data.
      *
      * @NoAdminRequired
@@ -118,22 +118,22 @@ class JobsController extends Controller
                 unset($data[$key]);
             }
         }
-        
+
         if (isset($data['id'])) {
             unset($data['id']);
         }
 
         // Create the job
         $job = $this->jobMapper->createFromArray(object: $data);
-        // Lets schedule the job
+        // Let's schedule the job
         $job = $this->jobService->scheduleJob($job);
-        
+
         return new JSONResponse($job);
     }
 
     /**
      * Updates an existing job
-     * 
+     *
      * This method updates an existing job based on its ID.
      *
      * @NoAdminRequired
@@ -157,7 +157,7 @@ class JobsController extends Controller
 
         // Create the job
         $job = $this->jobMapper->updateFromArray(id: (int) $id, object: $data);
-        // Lets schedule the job
+        // Let's schedule the job
         $job = $this->jobService->scheduleJob($job);
 
         return new JSONResponse($job);
@@ -165,7 +165,7 @@ class JobsController extends Controller
 
     /**
      * Deletes a job
-     * 
+     *
      * This method deletes a job based on its ID.
      *
      * @NoAdminRequired
@@ -180,10 +180,10 @@ class JobsController extends Controller
 
         return new JSONResponse([]);
     }
-    
+
     /**
-     * Retrieves call logs for a source
-     * 
+     * Retrieves call logs for a job
+     *
      * This method returns all the call logs associated with a source based on its ID.
      *
      * @NoAdminRequired
@@ -195,17 +195,17 @@ class JobsController extends Controller
     public function logs(int $id): JSONResponse
     {
         try {
-            $job = $this->jobMapper->find($id);
-            $jobLogs = $this->jobLogMapper->findAll(null, null, ['job_id' => $job->getId()]);
+            $jobLogs = $this->jobLogMapper->findAll(null, null, ['job_id' => $id]);
             return new JSONResponse($jobLogs);
         } catch (DoesNotExistException $e) {
             return new JSONResponse(['error' => 'Job not found'], 404);
         }
     }
+
     /**
-     * Test a source
-     * 
-     * This method fires a test call to the source and returns the response.
+     * Test a job
+     *
+     * This method fires a test call to the job and returns the response.
      *
      * @NoAdminRequired
      * @NoCSRFRequired
@@ -218,12 +218,12 @@ class JobsController extends Controller
     public function run(int $id): JSONResponse
     {
         try {
-            $job = $this->jobMapper->find(id: (int) $id);
+            $job = $this->jobMapper->find(id: $id);
             if (!$job->getJobListId()) {
                 return new JSONResponse(data: ['error' => 'Job not scheduled'], statusCode: 404);
             }
-            $log = $this->IJobList->getById($job->getJobListId())->start($this->IJobList);
-            return new JSONResponse($log);
+            $this->IJobList->getById($job->getJobListId())->start($this->IJobList);
+            return new JSONResponse($this->jobLogMapper->getLastCallLog());
         } catch (DoesNotExistException $exception) {
             return new JSONResponse(data: ['error' => 'Not Found'], statusCode: 404);
         }
