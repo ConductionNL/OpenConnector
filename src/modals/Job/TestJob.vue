@@ -21,35 +21,74 @@ import { jobStore, navigationStore } from '../../store/store.js'
 				Test job
 			</NcButton>
 
-			<NcNoteCard v-if="jobStore.jobTest && jobStore.jobTest.success" type="success">
-				<p>The job test was successful.</p>
-			</NcNoteCard>
-			<NcNoteCard v-if="(jobStore.jobTest && !jobStore.jobTest.success) || error" type="error">
-				<p>An error occurred while testing the job: {{ jobStore.jobTest ? jobStore.jobTest.message : error }}</p>
-			</NcNoteCard>
-
 			<div v-if="jobStore.jobTest">
-				<p><b>UUID:</b> {{ jobStore.jobTest.uuid }}</p>
-				<p><b>Level:</b> {{ jobStore.jobTest.level }}</p>
-				<p><b>Message:</b> {{ jobStore.jobTest.message }}</p>
-				<p><b>Job ID:</b> {{ jobStore.jobTest.jobId }}</p>
-				<p><b>Job List ID:</b> {{ jobStore.jobTest.jobListId }}</p>
-				<p><b>Job Class:</b> {{ jobStore.jobTest.jobClass }}</p>
-				<p><b>Arguments:</b></p>
-				<ul>
-					<li v-for="(value, key) in jobStore.jobTest.arguments" :key="key">
-						{{ key }}: {{ value }}
-					</li>
-				</ul>
-				<p><b>Execution Time:</b> {{ jobStore.jobTest.executionTime }} ms</p>
-				<p><b>User ID:</b> {{ jobStore.jobTest.userId || 'N/A' }}</p>
-				<p><b>Session ID:</b> {{ jobStore.jobTest.sessionId || 'N/A' }}</p>
-				<p><b>Stack Trace:</b></p>
-				<ol>
-					<li v-for="(step, index) in jobStore.jobTest.stackTrace" :key="index">
-						{{ step }}
-					</li>
-				</ol>
+				<NcNoteCard v-if="jobStore.jobTest?.message === 'success'" type="success">
+					<p>The job test was successful.</p>
+				</NcNoteCard>
+				<NcNoteCard v-if="(jobStore.jobTest?.message !== 'success') || error" type="error">
+					<p>An error occurred while testing the job: {{ jobStore.jobTest ? jobStore.jobTest.message : error }}</p>
+				</NcNoteCard>
+			</div>
+
+			<div v-if="jobStore.jobTest" class="jobTestTable">
+				<table>
+					<tr>
+						<th>UUID</th>
+						<td>{{ jobStore.jobTest.uuid }}</td>
+					</tr>
+					<tr>
+						<th>Level</th>
+						<td>{{ jobStore.jobTest.level }}</td>
+					</tr>
+					<tr>
+						<th>Message</th>
+						<td>{{ jobStore.jobTest.message }}</td>
+					</tr>
+					<tr>
+						<th>Job ID</th>
+						<td>{{ jobStore.jobTest.jobId }}</td>
+					</tr>
+					<tr>
+						<th>Job List ID</th>
+						<td>{{ jobStore.jobTest.jobListId }}</td>
+					</tr>
+					<tr>
+						<th>Job Class</th>
+						<td>{{ jobStore.jobTest.jobClass || 'N/A' }}</td>
+					</tr>
+					<tr>
+						<th>Arguments</th>
+						<td>
+							<ul>
+								<li v-for="(value, key) in jobStore.jobTest.arguments" :key="key">
+									{{ key }}: {{ value }}
+								</li>
+							</ul>
+						</td>
+					</tr>
+					<tr>
+						<th>Execution Time</th>
+						<td>{{ jobStore.jobTest.executionTime }} ms</td>
+					</tr>
+					<tr>
+						<th>User ID</th>
+						<td>{{ jobStore.jobTest.userId || 'N/A' }}</td>
+					</tr>
+					<tr>
+						<th>Session ID</th>
+						<td>{{ jobStore.jobTest.sessionId || 'N/A' }}</td>
+					</tr>
+					<tr>
+						<th>Stack Trace</th>
+						<td>
+							<ol>
+								<li v-for="(step, index) in jobStore.jobTest.stackTrace" :key="index">
+									{{ step }}
+								</li>
+							</ol>
+						</td>
+					</tr>
+				</table>
 			</div>
 		</div>
 	</NcModal>
@@ -60,7 +99,6 @@ import {
 	NcButton,
 	NcModal,
 	NcLoadingIcon,
-	NcTextField,
 	NcNoteCard,
 } from '@nextcloud/vue'
 import Sync from 'vue-material-design-icons/Sync.vue'
@@ -71,7 +109,6 @@ export default {
 		NcModal,
 		NcButton,
 		NcLoadingIcon,
-		NcTextField,
 		NcNoteCard,
 	},
 	data() {
@@ -111,5 +148,16 @@ export default {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 5px;
+}
+
+.jobTestTable th,
+.jobTestTable td {
+  padding: 4px;
+}
+.jobTestTable th {
+    font-weight: bold
+}
+.jobTestTable ol {
+    margin-left: 1rem;
 }
 </style>
