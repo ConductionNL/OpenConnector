@@ -31,6 +31,7 @@ namespace OCA\Integriq\Tests\Unit\Service;
 use OCA\Integriq\Service\Migration\LegacyToRegisterMigrator;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IDBConnection;
+use OCP\Security\ISecureRandom;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use ReflectionMethod;
@@ -67,7 +68,8 @@ class LegacyMigratorPlatformTest extends TestCase {
 		$migrator = new LegacyToRegisterMigrator(
 			$this->createMock(IDBConnection::class),
 			$this->createMock(IAppConfig::class),
-			$logger
+			$logger,
+			$this->createMock(ISecureRandom::class)
 		);
 
 		$method = new ReflectionMethod(LegacyToRegisterMigrator::class, 'platformFor');

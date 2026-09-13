@@ -24,14 +24,18 @@ schema defined in `components.schemas`.
 - **THEN** `integriq_register.json` MUST exist
 - **AND** it MUST parse as valid JSON
 - **AND** its top-level keys MUST be exactly `openapi`, `info`, `x-openregister`,
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
   `components`
 
 #### Scenario: Register slug is openconnector
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: the register slug is `integriq`. The 2026-08 rename moved it, and OpenRegister register slugs are frozen once data is written, so this is the new canonical value. Left visible rather than annotated, because a waiver would record coverage for a claim that is no longer true.
 
 - **GIVEN** the descriptor file is loaded
 - **WHEN** inspecting `components.registers`
 - **THEN** exactly one register entry MUST exist with slug `openconnector`
 - **AND** its `schemas` array MUST list all 21 schema slugs
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: Log schemas MUST be declared append-only and immutable (REQ-A-003)
 
@@ -47,12 +51,14 @@ both flags to `false` (or omit them — OR defaults to false).
 - WHEN inspecting each log schema's top-level flags
 - THEN `appendOnly` MUST be `true`
 - AND `immutable` MUST be `true`
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 #### Scenario: Config schemas remain mutable
 - GIVEN the descriptor declares 11 mutable config schemas
 - WHEN inspecting each config schema's top-level flags
 - THEN `appendOnly` MUST be `false` or absent
 - AND `immutable` MUST be `false` or absent
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: Log schemas MUST carry retention annotation (REQ-A-004)
 
@@ -70,6 +76,7 @@ attribute names follow OR's `archival-destruction-workflow` spec.
 - THEN it MUST encode a retention rule with `PT1H` for success-class entries
 - AND `P30D` for error-class entries
 - AND the discriminator field (e.g. `statusCode >= 400` or a `level`-based rule)
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
   MUST be expressed as part of the annotation
 
 ### Requirement: Integer foreign-key columns MUST be relation-annotated (REQ-A-005)
@@ -99,12 +106,14 @@ relation annotation on the target-schema-named field.
 - THEN `source` MUST exist with `type: "string"`, `format: "uuid"`, `$ref: "source"`
 - AND `sourceId` MUST exist with `type: "integer"` (legacy)
 - AND both properties MUST have an explanatory `description` field
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 #### Scenario: event_message has cascade-delete on event subscription
 - GIVEN the `event_message` schema in the descriptor
 - WHEN inspecting `properties.subscription`
 - THEN it MUST carry `$ref: "event_subscription"` and `onDelete: "CASCADE"`
 - AND its `description` MUST state cascade behaviour explicitly
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: Synchronization sourceId/targetId MUST remain string-typed with overload documented (REQ-A-006)
 
@@ -123,6 +132,7 @@ logic.
 - THEN `type` MUST be `"string"`
 - AND `$ref` MUST be absent
 - AND `description` MUST mention "integer PK", "register/schema slug-pair", and "uuid"
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: Seed data file MUST exist for mutable schemas only (REQ-A-007)
 
@@ -142,6 +152,7 @@ Seed objects MUST use safe placeholder values for any secret-bearing column
 - WHEN inspecting the top-level keys
 - THEN they MUST be a subset of the 11 mutable schema slugs
 - AND `call_log`, `job_log`, `synchronization_log`,
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
   `synchronization_contract_log` MUST NOT appear
 
 #### Scenario: Source seed objects use safe placeholder credentials
@@ -151,6 +162,7 @@ Seed objects MUST use safe placeholder values for any secret-bearing column
   obviously non-credential string
 - AND values MUST NOT resemble real Bearer tokens, JWT tokens, or hex/base64
   secrets of plausible length
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: Descriptor MUST be backwards-compatible with legacy field names (REQ-A-008)
 
@@ -165,6 +177,7 @@ matching ADDED/REMOVED entry in a future change.
 - WHEN inspecting both the relation field and the legacy `*Id` field
 - THEN both MUST be present in `properties`
 - AND both fields MUST NOT appear in the schema's `required` array (they are optional during the transition)
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 ### Requirement: All 21 schemas MUST be declared (REQ-A-002)
 
@@ -212,12 +225,15 @@ fields like `id` which OR manages automatically).
 
 #### Scenario: All 21 schemas present
 
+> ⚠️ **Stale as written.** Verified 2026-09-07: the descriptor declares 72 schemas, not 21. Left visible rather than annotated, because a waiver would record coverage for a claim that is no longer true.
+
 - **GIVEN** the descriptor file is parsed
 - **WHEN** inspecting `components.schemas`
 - **THEN** at least 21 schema entries MUST exist, including all 21 named in
   this requirement
 - **AND** their slugs MUST be the union of the 16 mutable config and 4 log
   slugs
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 
 #### Scenario: Schema field coverage matches entity definition
 
@@ -225,6 +241,7 @@ fields like `id` which OR manages automatically).
 - **WHEN** comparing against the `source` schema's `properties`
 - **THEN** every entity protected field MUST appear as a property on the schema
 - **AND** the property `type` MUST map per the conversion: PHP `string` → JSON
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
   `string`, PHP `integer` → JSON `integer`, PHP `boolean` → JSON `boolean`,
   PHP `array` (json column) → JSON `array` or `object`, PHP `DateTime` → JSON
   `string` with `format: "date-time"`
@@ -238,4 +255,5 @@ fields like `id` which OR manages automatically).
   `x-openregister-archival` annotation
 - **AND** all three SHALL remain in the mutable config group counted by this
   requirement
+- @e2e exclude a register-descriptor shape assertion, read from JSON rather than from a rendered page
 

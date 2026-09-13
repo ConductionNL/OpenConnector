@@ -37,6 +37,7 @@ declare(strict_types=1);
 namespace OCA\Integriq\Service;
 
 use OCP\IUser;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -62,9 +63,11 @@ class EngineSignalService {
 	 * Constructor.
 	 *
 	 * @param LoggerInterface $logger Delivery diagnostics.
+	 * @param ContainerInterface $container App container OpenRegister's signal service is resolved from.
 	 */
 	public function __construct(
 		private readonly LoggerInterface $logger,
+		private readonly ContainerInterface $container,
 	) {
 
 	}//end __construct()
@@ -101,7 +104,7 @@ class EngineSignalService {
 		}
 
 		try {
-			\OCP\Server::get(self::SIGNAL_SERVICE_CLASS)->signalAs(
+			$this->container->get(self::SIGNAL_SERVICE_CLASS)->signalAs(
 				runUuid: (string)($data['engineRunUuid'] ?? ''),
 				payload: [
 					'decision' => $decision,

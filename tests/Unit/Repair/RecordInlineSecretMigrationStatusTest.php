@@ -204,6 +204,37 @@ class SpyMigrationExecutor extends InlineSecretMigrationExecutor {
 }//end class
 
 /**
+ * A container that resolves nothing, for the spy executor which never looks
+ * anything up. The step's own container is private, so the seam cannot borrow it.
+ */
+class EmptyContainer implements ContainerInterface {
+
+	/**
+	 * Never resolves anything.
+	 *
+	 * @param string $id The service id.
+	 *
+	 * @return mixed
+	 *
+	 * @throws \RuntimeException Always.
+	 */
+	public function get(string $id): mixed {
+		throw new \RuntimeException('the spy executor resolves nothing: ' . $id);
+	}//end get()
+
+	/**
+	 * Holds nothing.
+	 *
+	 * @param string $id The service id.
+	 *
+	 * @return boolean
+	 */
+	public function has(string $id): bool {
+		return false;
+	}//end has()
+}//end class
+
+/**
  * A step subclass that returns the spy executor from the makeExecutor() seam and
  * records the call order relative to the appconfig recording.
  */
@@ -226,7 +257,7 @@ class TestableRecordStep extends RecordInlineSecretMigrationStatus {
 	 */
 	protected function makeExecutor(OrObjectService $objectService, InlineSecretMigrationPlanner $planner): InlineSecretMigrationExecutor {
 		if ($this->spy === null) {
-			$this->spy = new SpyMigrationExecutor($objectService, $planner, new NullLogger());
+			$this->spy = new SpyMigrationExecutor($objectService, $planner, new NullLogger(), new EmptyContainer());
 		}
 
 		return $this->spy;
@@ -428,7 +459,12 @@ class RecordInlineSecretMigrationStatusTest extends TestCase {
 		);
 
 		$step = new TestableRecordStep($container, $appConfig, new NullLogger());
-		$step->spy = new SpyMigrationExecutor($objectService, new InlineSecretMigrationPlanner($objectService, new NullLogger()), new NullLogger());
+		$step->spy = new SpyMigrationExecutor(
+			$objectService,
+			new InlineSecretMigrationPlanner($objectService, new NullLogger()),
+			new NullLogger(),
+			$this->createMock(ContainerInterface::class)
+		);
 		$step->spy->throws = true;
 
 		// Must not throw.

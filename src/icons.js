@@ -57,8 +57,10 @@ import FileDocumentOutline from 'vue-material-design-icons/FileDocumentOutline.v
 import FileSendOutline from 'vue-material-design-icons/FileSendOutline.vue'
 import FileXmlBox from 'vue-material-design-icons/FileXmlBox.vue'
 import Filter from 'vue-material-design-icons/Filter.vue'
+import FolderOutline from 'vue-material-design-icons/FolderOutline.vue'
 import FormatListCheckbox from 'vue-material-design-icons/FormatListCheckbox.vue'
 import FormSelect from 'vue-material-design-icons/FormSelect.vue'
+import ForumOutline from 'vue-material-design-icons/ForumOutline.vue'
 import Gauge from 'vue-material-design-icons/Gauge.vue'
 import HeartPulse from 'vue-material-design-icons/HeartPulse.vue'
 import History from 'vue-material-design-icons/History.vue'
@@ -99,6 +101,7 @@ import Translate from 'vue-material-design-icons/Translate.vue'
 import Update from 'vue-material-design-icons/Update.vue'
 import Upload from 'vue-material-design-icons/Upload.vue'
 import VectorPolylinePlus from 'vue-material-design-icons/VectorPolylinePlus.vue'
+import ViewColumnOutline from 'vue-material-design-icons/ViewColumnOutline.vue'
 import ViewDashboardOutline from 'vue-material-design-icons/ViewDashboardOutline.vue'
 import ViewGridOutline from 'vue-material-design-icons/ViewGridOutline.vue'
 import Webhook from 'vue-material-design-icons/Webhook.vue'
@@ -149,8 +152,10 @@ export default {
 	FileSendOutline,
 	FileXmlBox,
 	Filter,
+	FolderOutline,
 	FormSelect,
 	FormatListCheckbox,
+	ForumOutline,
 	Gauge,
 	HeartPulse,
 	History,
@@ -191,6 +196,7 @@ export default {
 	Update,
 	Upload,
 	VectorPolylinePlus,
+	ViewColumnOutline,
 	ViewDashboardOutline,
 	ViewGridOutline,
 	Webhook,

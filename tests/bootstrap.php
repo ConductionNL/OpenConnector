@@ -46,11 +46,69 @@ $autoloader = require __DIR__ . '/../vendor/autoload.php';
 // (OCA\OpenRegister, OCA\Tables, OCA\Forms) stay unconditional: those apps
 // genuinely may not be installed, and their class_exists() guards do work,
 // because nothing else is racing to define them.
+//
+// "Present" means INSTALLED, not merely checked out. `lib/base.php` from a
+// source tree that was never installed (the workspace checkout above
+// apps-extra/ has a 0-byte config/config.php) still declares `OC` and builds
+// `\OC::$server` before it throws "Not installed". That server cannot be
+// undone (`OC::$server` is a typed static), so from then on every
+// `\OC::$server->get()` in the code under test hits a container that knows
+// none of this app's registrations and autowires from scratch; constructor
+// cycles then recurse until memory runs out (19 GB and 6 GB of swap in one
+// openregister run on 2026-09-08). The decision therefore has to be made
+// BEFORE base.php is loaded, on the `installed` flag in config/config.php.
+
+/**
+ * Tell whether a Nextcloud root is an INSTALLED instance, not just a source tree.
+ *
+ * @param string $ncRoot Candidate Nextcloud root.
+ *
+ * @return bool True when config/config.php declares `installed => true`.
+ */
+function integriq_nc_root_is_installed(string $ncRoot): bool
+{
+	$configFile = $ncRoot . '/config/config.php';
+	if (is_file($configFile) === false || filesize($configFile) === 0) {
+		return false;
+	}
+
+	// The config file is a plain `$CONFIG = [...]` script; including it in a
+	// closure keeps `$CONFIG` out of the global scope.
+	$config = (static function () use ($configFile): array {
+		$CONFIG = [];
+		try {
+			include $configFile;
+		} catch (\Throwable) {
+			return [];
+		}
+
+		if (is_array($CONFIG) === false) {
+			return [];
+		}
+
+		return $CONFIG;
+	})();
+
+	return ($config['installed'] ?? false) === true;
+}//end integriq_nc_root_is_installed()
+
+$ncRoot = realpath(__DIR__ . '/../../..');
 $ncBase = __DIR__ . '/../../../lib/base.php';
-$ncConfig = __DIR__ . '/../../../config/config.php';
 $ncPresent = (defined('OC_CONSOLE') === false
-	&& is_readable($ncConfig) === true
-	&& file_exists($ncBase) === true);
+	&& $ncRoot !== false
+	&& file_exists($ncBase) === true
+	&& integriq_nc_root_is_installed($ncRoot) === true);
+
+if ($ncPresent === false && defined('OC_CONSOLE') === false && $ncRoot !== false && file_exists($ncBase) === true) {
+	fwrite(
+		STDERR,
+		sprintf(
+			"[integriq/tests/bootstrap] Nextcloud root at %s is not an installed instance (config/config.php lacks installed => true); "
+			. "skipping lib/base.php and running with composer autoload and stubs only (pure-unit mode).\n",
+			$ncRoot
+		)
+	);
+}
 
 // Register the OCP/NCU namespaces from the nextcloud/ocp dev dependency so that
 // unit tests can run in a bare environment (no installed Nextcloud server). When
@@ -61,6 +119,41 @@ if ($autoloader instanceof \Composer\Autoload\ClassLoader && is_dir(__DIR__ . '/
 	$autoloader->addPsr4('OCP\\', __DIR__ . '/../vendor/nextcloud/ocp/OCP/');
 	if (is_dir(__DIR__ . '/../vendor/nextcloud/ocp/NCU') === true) {
 		$autoloader->addPsr4('NCU\\', __DIR__ . '/../vendor/nextcloud/ocp/NCU/');
+	}
+}
+
+// OpenRegister's PUBLISHED contracts. Not stubs: these are the real
+// files, shipped byte for byte by conduction/hydra-gates v1.18.0 and
+// held identical to openregister's own `lib/Contract/` by gate 67
+// (`openregister-contract-parity`). Loading the real definition is the
+// whole point: a hand-written double of a published contract is what
+// ADR-084 exists to stop.
+//
+// They need a `require_once` because the package declares no PSR-4
+// autoload for `OCA\OpenRegister\Contract\`; it ships the directory as
+// data. Verified against the installed vendor tree, not assumed:
+// `interface_exists()` on the resolver contract is false after a plain
+// composer install and true after this line.
+//
+// One source only. shillinq's run copied these files into its own repo
+// and dragged OpenRegister's `@spec` annotations along with them, which
+// the anchor gate then tried to resolve against the consuming repo:
+// seven findings for paths that were never going to be there. Reading
+// them out of vendor keeps the annotations pointing at the repo that
+// owns them.
+//
+// `RegisterSlugResolution` is a CLASS and `RegisterSlugResolverInterface`
+// an INTERFACE, so the guard has to ask both questions; a
+// `require_once` of an already-declared type is a fatal, not a no-op.
+$contractsDir = __DIR__ . '/../vendor/conduction/hydra-gates/hydra-gates/contracts';
+foreach (['RegisterSlugResolution', 'RegisterSlugResolverInterface'] as $contract) {
+	$fqcn = 'OCA\\OpenRegister\\Contract\\' . $contract;
+	if (class_exists($fqcn) === true || interface_exists($fqcn) === true) {
+		continue;
+	}
+
+	if (is_file($contractsDir . '/' . $contract . '.php') === true) {
+		require_once $contractsDir . '/' . $contract . '.php';
 	}
 }
 
@@ -422,20 +515,41 @@ if ($autoloader instanceof \Composer\Autoload\ClassLoader) {
 	}
 }
 
-// Bootstrap Nextcloud only when the config file is readable (i.e., in a
-// properly provisioned dev/CI environment). Skip silently in standalone mode —
-// OCP stubs are sufficient for unit-only test suites.
+// Bootstrap Nextcloud only when the root is an installed instance (i.e., in a
+// properly provisioned dev/CI environment). A bare source tree was reported
+// above and runs in pure-unit mode: OCP stubs are sufficient for unit-only
+// test suites.
 //
 // $ncPresent, decided at the top of this file, is the same condition; the core
 // and vendor stubs above were skipped precisely because this block is about to
 // run and provide the real classes.
 if ($ncPresent === true) {
-	if (file_exists($ncBase) === true) {
-		try {
-			require_once $ncBase;
-		} catch (\Throwable $e) {
-			// NC not fully installed — unit tests continue with vendor stubs only.
-		}
+	try {
+		require_once $ncBase;
+	} catch (\Throwable $e) {
+		// The tree IS installed, so the dangerous case this guard exists for
+		// (loading a bare source tree) did not happen. base.php still failed
+		// part-way.
+		//
+		// This does NOT abort. `OC::$server` is a typed static, so a half-built
+		// container cannot be unset, and aborting was tried: it turned all six
+		// PHPUnit legs red on a suite that passes (humaniq, 2026-09-08). The
+		// runaway this guard exists for needs an autowiring lookup to reach the
+		// poisoned container, this app has none in lib, and phpunit.xml's 2G cap
+		// bounds one anyway.
+		//
+		// So: say plainly that the container is unreliable, and let the pure unit
+		// tests run. A container-bound test failing loudly is the intended outcome.
+		fwrite(
+			STDERR,
+			sprintf(
+				"[integriq/tests/bootstrap] Nextcloud at %s could not finish booting (%s).\n"
+				. "  \\OC::\$server now holds a HALF-BUILT container and cannot be unset. Pure unit tests\n"
+				. "  continue; anything resolving a service from that container is UNVERIFIED by this run.\n",
+				$ncRoot,
+				$e->getMessage()
+			)
+		);
 	}
 
 	// Load Test\TestCase and other NC test classes (NC convention).

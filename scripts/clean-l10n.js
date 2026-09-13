@@ -33,6 +33,8 @@ const {
 	collectUsedKeys,
 	listJsLocaleFiles,
 	collectDynamicKeys,
+	collectBackendKeys,
+	collectSchemaKeys,
 } = require('./lib/l10n.js')
 
 const ROOT = path.resolve(__dirname, '..')
@@ -66,7 +68,13 @@ function main() {
 	// Keys reached through a variable cannot be found by scanning. They are live,
 	// and deleting them silently un-translates real UI, so they are never
 	// candidates for removal. See DYNAMIC_KEYS in lib/l10n.js.
-	const dynamicKeys = collectDynamicKeys(ROOT)
+	// See check-l10n.js: backend strings are live keys the frontend scan
+	// cannot see, and en.js is generated from the catalogue PHP reads.
+	const dynamicKeys = new Set([
+		...collectDynamicKeys(ROOT),
+		...collectBackendKeys(ROOT),
+		...collectSchemaKeys(ROOT),
+	])
 	const unused = [...existingKeys]
 		.filter(k => !usedKeys.has(k) && !dynamicKeys.has(k))
 		.sort()

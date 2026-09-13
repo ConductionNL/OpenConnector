@@ -45,6 +45,7 @@ existing Endpoints belong to a product, and define/edit its named tiers.
 - GIVEN at least one `api_product` and at least one `Endpoint` exist
 - WHEN the administrator opens the product's detail page
 - THEN they can add/remove Endpoints from the product's `endpoints` array and add/edit named tiers with a `rateLimit`/`quota`/`requiresApproval` configuration
+- @e2e exclude `manifest-pages.spec.ts` mounts ApiProductDetail, but nothing asserts it exposes an endpoint picker or a tier editor. A real, testable gap on a real surface
 
 ### Requirement: Consumer subscribes to an API Product at a tier (REQ-APG-003)
 

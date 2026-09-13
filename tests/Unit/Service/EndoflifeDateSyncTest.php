@@ -80,7 +80,7 @@ class EndoflifeDateSyncTest extends TestCase {
 	private array $contractStore = [];
 
 	/**
-	 * In-memory eolCycle target store: uuid => payload.
+	 * In-memory eol_cycle target store: uuid => payload.
 	 *
 	 * @var array<string, array>
 	 */
@@ -161,7 +161,7 @@ class EndoflifeDateSyncTest extends TestCase {
 			'sourceId' => self::SOURCE_UUID,
 			'sourceType' => 'api',
 			'targetType' => 'register/schema',
-			'targetId' => 'integriq/eolCycle',
+			'targetId' => 'integriq/eol_cycle',
 			'sourceTargetMapping' => $syncId . '-mapping',
 			'sourceConfig' => [
 				'endpoint' => "/{$productSlug}.json",
@@ -233,7 +233,7 @@ class EndoflifeDateSyncTest extends TestCase {
 			self::SYNC_NODEJS . '-mapping' => $this->buildProductMapping('nodejs'),
 		];
 
-		// Stateful saveObject: contracts AND eolCycle target writes are both
+		// Stateful saveObject: contracts AND eol_cycle target writes are both
 		// recorded and replayed, exactly like the origin-id-matching harness
 		// does for contracts alone.
 		// The BULK path, which is how target and contract writes actually land
@@ -254,7 +254,7 @@ class EndoflifeDateSyncTest extends TestCase {
 					if ((string)$schema === 'synchronization_contract') {
 						$key = ($key ?? 'contract-' . (count($this->contractStore) + 1));
 						$this->contractStore[$key] = $object;
-					} elseif ((string)$schema === 'eolCycle') {
+					} elseif ((string)$schema === 'eol_cycle') {
 						$key = ($key ?? 'eolcycle-' . (count($this->eolCycleStore) + 1));
 						$this->eolCycleStore[$key] = $object;
 					}
@@ -275,7 +275,7 @@ class EndoflifeDateSyncTest extends TestCase {
 					return ObjectServiceMockBuilder::objectEntity($this, $object, (string)$key);
 				}
 
-				if ($schema === 'eolCycle') {
+				if ($schema === 'eol_cycle') {
 					$key = ($uuid ?? ('eolcycle-' . (count($this->eolCycleStore) + 1)));
 					$this->eolCycleStore[$key] = $object;
 
@@ -359,11 +359,11 @@ class EndoflifeDateSyncTest extends TestCase {
 				}
 
 				// deleteInvalidObjects()'s per-target scope-check: any
-				// eolCycle target id is treated as in-scope (this harness
+				// eol_cycle target id is treated as in-scope (this harness
 				// never seeds a foreign-scope UUID collision — that guard
 				// is generic engine behaviour, already covered by
 				// SynchronizationServiceCleanupTest).
-				if ($schema === 'eolCycle') {
+				if ($schema === 'eol_cycle') {
 					return ObjectServiceMockBuilder::objectEntity($this, [], (string)$id);
 				}
 
@@ -443,7 +443,7 @@ class EndoflifeDateSyncTest extends TestCase {
 	 * Task 5 / TC-8: two curated products whose fetched cycle lists share a
 	 * coincidentally-identical cycle label ("20") never collide — each
 	 * product's dedicated Synchronization (distinct synchronizationId) keeps
-	 * their SynchronizationContracts, and therefore their eolCycle target
+	 * their SynchronizationContracts, and therefore their eol_cycle target
 	 * objects, fully independent.
 	 *
 	 * @return void
@@ -463,7 +463,7 @@ class EndoflifeDateSyncTest extends TestCase {
 		$this->assertSame(1, $nodejsResult['result']['objects']['created']);
 
 		$this->assertCount(2, $this->contractStore, 'Two distinct contracts must exist despite the shared cycle label');
-		$this->assertCount(2, $this->eolCycleStore, 'Two distinct eolCycle target objects must exist');
+		$this->assertCount(2, $this->eolCycleStore, 'Two distinct eol_cycle target objects must exist');
 
 		$products = array_map(static fn (array $o) => ($o['product'] ?? null), array_values($this->eolCycleStore));
 		sort($products);
@@ -480,7 +480,7 @@ class EndoflifeDateSyncTest extends TestCase {
 	/**
 	 * Task 5 acceptance criterion 2 / TC-9: re-running the same product's
 	 * synchronization against unchanged source data produces no duplicate
-	 * eolCycle objects or contracts.
+	 * eol_cycle objects or contracts.
 	 *
 	 * @return void
 	 */
@@ -506,7 +506,7 @@ class EndoflifeDateSyncTest extends TestCase {
 		$this->assertSame(0, $second['result']['objects']['created'], 'No new objects on the second, unchanged run');
 		$this->assertSame(2, $second['result']['objects']['skipped'], 'Both cycles match their existing, unchanged contract');
 		$this->assertCount(2, $this->contractStore, 'Still exactly 2 contracts — no duplicates');
-		$this->assertCount(2, $this->eolCycleStore, 'Still exactly 2 eolCycle objects — no duplicates');
+		$this->assertCount(2, $this->eolCycleStore, 'Still exactly 2 eol_cycle objects — no duplicates');
 
 	}//end testRepeatedSyncIsIdempotent()
 
@@ -538,7 +538,7 @@ class EndoflifeDateSyncTest extends TestCase {
 
 	/**
 	 * Task 5 acceptance criterion 3 / TC-10 (spec.md scenario): 4 existing
-	 * eolCycle contracts, the next complete fetch no longer reports 1 of
+	 * eol_cycle contracts, the next complete fetch no longer reports 1 of
 	 * them (25%) — the now-absent cycle's object IS deleted, because 25% is
 	 * within the seeded, raised `0.5` deletionRatioThreshold (whereas the
 	 * engine's unmodified `0.10` default would have blocked it).

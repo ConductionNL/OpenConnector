@@ -264,5 +264,18 @@
     </issueHandlers>
     <extraFiles>
         <directory name="vendor/nextcloud/ocp" />
+        <!-- OpenRegister's published contracts, shipped by
+             conduction/hydra-gates v1.18.0 and held byte identical to
+             openregister's own lib/Contract/ by gate 67
+             (openregister-contract-parity).
+
+             Scanned rather than suppressed, deliberately. Every other
+             OCA\OpenRegister\* type above is an UndefinedClass suppression
+             because the class genuinely is not in this repository's reach, and
+             a suppression buys silence rather than checking: it would accept
+             RegisterSlugResolution::isReslved() just as happily. These two are
+             in reach, so psalm reads the real definitions and the resolution
+             branch in MappingsController is type-checked for real. -->
+        <directory name="vendor/conduction/hydra-gates/hydra-gates/contracts" />
     </extraFiles>
 </psalm>

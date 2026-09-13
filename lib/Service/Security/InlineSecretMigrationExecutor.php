@@ -72,6 +72,7 @@ namespace OCA\Integriq\Service\Security;
 
 use OCA\OpenRegister\Db\ObjectEntity;
 use OCA\OpenRegister\Service\ObjectService as OrObjectService;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use ReflectionException;
 use ReflectionMethod;
@@ -144,11 +145,13 @@ class InlineSecretMigrationExecutor {
 	 * @param OrObjectService $objectService The OpenRegister object service (raw reads + source saves).
 	 * @param InlineSecretMigrationPlanner $planner The read-safe planner reused for classification + the post-run gate.
 	 * @param LoggerInterface $logger Secret-free logging only.
+	 * @param ContainerInterface $container App container the OpenRegister credential broker is resolved from.
 	 */
 	public function __construct(
 		private readonly OrObjectService $objectService,
 		private readonly InlineSecretMigrationPlanner $planner,
 		private readonly LoggerInterface $logger,
+		private readonly ContainerInterface $container,
 	) {
 
 	}//end __construct()
@@ -655,9 +658,6 @@ class InlineSecretMigrationExecutor {
 	 * @throws RuntimeException When the container cannot resolve the broker.
 	 *
 	 * @spec exclude Container-resolution seam — lazy cross-app service lookup, no domain behavior (overridden in tests).
-	 *
-	 * @SuppressWarnings(PHPMD.StaticAccess) -- \OCP\Server is the only way to
-	 * lazily resolve a cross-app class that may not exist at DI wiring time.
 	 */
 	protected function resolveBroker(): object {
 		if ($this->broker !== null) {
@@ -665,7 +665,7 @@ class InlineSecretMigrationExecutor {
 		}
 
 		try {
-			$this->broker = \OCP\Server::get(self::BROKER_CLASS);
+			$this->broker = $this->container->get(self::BROKER_CLASS);
 		} catch (Throwable $e) {
 			throw new RuntimeException(
 				message: 'The OpenRegister credential broker could not be resolved: ' . $e->getMessage()

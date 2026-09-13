@@ -9,9 +9,9 @@
  * the instance. Two places already try to set it, and NEITHER can on a fresh
  * install:
  *
- *   * {@see \OCA\Integriq\Migration\Version2Date20260520000001} sets it
+ *   * {@see \OCA\Integriq\Migration\Version2Date20260908000000} sets it
  *     from `postSchemaChange()`.
- *   * {@see \OCA\Integriq\Migration\Version2Date20260520000099} sets it
+ *   * {@see \OCA\Integriq\Migration\Version2Date20260908000000} sets it
  *     from `postSchemaChange()` too — added specifically to fix the fresh-install
  *     case, and placed in the one hook that fresh installs skip.
  *
@@ -62,7 +62,7 @@ class MigrateLegacyStorage implements IRepairStep {
 	/**
 	 * The legacy tables, unprefixed, dependents before the rows they point at.
 	 *
-	 * Mirrors `Version2Date20260520000099::LEGACY_TABLES`. The two are pinned
+	 * Mirrors `Version2Date20260908000000::LEGACY_TABLES`. The two are pinned
 	 * identical by
 	 * {@see \OCA\Integriq\Tests\Unit\Repair\MigrateLegacyStorageTest}, so
 	 * a table added to one and not the other fails a test rather than silently
@@ -171,7 +171,7 @@ class MigrateLegacyStorage implements IRepairStep {
 	/**
 	 * How many legacy tables still exist AND hold at least one row.
 	 *
-	 * A table that no longer exists is not a gap: `Version2Date20260520000099`
+	 * A table that no longer exists is not a gap: `Version2Date20260908000000`
 	 * drops each one once it is empty, and on a fresh install the whole set is
 	 * dropped in the same schema pass that created it, so a first install
 	 * legitimately finds none of them.

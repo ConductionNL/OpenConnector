@@ -1974,7 +1974,9 @@ defineOptions({
 						:disabled="!openRegister.isInstalled"
 						required>
 						<template #no-options="{ loading: schemasTemplateLoading }">
-							<p v-if="schemasTemplateLoading">Loading...</p>
+							<p v-if="schemasTemplateLoading">
+								{{ t('integriq', 'Loading…') }}
+							</p>
 							<p
 								v-if="
 									!schemasTemplateLoading

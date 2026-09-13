@@ -271,7 +271,8 @@ class RecordInlineSecretMigrationStatus implements IRepairStep {
 		return new InlineSecretMigrationExecutor(
 			objectService: $objectService,
 			planner: $planner,
-			logger: $this->logger
+			logger: $this->logger,
+			container: $this->container
 		);
 	}//end makeExecutor()
 }//end class

@@ -106,92 +106,143 @@ test.describe('Store page — manifest conformance (ADR-080) (openconnector-app-
 // TRACKED IN #1187. (The original comment said this was "tracked outside this
 // Vue-3 de-compat PR" — no issue existed; #1187 is now that tracker and carries
 // the full re-enable checklist.)
+/**
+ * Walk the paginated grid until a card matching `text` is on screen.
+ *
+ * The grid pages at 20 of 57, so a card is very often not on page 1: PDOK and
+ * BRP are both on page 2 today, and a seed change moves them. Asserting
+ * `toBeVisible()` on page 1 is what made these specs look broken.
+ *
+ * @param page The page.
+ * @param text Text the card contains.
+ * @return The card locator, already visible.
+ */
+async function findCardAcrossPages(page, text) {
+	const cards = page.getByTestId('catalog-item-card')
+	await expect(cards.first()).toBeVisible({ timeout: 15_000 })
+	for (let attempt = 0; attempt < 10; attempt++) {
+		const match = cards.filter({ hasText: text }).first()
+		if ((await match.count()) > 0) {
+			await expect(match).toBeVisible()
+			return match
+		}
+		const next = page.getByRole('button', { name: 'Next', exact: true })
+		if (
+			(await next.count()) === 0
+			|| (await next.isDisabled().catch(() => true))
+		) {
+			break
+		}
+		await next.click()
+		await expect(cards.first()).toBeVisible({ timeout: 10_000 })
+	}
+	throw new Error(`no catalog card matching ${JSON.stringify(text)} on any page`)
+}
+
+/**
+ * Walk to a card and read its status badge in one attempt, from page 1.
+ *
+ * Returns '' rather than throwing when the card or its badge is not reachable,
+ * so a caller can poll this and let a mid-walk re-render cost a retry instead of
+ * the test. Separating the walk from the read is what made the PDOK spec flaky.
+ *
+ * @param page The page.
+ * @param text Text the card contains.
+ * @return The badge text, or '' when it could not be read this attempt.
+ */
+async function readBadgeAcrossPages(page, text) {
+	try {
+		await page.goto(`${APP_BASE}/store`, { waitUntil: 'domcontentloaded' })
+		const card = await findCardAcrossPages(page, text)
+		return (await card.getByTestId('catalog-status-badge').innerText()).trim()
+	} catch {
+		return ''
+	}
+}
+
+/**
+ * The "Showing N of M" total the index header prints.
+ *
+ * The CARD COUNT cannot answer "did the filter narrow the grid": it is pinned
+ * at the page size of 20 whether 57 or 35 items match. The total is what moves.
+ *
+ * @param page The page.
+ * @return The M in "Showing N of M".
+ */
+async function shownTotal(page) {
+	const header = page.getByTestId('cn-index-page')
+	const line = await header.innerText()
+	const match = line.match(/Showing\s+\d+\s+of\s+(\d+)/i)
+	if (match === null)
+		throw new Error(`no "Showing N of M" line in the index header`)
+	return Number(match[1])
+}
+
 test.describe('Catalog page — browse, filter, badges (REQ-001)', () => {
-	// `describe.skip` records NO reason in the Playwright report, and the
-	// report is the only place the skip-discipline gate can read one — a
-	// source comment, however thorough, is invisible to it. Same skip, same
-	// tracker, now attributable.
-	test.skip(
-		true,
-		'connector-catalog UI specs assume a non-paginated card grid with an inline searchbox; the live CnIndexPage paginates at 20 and puts search behind the sidebar. Re-enabling needs feature-flag seeding plus a locator strategy for the real UI — tracked in #1187.',
-	)
 	// @e2e connector-catalog::catalog-lists-built-in-adapters-and-seeded-source-templates-by-category
-	test('catalog renders cards and the kind quick-filter narrows the grid', async ({
+	test('the store lists catalog items and the kind quick-filter narrows them', async ({
 		page,
 	}) => {
-		// The integriq SPA is hash-routed (vue-router createWebHashHistory,
-		// unchanged from the Vue 2 `mode: 'hash'` build), so a bare path deep-link
-		// like `/apps/integriq/catalog` is ignored by the router and resolves
-		// to the default Dashboard route. Deep-link via the hash fragment so we
-		// actually land on the Catalog page. (These connector-catalog-ui specs were
-		// authored "per the test plan but NOT executed against a live instance", so
-		// this navigation was never validated before.)
-		await page.goto(`${APP_BASE}/catalog`, { waitUntil: 'domcontentloaded' })
+		// ADR-080 renamed this surface from Catalog to Store. `/catalog` still
+		// resolves (it redirects), and the router runs in PATH mode, not the hash
+		// mode an older comment here claimed. Navigate to the canonical route.
+		await page.goto(`${APP_BASE}/store`, { waitUntil: 'domcontentloaded' })
 
 		const cards = page.getByTestId('catalog-item-card')
 		await expect(
 			cards.first(),
 			'materialised catalog cards must render',
 		).toBeVisible({ timeout: 15_000 })
-		const total = await cards.count()
-		expect(total).toBeGreaterThanOrEqual(3)
 
-		// BRP HaalCentraal (Government registers) is a real seeded entry.
-		await expect(
-			page.getByText('BRP HaalCentraal', { exact: false }).first(),
-		).toBeVisible()
+		const before = await shownTotal(page)
+		expect(before).toBeGreaterThanOrEqual(3)
 
-		// Narrow via the "Source templates" kind quick-filter chip.
-		await page
-			.getByRole('button', { name: /Source templates/i })
-			.first()
-			.click()
+		// The quick-filter chips are role="tab", not buttons. Reaching for a
+		// button found nothing and the click never landed, which read as "the
+		// filter does not work".
+		await page.getByRole('tab', { name: 'Adapters', exact: true }).click()
 		await expect(cards.first()).toBeVisible({ timeout: 10_000 })
-		const narrowed = await cards.count()
-		expect(narrowed).toBeLessThanOrEqual(total)
+
+		await expect
+			.poll(async () => await shownTotal(page), { timeout: 10_000 })
+			.toBeLessThan(before)
 	})
 
 	// @e2e connector-catalog::status-badge-reflects-a-flag-gated-dormant-item
-	test('PDOK card shows a dormant badge while pdok.feature_flag is off', async ({
+	test('the PDOK card shows a dormant badge while its feature flag is off', async ({
 		page,
 	}) => {
-		// The integriq SPA is hash-routed (vue-router createWebHashHistory,
-		// unchanged from the Vue 2 `mode: 'hash'` build), so a bare path deep-link
-		// like `/apps/integriq/catalog` is ignored by the router and resolves
-		// to the default Dashboard route. Deep-link via the hash fragment so we
-		// actually land on the Catalog page. (These connector-catalog-ui specs were
-		// authored "per the test plan but NOT executed against a live instance", so
-		// this navigation was never validated before.)
-		await page.goto(`${APP_BASE}/catalog`, { waitUntil: 'domcontentloaded' })
+		await page.goto(`${APP_BASE}/store`, { waitUntil: 'domcontentloaded' })
 
-		const pdokCard = page
-			.getByTestId('catalog-item-card')
-			.filter({ hasText: 'PDOK' })
-			.first()
-		await expect(pdokCard).toBeVisible({ timeout: 15_000 })
-		await expect(pdokCard.getByTestId('catalog-status-badge')).toHaveText(
-			/dormant/i,
-		)
+		// Walk AND read inside the same polled attempt. Walking first and then
+		// polling the badge is what made this flaky: the walk leaves the grid on
+		// PDOK's page, the page query settles a moment later and re-renders the
+		// grid back, and the poll then re-resolves a locator for a card that is
+		// no longer on screen. It reports "no badge" for a card that is dormant
+		// in the data, which is exactly the wrong conclusion. Each attempt here
+		// starts from page 1, so a re-render costs a retry rather than the test.
+		await expect
+			.poll(async () => await readBadgeAcrossPages(page, 'PDOK'), {
+				timeout: 30_000,
+			})
+			.toMatch(/dormant/i)
 	})
 
 	// @e2e connector-catalog::status-badge-reflects-a-mock-seeded-available-item
 	test('BRP HaalCentraal card shows available (mock mode is not dormant)', async ({
 		page,
 	}) => {
-		// The integriq SPA is hash-routed (vue-router createWebHashHistory,
-		// unchanged from the Vue 2 `mode: 'hash'` build), so a bare path deep-link
-		// like `/apps/integriq/catalog` is ignored by the router and resolves
-		// to the default Dashboard route. Deep-link via the hash fragment so we
-		// actually land on the Catalog page. (These connector-catalog-ui specs were
-		// authored "per the test plan but NOT executed against a live instance", so
-		// this navigation was never validated before.)
-		await page.goto(`${APP_BASE}/catalog`, { waitUntil: 'domcontentloaded' })
+		// Measured 2026-09-07 against a seeded instance: BRP HaalCentraal is
+		// `dormant`, and `available` and `dormant` are the only two status values
+		// across all 57 rows. The scenario is about MOCK MODE making it available,
+		// and nothing in the e2e seed turns mock mode on, so the expectation
+		// cannot hold here. Seed mock mode, or correct the scenario. #1187.
+		test.skip(
+			true,
+			'BRP HaalCentraal is dormant on a plain seeded instance; the scenario asserts the mock-mode state and the seed does not enable mock mode. Measured 2026-09-07 — #1187.',
+		)
 
-		const brpCard = page
-			.getByTestId('catalog-item-card')
-			.filter({ hasText: 'BRP HaalCentraal' })
-			.first()
-		await expect(brpCard).toBeVisible({ timeout: 15_000 })
+		const brpCard = await findCardAcrossPages(page, 'BRP HaalCentraal')
 		await expect(brpCard.getByTestId('catalog-status-badge')).toHaveText(
 			/available/i,
 		)
@@ -201,31 +252,24 @@ test.describe('Catalog page — browse, filter, badges (REQ-001)', () => {
 	test('typing "brp" into the search narrows the grid to matching items', async ({
 		page,
 	}) => {
-		// The integriq SPA is hash-routed (vue-router createWebHashHistory,
-		// unchanged from the Vue 2 `mode: 'hash'` build), so a bare path deep-link
-		// like `/apps/integriq/catalog` is ignored by the router and resolves
-		// to the default Dashboard route. Deep-link via the hash fragment so we
-		// actually land on the Catalog page. (These connector-catalog-ui specs were
-		// authored "per the test plan but NOT executed against a live instance", so
-		// this navigation was never validated before.)
-		await page.goto(`${APP_BASE}/catalog`, { waitUntil: 'domcontentloaded' })
+		// Measured 2026-09-07: `getByRole('searchbox')` matches NOTHING on this
+		// page. The one visible `input[type=search]` belongs to Nextcloud's own
+		// header search, and filling it leaves "Showing 20 of 57" unchanged, so
+		// the store has no search affordance for a spec to drive yet. The
+		// narrowing behaviour itself is covered by the quick-filter test above.
+		test.skip(
+			true,
+			'the store page exposes no catalog searchbox: getByRole("searchbox") matches 0 elements and the visible input is Nextcloud\'s header search, which does not filter the grid. Measured 2026-09-07 — #1187.',
+		)
 
 		const cards = page.getByTestId('catalog-item-card')
 		await expect(cards.first()).toBeVisible({ timeout: 15_000 })
-		const before = await cards.count()
+		const before = await shownTotal(page)
 
-		const search = page
-			.getByRole('searchbox')
-			.first()
-			.or(page.getByPlaceholder(/search/i).first())
-		await search.fill('brp')
-		await page.waitForTimeout(1_000)
-
-		const after = await cards.count()
-		expect(after).toBeLessThan(before)
-		await expect(
-			page.getByText('BRP HaalCentraal', { exact: false }).first(),
-		).toBeVisible()
+		await page.getByRole('searchbox').first().fill('brp')
+		await expect
+			.poll(async () => await shownTotal(page), { timeout: 10_000 })
+			.toBeLessThan(before)
 	})
 })
 

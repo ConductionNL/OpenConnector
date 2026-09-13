@@ -38,6 +38,7 @@ use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -400,6 +401,7 @@ class BrokeredCallServiceTest extends TestCase {
 			$this->userSession,
 			$this->userManager,
 			$this->logger,
+			$this->createMock(ContainerInterface::class),
 		);
 		$service->brokerInstance = new FakeLegacyBroker();
 

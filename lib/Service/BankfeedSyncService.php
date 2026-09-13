@@ -41,6 +41,7 @@ use OCA\Integriq\Service\Psd2\RestPsd2AggregatorProvider;
 use OCA\OpenRegister\Db\ObjectEntity;
 use OCA\OpenRegister\Service\ObjectService as ORObjectService;
 use OCP\IL10N;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -152,6 +153,7 @@ class BankfeedSyncService {
 	 * @param EventService $eventService Emits the synced + consent-lifecycle CloudEvents.
 	 * @param IL10N $l The localization service (operator-facing detail text).
 	 * @param LoggerInterface $logger Logger for non-fatal diagnostics.
+	 * @param ContainerInterface $container App container the OpenRegister credential store resolver is resolved from.
 	 * @param callable|null $storeResolver Returns the OpenRegister credential
 	 *                                     store to broker consent tokens into.
 	 *                                     Injectable so the fail-closed path can
@@ -173,6 +175,7 @@ class BankfeedSyncService {
 		private readonly EventService $eventService,
 		private readonly IL10N $l,
 		private readonly LoggerInterface $logger,
+		private readonly ContainerInterface $container,
 		private $storeResolver = null,
 	) {
 
@@ -735,8 +738,7 @@ class BankfeedSyncService {
 			}
 
 			if ($store === null) {
-				$resolverClass = self::CREDENTIAL_STORE_RESOLVER_CLASS;
-				$resolver = \OCP\Server::get($resolverClass);
+				$resolver = $this->container->get(self::CREDENTIAL_STORE_RESOLVER_CLASS);
 				$store = $resolver->resolve();
 			}
 

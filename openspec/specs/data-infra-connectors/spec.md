@@ -51,12 +51,14 @@ importing integriq PHP.
 - **THEN** no such imports SHALL exist in sibling apps; the
   capability MUST be consumed from integriq by integration
   slot slug.
+- @e2e exclude a review checklist, not a behaviour. It asks a REVIEWER to confirm something about SIBLING APPS' source, which is neither a DOM behaviour nor even a fact about this repository
 
 #### Scenario: Adapter registers via DI tag, not via runtime hack
 
 - **GIVEN** a newly added adapter (e.g. `SnowflakeAdapter`)
 - **WHEN** the container is built
 - **THEN** the class MUST be tagged with `IntegrationProvider`
+- @e2e exclude a static or manifest-shape assertion, not a DOM behaviour
   in `lib/AppInfo/Application.php` and its registry record MUST
   include `id`, `category: data-infra`, `subCategory`
   (`rdbms` / `nosql` / `warehouse` / `stream` / `objectstore`),
@@ -98,12 +100,14 @@ field.
 - **THEN** no `const CAPABILITIES = [...]` / `const AUTH_MODES = [...]`
   / `const RATE_LIMITS = [...]` class constant SHALL exist;
   every such value MUST come from the manifest entry at runtime.
+- @e2e exclude a review checklist, not a behaviour. It asks a REVIEWER to confirm something about SIBLING APPS' source, which is neither a DOM behaviour nor even a fact about this repository
 
 #### Scenario: `npm run check:manifest` rejects an entry missing required fields
 
 - **GIVEN** a `connectors[]` entry omitting `authModes`
 - **WHEN** `npm run check:manifest` runs
 - **THEN** it MUST exit non-zero, naming the offending entry's
+- @e2e exclude a static or manifest-shape assertion, not a DOM behaviour
   `id` and the missing field.
 
 ### Requirement: Adapter credentials SHALL live in integriq `Source` records — never on consuming-app records (REQ-DIC-003)
@@ -132,6 +136,7 @@ rotate them without redeploying any sibling app.
   in contexts that reference a data-infra integration
 - **THEN** no such fields SHALL exist; the sibling MUST hold only
   the integriq source slug.
+- @e2e exclude a review checklist, not a behaviour. It asks a REVIEWER to confirm something about SIBLING APPS' source, which is neither a DOM behaviour nor even a fact about this repository
 
 ### Requirement: Each adapter SHALL declare its polling-vs-push posture and its schema-discovery contract (REQ-DIC-004)
 
@@ -162,6 +167,7 @@ Adapter `schemaDiscovery` MUST be one of:
 - **GIVEN** a `pull`-mode adapter
 - **WHEN** the integriq container starts
 - **THEN** no persistent connection to the upstream system
+- @e2e exclude driving this needs the external SaaS tenant the adapter talks to. The e2e instance has no such credentials and no such account, so the call cannot be made from a browser session
   SHALL be opened until a sibling app explicitly invokes
   the adapter; the adapter's idle resource footprint MUST be
   zero.
@@ -175,6 +181,7 @@ Adapter `schemaDiscovery` MUST be one of:
   endpoint, normalise inbound payloads to CloudEvents per
   ADR-022, and dispatch to the sibling via the standard
   CloudEvent dispatcher — no per-app Kafka consumer.
+- @e2e exclude driving this needs the external SaaS tenant the adapter talks to. The e2e instance has no such credentials and no such account, so the call cannot be made from a browser session
 
 ### Requirement: Scheduled pulls SHALL run as OpenRegister `ScheduledWorkflow` records, not as integriq `TimedJob` classes (REQ-DIC-005)
 
@@ -198,6 +205,7 @@ the legacy sync UI).
   `*Adapter*` / `*Connector*` / `*Pull*` / `*Sync*Schedul*`
 - **THEN** no such classes SHALL exist; periodic adapter pulls
   MUST be driven by `ScheduledWorkflow` records.
+- @e2e exclude a review checklist, not a behaviour. It asks a REVIEWER to confirm something about SIBLING APPS' source, which is neither a DOM behaviour nor even a fact about this repository
 
 ### Requirement: Adapter operational health SHALL surface through the existing prometheus-metrics endpoint (REQ-DIC-006)
 
@@ -218,6 +226,7 @@ adapter_id=<id>}`. No new endpoint, no separate metrics surface
 - **GIVEN** a configured Snowflake adapter
 - **WHEN** a sibling app invokes `read` and the call succeeds
 - **THEN** `/api/metrics` MUST report
+- @e2e exclude the adapter this names does not exist. Verified 2026-09-07: each connector family ships exactly ONE reference adapter (Saas: Microsoft365Adapter, DocumentCms: SharePointOnlineAdapter, EndpointWorkspace: AzureVirtualDesktopAdapter, DataInfra: S3Adapter), and no file under lib/ carries the adapter named here. The scenario is forward-looking rather than unmet
   `integriq_adapter_invocations_total{category="data-infra",
   sub_category="warehouse",adapter_id="snowflake",outcome="success"}`
   incremented by exactly 1.
@@ -248,4 +257,5 @@ adapter slice; the category spec owns the shared contract.
   cite REQ-DIC-001 (registration) and REQ-DIC-002 (manifest
   entry) by REQ id; the proposal MUST NOT redefine the
   category-level shape.
+- @e2e exclude a process rule for FUTURE changes: it asks that a not-yet-written change reference this spec. There is nothing to drive until that change exists
 

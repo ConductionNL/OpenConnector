@@ -77,7 +77,7 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 	private array $contractStore = [];
 
 	/**
-	 * In-memory eolCycle target store — see {@see $contractStore}.
+	 * In-memory eol_cycle target store — see {@see $contractStore}.
 	 *
 	 * @var array<string, array>
 	 */
@@ -180,7 +180,7 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 			'sourceId' => self::SOURCE_UUID,
 			'sourceType' => 'api',
 			'targetType' => 'register/schema',
-			'targetId' => 'integriq/eolCycle',
+			'targetId' => 'integriq/eol_cycle',
 			'sourceTargetMapping' => self::SYNC_ID . '-mapping',
 			'sourceConfig' => [
 				'endpoint' => '/php.json',
@@ -219,7 +219,7 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 					return ObjectServiceMockBuilder::objectEntity($this, $object, (string)$key);
 				}
 
-				if ($schema === 'eolCycle') {
+				if ($schema === 'eol_cycle') {
 					$key = ($uuid ?? ('eolcycle-' . (count($this->targetStore) + 1)));
 					$this->targetStore[$key] = $object;
 
@@ -287,7 +287,7 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 					return ObjectServiceMockBuilder::objectEntity($this, $mappingPayload, (string)$id);
 				}
 
-				if ($schema === 'eolCycle') {
+				if ($schema === 'eol_cycle') {
 					return ObjectServiceMockBuilder::objectEntity($this, [], (string)$id);
 				}
 
@@ -377,7 +377,7 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 	/**
 	 * GIVEN outbound network access WHEN the seeded php-cycles
 	 * synchronization runs for real THEN a genuine HTTP GET is made to
-	 * https://endoflife.date/api/php.json and at least one eolCycle object
+	 * https://endoflife.date/api/php.json and at least one eol_cycle object
 	 * is created with `cycle`/`product`/`eol` populated; AND running the
 	 * same synchronization a second time produces no additional objects
 	 * (real-API idempotency).
@@ -400,12 +400,12 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 			'The real https://endoflife.date/api/php.json response must contain at least one cycle.'
 		);
 		$this->assertGreaterThan(0, $first['result']['objects']['created']);
-		$this->assertNotEmpty($this->targetStore, 'At least one real eolCycle object must have been written.');
+		$this->assertNotEmpty($this->targetStore, 'At least one real eol_cycle object must have been written.');
 
-		foreach ($this->targetStore as $eolCycle) {
-			$this->assertSame('php', $eolCycle['product']);
-			$this->assertNotEmpty($eolCycle['cycle']);
-			$this->assertIsString($eolCycle['eol'], 'eol must always be cast to string, even for a real JSON false value.');
+		foreach ($this->targetStore as $eol_cycle) {
+			$this->assertSame('php', $eol_cycle['product']);
+			$this->assertNotEmpty($eol_cycle['cycle']);
+			$this->assertIsString($eol_cycle['eol'], 'eol must always be cast to string, even for a real JSON false value.');
 		}
 
 		$createdCount = count($this->targetStore);
@@ -414,8 +414,8 @@ class EndoflifeDateLiveSyncTest extends TestCase {
 		// real-API idempotency proof.
 		$second = $service->synchronize(synchronization: $syncPayload);
 
-		$this->assertSame(0, $second['result']['objects']['created'], 'No additional eolCycle objects on the second run against the same real data.');
-		$this->assertCount($createdCount, $this->targetStore, 'No duplicate eolCycle objects were created by the second run.');
+		$this->assertSame(0, $second['result']['objects']['created'], 'No additional eol_cycle objects on the second run against the same real data.');
+		$this->assertCount($createdCount, $this->targetStore, 'No duplicate eol_cycle objects were created by the second run.');
 
 	}//end testLiveSyncAgainstRealPhpEndpointIsCreatedAndIdempotent()
 }//end class

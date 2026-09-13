@@ -271,14 +271,17 @@ The adapter MUST authenticate with DSO-LV using PKIoverheid certificates for mut
 #### Scenario: Certificate used for outbound mTLS call
 - **WHEN** a PKIoverheid certificate and private key are uploaded via the Integriq admin UI and the adapter makes an outbound call to DSO-LV
 - **THEN** the certificate is written to a temporary file by CallService.getCertificate(), used for mTLS, and cleaned up after the request
+- @e2e exclude mTLS with a real client certificate, and a signed inbound webhook. The e2e instance holds no DSO certificate and receives no signed callback, so neither side of the exchange can be driven from a browser session
 
 #### Scenario: Expiring certificate triggers warning
 - **WHEN** the PKIoverheid certificate expires in 30 days and the daily health check runs
 - **THEN** a warning notification is sent to the Nextcloud admin with the certificate expiry date and renewal instructions
+- @e2e exclude mTLS with a real client certificate, and a signed inbound webhook. The e2e instance holds no DSO certificate and receives no signed callback, so neither side of the exchange can be driven from a browser session
 
 #### Scenario: Incoming webhook signature validated
 - **WHEN** an incoming webhook from DSO-LV includes a signature header and the adapter validates the signature against the DSO-LV public certificate
 - **THEN** requests with valid signatures are processed and requests with invalid signatures are rejected with HTTP 401
+- @e2e exclude mTLS with a real client certificate, and a signed inbound webhook. The e2e instance holds no DSO certificate and receives no signed callback, so neither side of the exchange can be driven from a browser session
 
 ### Requirement: Integriq Source Registration (REQ-DSO-060)
 

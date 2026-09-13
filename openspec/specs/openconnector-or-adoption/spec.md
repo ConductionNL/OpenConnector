@@ -21,6 +21,7 @@ to preserve external compatibility.
 - **GIVEN** the rename is applied
 - **WHEN** a developer searches `lib/` for `class ObjectService`
 - **THEN** they SHALL find only the deprecated alias (single line) and the new
+- @e2e exclude a static naming assertion over the tree
   `SourceMappingService` definition.
 
 #### Scenario: Deprecated alias triggers E_USER_DEPRECATED
@@ -28,6 +29,7 @@ to preserve external compatibility.
 - **GIVEN** an external app instantiates `OCA\Integriq\Service\ObjectService`
 - **WHEN** the constructor runs
 - **THEN** a `E_USER_DEPRECATED` notice SHALL fire pointing to `SourceMappingService`.
+- @e2e exclude a PHP runtime notice raised on class load, which a browser session never surfaces. Verified 2026-09-07: one file under lib/ raises it
 
 ### Requirement: Schema property references use slug-based lookup
 
@@ -41,6 +43,7 @@ schema-property GUIDs SHALL NOT appear as PHP constants anywhere in `lib/`.
 - **WHEN** that schema is rebuilt and gets new property GUIDs
 - **THEN** the rule engine SHALL continue to function without code changes
 - **AND** no `id-…` GUID literal SHALL exist in `lib/Service/RuleService.php`.
+- @e2e exclude requires REBUILDING the register mid-run, a state the e2e instance is never in: ci-seed.sh provisions it once before Playwright starts
 
 ### Requirement: Log retention is declared once via archival annotation
 
@@ -59,6 +62,7 @@ duration.
 - **THEN** success-log rows older than 1 hour SHALL be eligible for archival
 - **AND** error-log rows older than 30 days SHALL be eligible for archival
 - **AND** no `DEFAULT_*_LOG_RETENTION` constants SHALL exist in `lib/Service/`.
+- @e2e exclude a static assertion about constants in source
 
 ### Requirement: Lifecycle annotation backs status state changes
 
@@ -75,12 +79,14 @@ on-wire status value SHALL remain identical to the current value.
 - **THEN** the controller SHALL invoke
   `lifecycleService->transitionTo($msg, 'ontvangen')` instead
 - **AND** the response payload SHALL still contain `"status": "ontvangen"`.
+- @e2e exclude a schema-shape assertion over the register descriptor
 
 #### Scenario: Event pending state via lifecycle
 
 - **GIVEN** the event schema declares lifecycle states including `pending`
 - **WHEN** `EventService` reaches a previously-inline `'status' => 'pending'` write
 - **THEN** the service SHALL invoke `lifecycleService->transitionTo($event, 'pending')`.
+- @e2e exclude a schema-shape assertion over the register descriptor
 
 ### Requirement: Sync-contract status filter values reflect lifecycle
 
@@ -96,6 +102,7 @@ lifecycle's state list rather than a controller-side whitelist.
 - **WHEN** `SynchronizationContractsController` returns the filter whitelist
 - **THEN** the whitelist SHALL be derived from the schema's lifecycle states
 - **AND** no hardcoded `'active'|'inactive'|'error'` literals SHALL exist in the
+- @e2e exclude a schema-shape assertion over the register descriptor
   controller.
 
 ### Requirement: Sync log-level filter values are documented as filter-only
@@ -113,6 +120,7 @@ They SHALL NOT be migrated to a lifecycle annotation.
 - **WHEN** an auditor inspects the log schema
 - **THEN** there SHALL be no `x-openregister-lifecycle` annotation referencing log levels
 - **AND** the filter whitelist SHALL match the enum.
+- @e2e exclude a schema-shape assertion over the register descriptor
 
 ### Requirement: Notification annotation backs sync alerts
 
@@ -127,6 +135,7 @@ Synchronization-failed, contract-broken, and job-failed notifications SHALL be d
 - **WHEN** `SynchronizationService` transitions a run to `error`
 - **THEN** the notification SHALL fire automatically
 - **AND** no direct `notificationManager->notify()` call SHALL exist for this event.
+- @e2e exclude an ADR-031 declaration in the register descriptor, asserted by gate-18 notification-dialect rather than by a browser
 
 ### Requirement: Tenant-tunable values move to admin-config
 
@@ -139,6 +148,7 @@ admin-config. Default values SHALL preserve current behavior.
 - **WHEN** `EndpointCacheService` reads its TTL
 - **THEN** the TTL SHALL equal 7200
 - **AND** the constant `CACHE_TTL` SHALL no longer exist in
+- @e2e exclude an admin configuration value read at runtime; nothing in the SPA surfaces it
   `lib/Service/EndpointCacheService.php`.
 
 #### Scenario: Software-catalogue suffix is admin-config
@@ -147,6 +157,7 @@ admin-config. Default values SHALL preserve current behavior.
 - **WHEN** `SoftwareCatalogueService` constructs an external slug
 - **THEN** the suffix SHALL be `-sc-test`
 - **AND** the constant `SUFFIX` SHALL no longer exist in
+- @e2e exclude an admin configuration value read at runtime; nothing in the SPA surfaces it
   `lib/Service/SoftwareCatalogueService.php`.
 
 ### Requirement: Domain-specific Pinia stores stay app-local
@@ -162,12 +173,14 @@ nc-vue for tenant scope.
 - **GIVEN** the nc-vue `multi-tenancy-context` composable is available
 - **WHEN** any of the 20+ integriq stores reads tenant scope
 - **THEN** it SHALL read from `useTenantContext()` rather than computing locally.
+- @e2e exclude a static assertion about which composable a store imports
 
 #### Scenario: Stores are not flagged as duplication in future audits
 
 - **GIVEN** this Requirement exists in the capability spec
 - **WHEN** a future OR-abstraction audit reviews integriq
 - **THEN** the auditor SHALL cite this Requirement and SKIP a re-investigation of the
+- @e2e exclude the behaviour of a future audit, which nothing can assert today
   20+ Pinia stores as duplication.
 
 ### Requirement: Mapping/rule engine stays app-local
@@ -182,6 +195,7 @@ SHALL NOT be migrated to OR.
 - **GIVEN** this Requirement exists in the capability spec
 - **WHEN** a future audit reviews the mapping/rule engine
 - **THEN** the auditor SHALL cite this Requirement and SKIP a migration recommendation.
+- @e2e exclude the behaviour of an audit over the tree, not of the product
 
 ### Requirement: integriq declares its manifest
 
@@ -193,6 +207,7 @@ integriq SHALL ship `openspec/manifest.yaml` declaring `tier: 2`,
 - **GIVEN** `openspec/manifest.yaml` lists `consumes`
 - **WHEN** Hydra coordination loads the manifest
 - **THEN** the consumed list SHALL include `register-resolver-service`,
+- @e2e exclude a manifest-shape assertion. Verified 2026-09-07: openspec/manifest.yaml declares 5 consumed specs
   `pluggable-integration-registry`, `i18n-source-of-truth`,
   `i18n-api-language-negotiation`, `multi-tenancy-context`.
 
@@ -207,4 +222,5 @@ be re-implemented.
 - **GIVEN** a client sends `Accept-Language: nl-NL` to integriq
 - **WHEN** the response includes a translatable label or description
 - **THEN** the field SHALL return the Dutch translation per OR's negotiation spec.
+- @e2e exclude no test sends an Accept-Language header and asserts the response language. The l10n suite covers the catalogues, not this negotiation
 

@@ -39,6 +39,7 @@ use OCA\Integriq\Service\Security\InlineSecretMigrationPlanner;
 use OCA\Integriq\Tests\Helpers\MigrationSimulatingObjectService;
 use OCA\OpenRegister\Db\ObjectEntity;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\AbstractLogger;
 
 /**
@@ -364,7 +365,8 @@ class InlineSecretMigrationExecutorTest extends TestCase {
 		$this->executor = new TestableInlineSecretMigrationExecutor(
 			$this->objectService,
 			$planner,
-			$this->logger
+			$this->logger,
+			$this->createMock(ContainerInterface::class)
 		);
 		$this->executor->brokerInstance = $this->broker;
 		$this->executor->brokerClassAvailable = true;

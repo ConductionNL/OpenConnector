@@ -27,6 +27,7 @@ into `Application::register()` and blocking app registration.
 - **WHEN** Integriq boots
 - **THEN** `RegisterOperationsListener` SHALL be registered against `RegisterOperationsEvent`
 - **AND** NC's Flow rule editor SHALL list "Run synchronization", "Call endpoint", and "Fire CloudEvent" as
+- @e2e exclude a container-registration assertion made at app boot
   available operations for the File entity
 
 #### Scenario: WorkflowEngine is unavailable — no registration, no crash
@@ -39,6 +40,7 @@ into `Application::register()` and blocking app registration.
   normally
 - **AND** no error-level log entry SHALL be written (a disabled `workflowengine` app is a normal, expected
   state, not a fault)
+- @e2e exclude a container-registration assertion made at app boot, when the WorkflowEngine app is absent
 
 ### Requirement: The "Run synchronization" operation's `onEvent()` MUST dispatch to `SynchronizationService` (REQ-002)
 
@@ -62,6 +64,7 @@ propagate into the NC event dispatcher that invoked `onEvent()`.
 - **THEN** `RunSynchronizationOperation::onEvent()` SHALL call
   `SynchronizationService::getSynchronization('abc-123')`
 - **AND** SHALL call `SynchronizationService::synchronize()` with the resolved synchronization
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 #### Scenario: multiple matching flows each run their own configured synchronization
 
@@ -70,6 +73,7 @@ propagate into the NC event dispatcher that invoked `onEvent()`.
 - **WHEN** the event fires
 - **THEN** `onEvent()` SHALL call `synchronize()` once for `abc-123` and once for `def-456`
 - **AND** a failure dispatching `abc-123` SHALL NOT prevent `def-456` from being dispatched
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 #### Scenario: a deleted target synchronization is logged and does not crash the triggering request
 
@@ -78,6 +82,7 @@ propagate into the NC event dispatcher that invoked `onEvent()`.
 - **THEN** `SynchronizationService::getSynchronization()` SHALL raise `DoesNotExistException`
 - **AND** `onEvent()` SHALL log the failure and return without throwing
 - **AND** the NC request that triggered the underlying file event SHALL complete normally
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 ### Requirement: The "Call endpoint" operation's `onEvent()` MUST dispatch to `EndpointService::triggerFromFlow()` (REQ-003)
 
@@ -100,6 +105,7 @@ dispatcher.
 - **THEN** `CallEndpointOperation::onEvent()` SHALL call `EndpointService::getEndpointById('ep-1')`
 - **AND** SHALL call `EndpointService::triggerFromFlow()` with the resolved endpoint
 - **AND** `triggerFromFlow()` SHALL delegate to the existing `handleRequest()` without duplicating its
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
   routing/proxy logic
 
 #### Scenario: a missing endpoint is logged and skipped, not thrown
@@ -108,6 +114,7 @@ dispatcher.
 - **WHEN** the rule's triggering event fires
 - **THEN** `EndpointService::getEndpointById()` SHALL return `null`
 - **AND** `onEvent()` SHALL log the failure and skip this flow without throwing
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 ### Requirement: The "Fire CloudEvent" operation's `onEvent()` MUST dispatch to `EventService::emitCloudEvent()` (REQ-004)
 
@@ -130,6 +137,7 @@ used unchanged.
   'nl.conduction.flow.file-tagged'` and `source = '/openconnector/flow'`
 - **AND** a new `event` OR-object SHALL be persisted and `EventService::processEvent()` SHALL be invoked on
   it, producing a matching `event_message` for the subscription
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 #### Scenario: static configured data is merged into the emitted CloudEvent
 
@@ -138,6 +146,7 @@ used unchanged.
 - **WHEN** the rule's triggering event fires
 - **THEN** the persisted `event.data` SHALL contain both `reason: "tagged for export"` and `eventName` (the
   NC event name that triggered dispatch)
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 ### Requirement: All three operations MUST be admin-scoped and File-entity-scoped only (REQ-005)
 
@@ -153,6 +162,7 @@ checks unmodified.
 - **GIVEN** an NC instance with per-user Flow enabled (`IManager::SCOPE_USER` active for a non-admin)
 - **WHEN** a non-admin user opens their personal Files > Automation editor
 - **THEN** "Run synchronization", "Call endpoint", and "Fire CloudEvent" SHALL NOT appear in the available
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
   operations list
 
 #### Scenario: the operations are available in the admin Flow editor, scoped to File
@@ -160,6 +170,7 @@ checks unmodified.
 - **GIVEN** an NC admin opens Settings > Flow
 - **WHEN** they view the list of available operations
 - **THEN** "Run synchronization", "Call endpoint", and "Fire CloudEvent" SHALL appear, each usable only
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
   against File-entity events and File-entity checks (mime type, name, size, system tags)
 
 ### Requirement: `validateOperation()` MUST reject unresolvable or malformed target settings before a rule can be saved (REQ-006)
@@ -178,12 +189,14 @@ synchronization"; `endpointId` for "Call endpoint"; `type` and `source` for "Fir
 - **WHEN** NC's Flow editor calls `validateOperation()` while saving the rule
 - **THEN** `\UnexpectedValueException` SHALL be thrown
 - **AND** the rule SHALL NOT be persisted
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 #### Scenario: saving a Flow rule with malformed settings JSON is rejected
 
 - **GIVEN** an operation settings string that is not valid JSON
 - **WHEN** `validateOperation()` runs
 - **THEN** `\UnexpectedValueException` SHALL be thrown
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 #### Scenario: saving a valid Flow rule succeeds
 
@@ -191,6 +204,7 @@ synchronization"; `endpointId` for "Call endpoint"; `type` and `source` for "Fir
   "/openconnector/flow"}`
 - **WHEN** `validateOperation()` runs
 - **THEN** no exception SHALL be thrown and the rule SHALL be persisted
+- @e2e exclude the Nextcloud WorkflowEngine hosts these operations, and its admin flow editor is a Nextcloud settings surface rather than an integriq page. This suite drives integriq's own pages
 
 ## Non-Functional Requirements
 

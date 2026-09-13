@@ -25,6 +25,8 @@ use OCA\Integriq\Service\ActionAuthService;
 use OCA\Integriq\Service\MappingService;
 use OCA\Integriq\Service\SourceMappingService;
 use OCA\Integriq\Settings\IntegriqAdmin;
+use OCA\OpenRegister\Contract\RegisterSlugResolution;
+use OCA\OpenRegister\Contract\RegisterSlugResolverInterface;
 use OCA\OpenRegister\Db\RegisterMapper;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -36,6 +38,7 @@ use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
 use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Log\LoggerInterface;
 
@@ -51,6 +54,21 @@ use Psr\Log\LoggerInterface;
  * @SuppressWarnings(PHPMD.UnusedLocalVariable)
  */
 class MappingsController extends Controller {
+
+	/**
+	 * The CANONICAL slug of this app's own register, which is not what to write with.
+	 *
+	 * It is the name asked ABOUT. What to write with comes back from
+	 * {@see RegisterSlugResolverInterface}, because this app's repair step
+	 * renames the register from `openconnector` per instance and both names are
+	 * live across the estate. See {@see \OCA\Integriq\Repair\MigrateRegisterSlug},
+	 * which is the authority for that rename and the only file in this app
+	 * entitled to name the old slug.
+	 *
+	 * @var string
+	 */
+	private const SELF_REGISTER = 'integriq';
+
 	/**
 	 * Constructor for the MappingsController.
 	 *
@@ -62,6 +80,7 @@ class MappingsController extends Controller {
 	 * @param IUserSession $userSession The user session.
 	 * @param ActionAuthService $actionAuth The action authorization service.
 	 * @param LoggerInterface $logger Logger for non-fatal diagnostics.
+	 * @param ContainerInterface $container App container OpenRegister's mappers are resolved from.
 	 */
 	public function __construct(
 		$appName,
@@ -72,6 +91,7 @@ class MappingsController extends Controller {
 		private readonly IUserSession $userSession,
 		private readonly ActionAuthService $actionAuth,
 		private readonly LoggerInterface $logger,
+		private readonly ContainerInterface $container,
 	) {
 		parent::__construct(appName: $appName, request: $request);
 
@@ -310,17 +330,92 @@ class MappingsController extends Controller {
 		$object = (array)$data['object'];
 		unset($object['id'], $object['uuid'], $object['@self']);
 
+		// 🔴 THE DEFAULT REGISTER IS A QUESTION, NOT A LITERAL.
+		//
+		// This used to read `($data['register'] ?? 'openconnector')`. The app's
+		// own register was renamed to `integriq` by
+		// {@see \OCA\Integriq\Repair\MigrateRegisterSlug}, and that step runs
+		// per instance, so both slugs are live across the estate. On an instance
+		// that has run it, every request that did not name a register wrote into
+		// a register that is not there. OpenRegister does not raise for that: the
+		// row is absent, so the write lands nowhere the UI will read back, and
+		// the response is a 200 carrying an object nobody can find again.
+		//
+		// A caller-supplied register is used as given. Those come from the
+		// register picker, whose options are live `openregister_registers` rows
+		// fetched by getObjects() below, so they already carry this instance's
+		// actual slug and resolving them a second time would only add a way to
+		// be wrong.
+		$register = trim((string)($data['register'] ?? ''));
+		if ($register === '') {
+			$resolution = $this->resolveOwnRegister();
+			if ($resolution === null || $resolution->isResolved() === false) {
+				// 409, not 404: the ROUTE is fine and the mapping result is
+				// fine. What is missing is this instance's register, which an
+				// admin fixes by running the repair step or provisioning the
+				// register. Returning the empty success this branch used to
+				// produce is the defect itself.
+				return new JSONResponse(
+					[
+						'error' => $this->l->t(
+							'This instance has no Integriq register, so there is nowhere to save the result. '
+							. 'Run the Integriq repair step, or name a register explicitly in the request.'
+						),
+					],
+					409
+				);
+			}
+
+			$register = $resolution->slug;
+		}//end if
+
 		// OR's ObjectService::saveObject signature is `(object, register?,
 		// schema?)`. Prior code passed the register slug as the first arg
 		// — a TypeError under the new signature, which surfaced as 500.
 		$saved = $openRegisters->saveObject(
 			object:   $object,
-			register: ($data['register'] ?? 'openconnector'),
+			register: $register,
 			schema:   ($data['schema'] ?? 'mapping')
 		);
 
 		return new JSONResponse($saved->getObject());
 	}//end saveObject()
+
+	/**
+	 * Ask this instance which slug its Integriq register answers to.
+	 *
+	 * Resolved from the container rather than injected, for the same reason
+	 * getObjects() resolves RegisterMapper that way: OpenRegister is an optional
+	 * dependency, and a constructor argument typed to one of its classes makes
+	 * every route on this controller fail to build on an instance without it,
+	 * including the routes that never touch a register. The one caller has
+	 * already established that OpenRegister is present before it asks.
+	 *
+	 * @return RegisterSlugResolution|null The resolution, or null when the
+	 *                                     resolver itself could not be resolved,
+	 *                                     which is an OpenRegister too old to
+	 *                                     publish the contract. Handled like an
+	 *                                     absent register by the caller, because
+	 *                                     in both cases this instance cannot say
+	 *                                     where the write should go.
+	 *
+	 * @spec openspec/specs/mapping-and-search/spec.md
+	 */
+	private function resolveOwnRegister(): ?RegisterSlugResolution {
+		try {
+			$resolver = $this->container->get(RegisterSlugResolverInterface::class);
+		} catch (\Throwable $e) {
+			$this->logger->warning(
+				'[MappingsController] could not resolve RegisterSlugResolverInterface, so the default register '
+				. 'cannot be determined: ' . $e->getMessage(),
+				['exception' => $e]
+			);
+
+			return null;
+		}
+
+		return $resolver->resolve(canonical: self::SELF_REGISTER);
+	}//end resolveOwnRegister()
 
 	/**
 	 * Retrieves a list of objects to map to.
@@ -345,7 +440,7 @@ class MappingsController extends Controller {
 			// OpenRegister's ObjectService no longer exposes getRegisters();
 			// fetch the register list via the mapper directly.
 			try {
-				$registerMapper = \OC::$server->get(RegisterMapper::class);
+				$registerMapper = $this->container->get(RegisterMapper::class);
 				$data['availableRegisters'] = $registerMapper->findAll();
 			} catch (\Throwable $e) {
 				$this->logger->warning(

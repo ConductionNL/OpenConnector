@@ -1084,6 +1084,29 @@
               "emptyText": "This source is not used as a promotion environment."
             },
             "_note": "Environments moved here from their own top-level index. The `environment` schema carries NO connection or credential material of its own — just name/slug/role plus `sourceRef` pointing at the `source` (type: api) that holds the location and credentialRef. So an environment is an attribute OF a source, and listing it beside the source it points at is where an operator can actually act on it. Promotion is not a daily operation, which is why it stopped being a top-level menu entry. Icon is 'Earth' from the SHARED widget registry (nextcloud-vue widgetIcons.js), not the menu vocabulary: an unregistered widget icon renders the '?' fallback (ADR-062 rule 8). ServerNetwork, the obvious name, is not in that registry."
+          },
+          {
+            "id": "src-files",
+            "type": "integration",
+            "integrationId": "files",
+            "icon": "FolderOutline",
+            "title": "Supplier documents",
+            "_note": "First of Integriq's four OpenRegister integration leaves (openspec/specs/integration-leaves). A supplier's API documentation, OAS export and onboarding paperwork belong next to the connection they describe, not in someone's mail. `files` is the one leaf that needs no extra column: `_files` is already a metadata column on every magic table, so declaring it costs nothing at the storage layer. The leaf links Nextcloud files by object id and never reads a `source` property, so it adds no read path to the plaintext credential fields 99-source-lockdown.json closed off."
+          },
+          {
+            "id": "src-deck",
+            "type": "integration",
+            "integrationId": "deck",
+            "icon": "ViewColumnOutline",
+            "title": "Incident follow-ups"
+          },
+          {
+            "id": "src-talk",
+            "type": "integration",
+            "integrationId": "talk",
+            "icon": "ForumOutline",
+            "title": "Incident war-room",
+            "_note": "Deck and Talk are runtime-optional: OpenRegister's providers report isEnabled() false when the Nextcloud app is absent and the widget does not render. That is why the e2e spec tolerates their absence rather than asserting three widgets unconditionally."
           }
         ],
         "layout": [
@@ -1150,6 +1173,30 @@
             "gridY": 14,
             "gridWidth": 12,
             "gridHeight": 5
+          },
+          {
+            "id": "6",
+            "widgetId": "src-files",
+            "gridX": 0,
+            "gridY": 19,
+            "gridWidth": 12,
+            "gridHeight": 6
+          },
+          {
+            "id": "7",
+            "widgetId": "src-deck",
+            "gridX": 0,
+            "gridY": 25,
+            "gridWidth": 6,
+            "gridHeight": 6
+          },
+          {
+            "id": "8",
+            "widgetId": "src-talk",
+            "gridX": 6,
+            "gridY": 25,
+            "gridWidth": 6,
+            "gridHeight": 6
           }
         ],
         "bodyWidgets": [

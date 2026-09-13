@@ -22,6 +22,7 @@ namespace OCA\Integriq\Tests\Unit\Service;
 use OCA\Integriq\Service\EngineSignalService;
 use OCP\IUser;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -50,7 +51,10 @@ class EngineSignalServiceTest extends TestCase {
 		$user = $this->createMock(IUser::class);
 		$user->method('getUID')->willReturn('alice');
 
-		$service = new EngineSignalService(logger: $logger);
+		$service = new EngineSignalService(
+			logger: $logger,
+			container: $this->createMock(ContainerInterface::class)
+		);
 		$delivered = $service->deliver(
 			data: ['engineRunUuid' => 'run-1', 'signalNodeId' => 'approve-1'],
 			decision: 'approved',

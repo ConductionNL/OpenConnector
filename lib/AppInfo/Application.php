@@ -81,6 +81,7 @@ use OCA\OpenRegister\AppHost\Controller\GenericPreferencesController;
 use OCA\OpenRegister\AppHost\IMetricsProvider;
 use OCA\OpenRegister\AppHost\Repair\GenericInitializeActions;
 use OCA\OpenRegister\AppHost\Service\GenericActionAuthService;
+use OCA\OpenRegister\Contract\RegisterSlugResolverInterface;
 use OCA\OpenRegister\Event\ObjectCreatedEvent;
 use OCA\OpenRegister\Event\ObjectDeletedEvent;
 use OCA\OpenRegister\Event\ObjectUpdatedEvent;
@@ -438,6 +439,37 @@ class Application extends App implements IBootstrap {
 		// dashboard/widget host (LaunchPad's live-data-tile-widget) can probe
 		// for the resolve façade via the OCS capabilities document.
 		$context->registerCapability(Capabilities::class);
+
+		// Which slug this instance's registers actually answer to.
+		//
+		// Register slugs live in `openregister_registers`, and nine fleet apps
+		// ship a repair step that renames theirs. This app's own
+		// {@see \OCA\Integriq\Repair\MigrateRegisterSlug} is one of them. The
+		// step runs per instance, so `openconnector` and `integriq` are both
+		// live across the estate on any given day, and a literal is wrong on
+		// whichever half has not caught up. The old-slug case is the quiet one:
+		// OpenRegister finds no register row, matches no objects, and returns an
+		// empty set that is byte-for-byte what a healthy empty register returns.
+		// No exception, no 404, no log line.
+		//
+		// An ALIAS rather than a factory, and the difference matters here.
+		// Both sides are strings, so neither triggers an autoload while
+		// `register()` runs, which is the constraint the autoloading prelude at
+		// the top of this method exists for: apps register in sorted order and
+		// `integriq` sorts before `openregister`, so a factory body that named
+		// the concrete class would be evaluated lazily but the class reference
+		// in a closure signature would not. The alias is resolved on first
+		// injection, by which time OpenRegister is autoloadable.
+		//
+		// Resolved live in four leaf containers on a running instance before
+		// this was written, not assumed from the registration: OpenRegister
+		// registers the resolver in its OWN container, so nothing of that
+		// registration reaches here. What reaches here is this alias plus
+		// autowiring of the concrete class.
+		$context->registerServiceAlias(
+			RegisterSlugResolverInterface::class,
+			'OCA\OpenRegister\Service\RegisterSlugResolver'
+		);
 	}//end register()
 
 	/**

@@ -20,14 +20,26 @@ resent every turn.
 | `l10n/*.js` | **frontend** | `OC.L10N.register` → `t()` / `n()` |
 | `l10n/*.json` | **backend** | PHP `IL10N` |
 
-They are **separate catalogues with separate consumers**, not two renderings of
-one source. Both are real and both are maintained. Do not assume a change to one
-implies the other.
+They have **separate consumers**, but they are **not separate sources**.
+`scripts/build-l10n-js.js` regenerates `l10n/<locale>.js` **from**
+`l10n/<locale>.json` for every shipped locale, and `npm run check:l10n-js`
+fails when the two drift. So:
 
-**A `t()` call in `.vue`/`.js` belongs in `en.js`, never in `en.json`.** The gate
-used to assert frontend keys against `en.json` — a file no frontend code path
-reads — which demanded bookkeeping in the backend catalogue while the one the
-browser loads went unaudited. `tests/l10n/check-l10n.js` now targets `en.js`.
+> 🔴 **`l10n/*.json` is the source. `l10n/*.js` is generated. Edit the JSON,
+> then run `npm run l10n:build`.**
+
+**This means `scripts/l10n-ai.js` is the wrong tool for adding a key.** Its own
+help says *"Operates on `l10n/*.js` only. Backend `l10n/*.json` is never
+touched"* — so everything it writes is discarded by the next `l10n:build`,
+silently and with no error. Measured 2026-09-07: 60 keys added with
+`l10n-ai.js add` left `check:l10n-js` reporting *"Stale browser catalogue:
+l10n/en.js"*, and rebuilding would have dropped all 60. Add to the JSON and
+rebuild instead. `l10n-ai.js has|get|find` remain useful for reading.
+
+The audit still targets `en.js`, which is correct: that is the file the browser
+loads. The gate used to assert frontend keys against `en.json` while the one the
+browser reads went unaudited; `tests/l10n/check-l10n.js` now targets `en.js`.
+Auditing the generated file and editing the source is the intended shape.
 
 There is **no scanner for the backend set**. Auditing `en.json` would mean
 walking `lib/` for PHP `$l->t()` calls, not `src/`. Until that exists, `en.json`

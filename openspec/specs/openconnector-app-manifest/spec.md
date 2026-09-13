@@ -18,6 +18,7 @@ and `src/App.vue`. The file MUST be valid JSON parseable without errors.
 - GIVEN a checkout of the integriq repo
 - WHEN listing `integriq/src/`
 - THEN `manifest.json`, `main.js`, and `App.vue` MUST all be present in the same directory
+- @e2e exclude a directory listing, not a DOM behaviour; `check:specs` parses the manifest from that path on every CI run
 
 ---
 
@@ -31,6 +32,7 @@ canonical schema:
 - GIVEN the manifest file is loaded
 - WHEN inspecting the `$schema` top-level key
 - THEN it MUST equal `"https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json"`
+- @e2e exclude a JSON value assertion. `manifest-pages.spec.ts` matches only the filename suffix, and its own header records that as deliberately NOT anchored, so claiming it here would be the annotation-without-coverage this gate exists to catch
 
 ---
 
@@ -44,10 +46,18 @@ The manifest file MUST contain a `version` field matching the semver pattern
 - WHEN validating `version` against `/^\d+\.\d+\.\d+$/`
 - THEN the match MUST succeed
 
-#### Scenario: version is 1.0.0 for D1
-- GIVEN the D1 manifest
+#### Scenario: the manifest declares the schema generation it is written against
+
+`1.0.0` pinned the D1 delivery and has been wrong since the v2 manifest landed;
+the value is `2.1.0` today. The durable claim is that the version tracks the
+manifest SCHEMA generation, which `$schema` also names, not the app release.
+
+- GIVEN the manifest file is loaded
 - WHEN reading `manifest.version`
-- THEN the value MUST be `"1.0.0"`
+- THEN it MUST be a `2.x` version, matching the `app-manifest-v2` schema the
+  `$schema` key names
+- @e2e exclude asserted by `check:specs` (`validate-manifest`) against the real
+  Ajv schema on every CI run, which is a stronger check than a browser can make
 
 ---
 
@@ -60,11 +70,13 @@ apps need to be listed in D1.
 - GIVEN the manifest file is loaded
 - WHEN inspecting `manifest.dependencies`
 - THEN the array MUST contain exactly the string `"openregister"`
+- @e2e exclude a JSON value assertion, and the runtime consequence is covered instead by gate-66 openregister-dependency-shape
 
 #### Scenario: dependencies is a JSON array
 - GIVEN the manifest file is loaded
 - WHEN inspecting `manifest.dependencies`
 - THEN it MUST be a JSON array (not null, not an object, not a string)
+- @e2e exclude a JSON type assertion the Ajv schema enforces in `check:specs`
 
 ---
 
@@ -94,28 +106,41 @@ Required menu entries (confirmed from `src/navigation/MainMenu.vue`):
 | Documentation | integriq navigation.documentation | settings | 120 |
 | Settings | integriq navigation.settings | settings | 130 |
 
-#### Scenario: All 15 menu entries are present
+#### Scenario: the navigation is grouped, not a flat list
+
+This scenario described a flat 15-entry menu. That design is gone: ADR-097 groups
+the domain entries, so `manifest.menu` now holds 10 top-level entries, five of them
+groups carrying their leaves in `children`. `Import` and `Settings` no longer exist
+as menu entries at all.
+
 - GIVEN the manifest file is loaded
 - WHEN inspecting `manifest.menu`
-- THEN the array MUST contain entries with ids: Dashboard, Sources, Endpoints,
-  Consumers, Webhooks, Mappings, Jobs, CloudEvents, Synchronizations, Rules, Import,
-  Documentation, Settings
+- THEN the top level MUST hold `Dashboard`, the groups `GatewayGroup`,
+  `ConnectionsGroup`, `EventsGroup`, `AutomationGroup` and `OperationsGroup`, and the
+  four `section: "footer"` chrome entries
+- AND every domain leaf MUST sit inside a group's `children`, not at the top level
 
-#### Scenario: Settings section entries carry section field
+#### Scenario: the chrome entries carry section footer
+
+`Import` and `Settings` are gone, and the surviving chrome moved from
+`section: "settings"` to `section: "footer"` under ADR-114.
+
 - GIVEN the manifest file is loaded
-- WHEN inspecting menu entries with ids Import, Documentation, Settings
-- THEN each MUST have `"section": "settings"`
+- WHEN inspecting the entries `Documentation`, `Store`, `ReportsMenu` and
+  `FeaturesRoadmapMenu`
+- THEN each MUST have `"section": "footer"`
+- AND they MUST appear in that relative order, which ADR-114 Decision 1 fixes
 
 #### Scenario: Documentation entry uses href not route
 - GIVEN the manifest file is loaded
 - WHEN inspecting the Documentation menu entry
-- THEN it MUST have an `href` field pointing to `"https://openconnector.app/docs"`
+- THEN it MUST have an `href` field pointing to `"https://integriq.conduction.nl"`
 - AND it MUST NOT have a `route` field
 
 #### Scenario: Primary nav entries have route not href
 - GIVEN the manifest file is loaded
-- WHEN inspecting menu entries with ids Dashboard, Sources, Endpoints, Consumers,
-  Mappings, Jobs, CloudEvents, Synchronizations, Rules, Import
+- WHEN inspecting every entry that navigates, at the top level or inside a group's
+  `children` (`Import` is no longer among them)
 - THEN each MUST have a `route` field
 - AND the `route` value MUST match a `pages[].id` in the same manifest
 
@@ -177,15 +202,26 @@ Required pages (minimum 23 entries):
 - WHEN inspecting pages with ids SourceLogs, EndpointLogs, JobLogs, SynchronizationLogs, CloudEventLogs
 - THEN each MUST have `"type": "logs"`
 
-#### Scenario: Import page is type custom
-- GIVEN the manifest file is loaded
-- WHEN inspecting the page with id `"Import"`
-- THEN its `type` MUST be `"custom"`
+#### Scenario: the Import page is gone, and stays gone
 
-#### Scenario: Settings page is type settings
+Inverted rather than deleted. `Import` was retired with the configuration
+export/import rework; the manifest declares no such page and `/import` is not a
+route. A deleted scenario says nothing if the page comes back by accident.
+
 - GIVEN the manifest file is loaded
-- WHEN inspecting the page with id `"Settings"`
-- THEN its `type` MUST be `"settings"`
+- WHEN inspecting `manifest.pages`
+- THEN no entry MUST carry the id `"Import"`
+
+#### Scenario: settings live in the Nextcloud settings section, not a page
+
+Inverted rather than deleted. There is no `Settings` page: ADR-114 puts the app's
+settings behind the nav's settings foldout, which links to
+`/settings/admin/integriq`, so a `type: "settings"` page would be a second home
+for the same thing.
+
+- GIVEN the manifest file is loaded
+- WHEN inspecting `manifest.pages`
+- THEN no entry MUST carry the id `"Settings"`
 
 #### Scenario: Detail pages carry :id parameter in route
 - GIVEN the manifest file is loaded
@@ -204,16 +240,19 @@ checked by the `validateManifest` utility function.
 - GIVEN `validateManifest(manifest)` is called with the contents of `src/manifest.json`
 - WHEN the function executes
 - THEN it MUST return `{ valid: true, errors: null }`
+- @e2e exclude a unit behaviour of `validateManifest()`; `npm run check:manifest` runs exactly this against the real schema in CI
 
 #### Scenario: Unknown page type fails validation
 - GIVEN a modified manifest with `pages[0].type = "wizard"`
 - WHEN `validateManifest(manifest)` is called
 - THEN it MUST return `{ valid: false, errors: <non-empty array> }`
+- @e2e exclude a unit behaviour: it requires MUTATING the manifest to an invalid state, which an e2e against a running app cannot do
 
 #### Scenario: Missing required page field fails validation
 - GIVEN a modified manifest with a page entry missing the `id` field
 - WHEN `validateManifest(manifest)` is called
 - THEN it MUST return `{ valid: false, errors: <non-empty array> }` referencing the missing `id`
+- @e2e exclude a unit behaviour: it requires MUTATING the manifest to an invalid state, which an e2e against a running app cannot do
 
 ---
 
@@ -229,17 +268,20 @@ chain D2's `CnAppRoot` wiring.
 - GIVEN the file `src/main.js` is read
 - WHEN scanning its import statements
 - THEN `import bundledManifest from './manifest.json'` MUST be present
+- @e2e exclude a source-text assertion over `src/main.js`; the browser sees the bundle, not the import statement
 
 #### Scenario: main.js calls useAppManifest
 - GIVEN the file `src/main.js` is read
 - WHEN scanning its body
 - THEN `useAppManifest('integriq', bundledManifest)` MUST be called
 - AND `useAppManifest` MUST be imported from `@conduction/nextcloud-vue`
+- @e2e exclude a source-text assertion over `src/main.js`. That the call took effect IS proven in the browser, by every page-mount test in `manifest-pages.spec.ts`
 
 #### Scenario: useAppManifest call is before Vue mount
 - GIVEN the file `src/main.js` is read
 - WHEN checking line order
 - THEN the `useAppManifest` call MUST appear before `.$mount('#content')`
+- @e2e exclude a source line-order assertion. The consequence of getting it wrong (an app that mounts with no manifest) is what the page-mount tests would catch
 
 ---
 
@@ -253,17 +295,20 @@ validation success and non-zero on validation failure.
 - GIVEN `package.json` is loaded
 - WHEN inspecting the `scripts` object
 - THEN a key `"check:manifest"` MUST be present
+- @e2e exclude a package.json key assertion
 
 #### Scenario: check:manifest script validates the manifest
 - GIVEN the check:manifest script is executed in CI
 - WHEN `src/manifest.json` is valid
 - THEN the script MUST exit with code 0
+- @e2e exclude the script's own exit code in CI, which is where `check:specs` already runs it
 
 #### Scenario: check:manifest fails on invalid manifest
 - GIVEN the check:manifest script is executed
 - WHEN `src/manifest.json` contains an invalid page type
 - THEN the script MUST exit with a non-zero code
 - AND MUST print the validation error to stdout or stderr
+- @e2e exclude requires feeding the script a deliberately invalid manifest, which an e2e against a running app cannot do
 
 ---
 

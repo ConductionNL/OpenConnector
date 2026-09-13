@@ -293,6 +293,45 @@ test.describe('app chrome (ADR-114)', () => {
 		}
 	})
 
+	// @e2e openconnector-app-manifest::all-15-menu-entries-are-present
+	test('every domain leaf sits inside a group, so the main list holds only Dashboard', async ({
+		page,
+	}) => {
+		// The spec described a FLAT 15-entry menu. ADR-097 replaced that with a
+		// grouped nav, and the scenario now claims no domain leaf is left at the
+		// top level. Asserting it for one or two leaves would not establish
+		// that, so this walks the whole main list.
+		const nav = page.locator('[data-testid="cn-nav"]')
+		const mainList = nav.locator('ul').first()
+		const topLevel = mainList.locator('> li')
+		const count = await topLevel.count()
+		expect(count, 'the main nav must render entries').toBeGreaterThan(3)
+
+		for (let i = 0; i < count; i++) {
+			const row = topLevel.nth(i)
+			const id = (await row.getAttribute('data-testid')) ?? ''
+			if (id === 'cn-nav-entry-Dashboard') continue
+			// Anything else at this level must be a GROUP: it carries children.
+			await expect(
+				row.locator('[data-testid^="cn-nav-entry-"]'),
+				`${id} sits in the main list but carries no children, so it is a loose leaf`,
+			).not.toHaveCount(0)
+		}
+	})
+
+	// @e2e openconnector-app-manifest::documentation-entry-uses-href-not-route
+	test('Documentation leaves the app, and the other chrome rows do not', async ({
+		page,
+	}) => {
+		// The scenario pins the href, which moved with the rename from
+		// openconnector.app/docs to integriq.conduction.nl.
+		const nav = page.locator('[data-testid="cn-nav"]')
+		const doc = nav
+			.locator('[data-testid="cn-nav-entry-Documentation"] a')
+			.first()
+		await expect(doc).toHaveAttribute('href', /integriq\.conduction\.nl/)
+	})
+
 	test('the settings foldout carries Personal settings and Admin settings', async ({
 		page,
 	}) => {

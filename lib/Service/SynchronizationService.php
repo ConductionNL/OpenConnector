@@ -47,6 +47,7 @@ use OCA\Integriq\Util\SafeXmlParser;
 use OCA\OpenRegister\Db\Mapping as OrMapping;
 use OCA\OpenRegister\Db\ObjectEntity;
 use OCA\OpenRegister\Service\ObjectService as OrObjectService;
+use OCP\App\IAppManager;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Http\JSONResponse;
@@ -9482,8 +9483,10 @@ class SynchronizationService {
 	 */
 	private function processFetchFileRule(array $rule, array $data, ?string $objectId = null): array {
 		// Check if OpenRegister app is available.
-		$appManager = \OC::$server->get(\OCP\App\IAppManager::class);
-		if ($appManager->isEnabledForUser('openregister') === false) {
+		$appManager = $this->containerInterface->get(IAppManager::class);
+		if (($appManager instanceof IAppManager) === false
+			|| $appManager->isEnabledForUser('openregister') === false
+		) {
 			throw new Exception('OpenRegister app is required for the fetch file rule and not installed');
 		}
 

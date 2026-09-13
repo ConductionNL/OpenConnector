@@ -279,6 +279,7 @@ replay). Every `NcSelect` filter control MUST carry an `inputLabel` prop
 - **GIVEN** the Traces list page
 - **WHEN** the entryPoint filter renders
 - **THEN** the `NcSelect` carries `:input-label="t('integriq',
+- @e2e exclude the Traces page renders and is mounted by `manifest-pages.spec.ts`, but nothing asserts that its entryPoint filter is a LABELED NcSelect. A real, testable gap on a real surface, not an infrastructure blocker; gate-nc-input-labels holds the same rule statically
   'Entry point')"`, matching the pattern already used in
   `EventDeliveriesPage.vue`
 

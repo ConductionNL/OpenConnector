@@ -66,10 +66,6 @@
   <violation rule="PHPMD\Rule\Design\NpathComplexity" file="lib/Flow/SynchronizationRunNode.php" method="validateConfig"/>
   <violation rule="PHPMD\Rule\CleanCode\StaticAccess" file="lib/Flow/SynchronizationRunNode.php"/>
   <violation rule="PHPMD\Rule\CleanCode\ElseExpression" file="lib/Http/XMLResponse.php"/>
-  <violation rule="PHPMD\Rule\CleanCode\ElseExpression" file="lib/Migration/Version1Date20250515232835.php"/>
-  <violation rule="PHPMD\Rule\UnusedFormalParameter" file="lib/Migration/Version2Date20260520000001.php"/>
-  <violation rule="PHPMD\Rule\CleanCode\ElseExpression" file="lib/Migration/Version2Date20260520000001.php"/>
-  <violation rule="PHPMD\Rule\UnusedFormalParameter" file="lib/Migration/Version2Date20260520000099.php"/>
   <violation rule="PHPMD\Rule\CyclomaticComplexity" file="lib/Repair/InitializeRegister.php" method="run"/>
   <violation rule="PHPMD\Rule\Design\NpathComplexity" file="lib/Repair/InitializeRegister.php" method="run"/>
   <violation rule="PHPMD\Rule\CleanCode\ElseExpression" file="lib/Repair/InitializeRegister.php"/>

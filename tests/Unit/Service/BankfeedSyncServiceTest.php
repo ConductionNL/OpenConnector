@@ -36,6 +36,7 @@ use OCA\OpenRegister\Db\ObjectEntity;
 use OCA\OpenRegister\Service\ObjectService as ORObjectService;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -128,7 +129,8 @@ class BankfeedSyncServiceTest extends TestCase {
 			$this->restProvider,
 			$this->eventService,
 			$this->l,
-			$this->logger
+			$this->logger,
+			$this->createMock(ContainerInterface::class)
 		);
 
 	}//end setUp()
@@ -367,6 +369,7 @@ class BankfeedSyncServiceTest extends TestCase {
 			$this->eventService,
 			$this->l,
 			$this->logger,
+			$this->createMock(ContainerInterface::class),
 			static function (): object {
 				throw new \RuntimeException('credential store unavailable');
 			}

@@ -23,6 +23,8 @@ const {
 	extractTranslationCalls,
 	makeLineResolver,
 	collectDynamicKeys,
+	collectBackendKeys,
+	collectSchemaKeys,
 } = require('./lib/l10n.js')
 
 const ROOT = path.resolve(__dirname, '..')
@@ -197,7 +199,15 @@ function main() {
 	}
 	const missing = [...usedKeys].filter(k => !keys.has(k) && !satisfiedByPlural(k)).sort()
 	// Variable-keyed t() calls are invisible to the scan; those keys are live.
-	const dynamic = collectDynamicKeys(ROOT)
+	// Keys no scan of src/ can see: variable-keyed t() calls and the manifest
+	// (collectDynamicKeys), plus every string PHP ->t() translates. en.js is
+	// GENERATED from en.json, the catalogue IL10N reads, so a backend-only
+	// string is in en.js legitimately and is not an unused key.
+	const dynamic = new Set([
+		...collectDynamicKeys(ROOT),
+		...collectBackendKeys(ROOT),
+		...collectSchemaKeys(ROOT),
+	])
 	const unused = [...keys].filter(k => !usedKeys.has(k) && !dynamic.has(k)).sort()
 	const unwrapped = findUnwrapped(vueFiles, keys)
 

@@ -39,6 +39,7 @@ use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -91,7 +92,8 @@ class MappingsControllerSaveObjectTest extends TestCase {
 			$l,
 			$this->createMock(IUserSession::class),
 			$this->createMock(ActionAuthService::class),
-			$this->createMock(LoggerInterface::class)
+			$this->createMock(LoggerInterface::class),
+			$this->createMock(ContainerInterface::class)
 		);
 	}//end controller()
 

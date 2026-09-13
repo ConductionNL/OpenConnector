@@ -16,7 +16,7 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
  * @spec openspec/specs/endoflife-date-source/spec.md#requirement-endoflife-date-source-preset-ships-enabled-credential-free
- * @spec openspec/specs/endoflife-date-source/spec.md#requirement-eolproduct-and-eolcycle-schemas-are-declared-in-the-existing-openconnector-register
+ * @spec openspec/specs/endoflife-date-source/spec.md#requirement-eol-product-and-eol-cycle-schemas-are-declared-in-the-existing-integriq-register
  * @spec openspec/specs/endoflife-date-source/spec.md#requirement-a-curated-starter-set-of-tracked-products-is-seeded-declaratively
  * @spec openspec/specs/endoflife-date-source/spec.md#requirement-each-curated-product-syncs-its-cycles-via-a-dedicated-engine-native-synchronization
  *
@@ -34,7 +34,7 @@ use ReflectionMethod;
 
 /**
  * Verifies both endoflife-date-source register.d fragments: schema
- * declaration + source + eolProduct seeds (endoflife-date-source.json,
+ * declaration + source + eol_product seeds (endoflife-date-source.json,
  * TC-1..TC-5) and the per-product mapping/synchronization/job triples
  * (endoflife-date-source-cycles.json, TC-6..TC-8).
  *
@@ -43,7 +43,7 @@ use ReflectionMethod;
 class EndoflifeDateRegisterFragmentTest extends TestCase {
 
 	/**
-	 * Path to the schemas/source/eolProduct fragment under test.
+	 * Path to the schemas/source/eol_product fragment under test.
 	 *
 	 * @var string
 	 */
@@ -121,8 +121,8 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 	}//end indexBySchemaAndSlug()
 
 	/**
-	 * TC-3 / TC-4: `eolProduct` and `eolCycle` are both declared under
-	 * register `integriq`'s schema list, and `eolCycle.properties`
+	 * TC-3 / TC-4: `eol_product` and `eol_cycle` are both declared under
+	 * register `integriq`'s schema list, and `eol_cycle.properties`
 	 * covers the brief's required field list.
 	 *
 	 * @return void
@@ -131,22 +131,22 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 		$fragment = $this->decodeFragment(self::SCHEMAS_FRAGMENT_PATH);
 
 		$this->assertSame(
-			['eolProduct', 'eolCycle'],
+			['eol_product', 'eol_cycle'],
 			$fragment['components']['registers']['integriq']['schemas'] ?? null
 		);
 
 		$schemas = ($fragment['components']['schemas'] ?? []);
-		$this->assertArrayHasKey('eolProduct', $schemas);
-		$this->assertArrayHasKey('eolCycle', $schemas);
+		$this->assertArrayHasKey('eol_product', $schemas);
+		$this->assertArrayHasKey('eol_cycle', $schemas);
 
-		$productProps = ($schemas['eolProduct']['properties'] ?? []);
+		$productProps = ($schemas['eol_product']['properties'] ?? []);
 		foreach (['slug', 'name', 'category', 'homepage', 'endoflifeUrl'] as $field) {
-			$this->assertArrayHasKey($field, $productProps, "eolProduct must declare '$field'");
+			$this->assertArrayHasKey($field, $productProps, "eol_product must declare '$field'");
 		}
 
-		$this->assertSame(['slug', 'name'], $schemas['eolProduct']['required'] ?? null);
+		$this->assertSame(['slug', 'name'], $schemas['eol_product']['required'] ?? null);
 
-		$cycleProps = ($schemas['eolCycle']['properties'] ?? []);
+		$cycleProps = ($schemas['eol_cycle']['properties'] ?? []);
 		foreach (
 			[
 				'product',
@@ -160,16 +160,16 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 				'discontinued',
 			] as $field
 		) {
-			$this->assertArrayHasKey($field, $cycleProps, "eolCycle must declare '$field' (spec.md required field list)");
+			$this->assertArrayHasKey($field, $cycleProps, "eol_cycle must declare '$field' (spec.md required field list)");
 		}
 
-		$this->assertSame(['product', 'cycle'], $schemas['eolCycle']['required'] ?? null);
+		$this->assertSame(['product', 'cycle'], $schemas['eol_cycle']['required'] ?? null);
 
 	}//end testSchemasFragmentDeclaresEolProductAndEolCycleWithRequiredFields()
 
 	/**
 	 * Merging the fragment onto a representative base descriptor attaches
-	 * eolProduct/eolCycle without redeclaring a disjoint pre-existing
+	 * eol_product/eol_cycle without redeclaring a disjoint pre-existing
 	 * schema slug (ADR-037 union-by-key), and does not create a second
 	 * register (integriq-register-schema REQ-A-001).
 	 *
@@ -195,9 +195,9 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 		$merged = $this->merge($base, $fragment);
 
 		$this->assertSame(
-			['source', 'synchronization', 'mapping', 'job', 'eolProduct', 'eolCycle'],
+			['source', 'synchronization', 'mapping', 'job', 'eol_product', 'eol_cycle'],
 			$merged['components']['registers']['integriq']['schemas'],
-			'existing schema slugs must be preserved with eolProduct/eolCycle appended, not redeclared'
+			'existing schema slugs must be preserved with eol_product/eol_cycle appended, not redeclared'
 		);
 
 		// Only one register is ever declared/merged onto.
@@ -226,7 +226,7 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 	}//end testEndoflifeDateSourceIsEnabledAndCredentialFree()
 
 	/**
-	 * TC-5: all 8 curated `eolProduct` objects are seeded, each with the
+	 * TC-5: all 8 curated `eol_product` objects are seeded, each with the
 	 * design.md Seed Data table's field values.
 	 *
 	 * @return void
@@ -235,7 +235,7 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 		$fragment = $this->decodeFragment(self::SCHEMAS_FRAGMENT_PATH);
 		$index = $this->indexBySchemaAndSlug($fragment['components']['objects'] ?? []);
 
-		$products = ($index['eolProduct'] ?? []);
+		$products = ($index['eol_product'] ?? []);
 		$this->assertSame(
 			self::CURATED_SLUGS,
 			array_keys($products),
@@ -244,13 +244,13 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 
 		foreach ($products as $slug => $product) {
 			$this->assertSame($slug, $product['slug'] ?? null);
-			$this->assertNotEmpty($product['name'] ?? '', "eolProduct '$slug' must have a name");
-			$this->assertNotEmpty($product['category'] ?? '', "eolProduct '$slug' must have a category");
-			$this->assertStringStartsWith('https://', $product['homepage'] ?? '', "eolProduct '$slug' must have a homepage URL");
+			$this->assertNotEmpty($product['name'] ?? '', "eol_product '$slug' must have a name");
+			$this->assertNotEmpty($product['category'] ?? '', "eol_product '$slug' must have a category");
+			$this->assertStringStartsWith('https://', $product['homepage'] ?? '', "eol_product '$slug' must have a homepage URL");
 			$this->assertSame(
 				"https://endoflife.date/{$slug}",
 				$product['endoflifeUrl'] ?? null,
-				"eolProduct '$slug'.endoflifeUrl must be the product's endoflife.date page"
+				"eol_product '$slug'.endoflifeUrl must be the product's endoflife.date page"
 			);
 		}
 
@@ -308,7 +308,7 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 			$this->assertSame('cycle', $sync['sourceConfig']['idPosition'] ?? null);
 			$this->assertEqualsWithDelta(0.5, $sync['sourceConfig']['deletionRatioThreshold'] ?? null, 0.0001, "synchronization '$syncSlug' must raise deletionRatioThreshold to 0.5 (design.md Decision 7)");
 			$this->assertSame('register/schema', $sync['targetType'] ?? null);
-			$this->assertSame('integriq/eolCycle', $sync['targetId'] ?? null);
+			$this->assertSame('integriq/eol_cycle', $sync['targetId'] ?? null);
 			$this->assertSame($mappingSlug, $sync['sourceTargetMapping'] ?? null);
 
 			// Job: generic dispatch, daily cadence, correct slug-addressed
@@ -334,7 +334,7 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 	 * Merging BOTH fragments in sequence (as SettingsService/InitializeRegister
 	 * would fold in every register.d/*.json file) concatenates their
 	 * `components.objects` lists rather than one clobbering the other —
-	 * the source + 8 eolProduct seeds from the schemas fragment and the 24
+	 * the source + 8 eol_product seeds from the schemas fragment and the 24
 	 * mapping/synchronization/job seeds from the cycles fragment must all
 	 * survive together.
 	 *
@@ -347,12 +347,12 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 		$merged = $this->merge(['components' => ['objects' => []]], $schemasFragment);
 		$merged = $this->merge($merged, $cyclesFragment);
 
-		// 1 source + 8 eolProduct + 8 mapping + 8 synchronization + 8 job.
+		// 1 source + 8 eol_product + 8 mapping + 8 synchronization + 8 job.
 		$this->assertCount(33, $merged['components']['objects']);
 
 		$index = $this->indexBySchemaAndSlug($merged['components']['objects']);
 		$this->assertArrayHasKey('endoflife-date', $index['source'] ?? []);
-		$this->assertCount(8, $index['eolProduct'] ?? []);
+		$this->assertCount(8, $index['eol_product'] ?? []);
 		$this->assertCount(8, $index['mapping'] ?? []);
 		$this->assertCount(8, $index['synchronization'] ?? []);
 		$this->assertCount(8, $index['job'] ?? []);
@@ -360,7 +360,7 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 	}//end testBothFragmentsMergeTogetherWithoutClobberingEachOthersObjects()
 
 	/**
-	 * The descriptor file does not declare eolProduct/eolCycle directly —
+	 * The descriptor file does not declare eol_product/eol_cycle directly —
 	 * they arrive exclusively via the register.d fragment (mirrors the
 	 * established HitlApprovalRegisterFragmentTest / EudiRegisterFragmentTest
 	 * precedent).
@@ -371,8 +371,8 @@ class EndoflifeDateRegisterFragmentTest extends TestCase {
 		$descriptorPath = __DIR__ . '/../../../lib/Settings/integriq_register.json';
 		$descriptor = json_decode((string)file_get_contents($descriptorPath), true);
 
-		$this->assertArrayNotHasKey('eolProduct', $descriptor['components']['schemas'] ?? []);
-		$this->assertArrayNotHasKey('eolCycle', $descriptor['components']['schemas'] ?? []);
+		$this->assertArrayNotHasKey('eol_product', $descriptor['components']['schemas'] ?? []);
+		$this->assertArrayNotHasKey('eol_cycle', $descriptor['components']['schemas'] ?? []);
 
 	}//end testDescriptorFileDoesNotDeclareEolProductOrEolCycleDirectly()
 }//end class

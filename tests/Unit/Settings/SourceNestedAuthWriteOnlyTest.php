@@ -649,10 +649,24 @@ class SourceNestedAuthWriteOnlyTest extends TestCase {
 	 * @return void
 	 */
 	public function testSourceSchemaVersionWasBumped(): void {
-		$this->assertSame(
-			'1.4.0',
-			($this->effectiveSchema()['version'] ?? null),
-			'The `source` schema version must be bumped to 1.4.0 so the ocon#242 write-only path additions re-import'
+		$version = ($this->effectiveSchema()['version'] ?? null);
+
+		$this->assertIsString($version, 'The `source` schema must declare a version');
+
+		// A FLOOR, NOT A PIN. The requirement this test exists for is that the
+		// version EXCEEDS what is stored, which 1.4.0 and everything after it
+		// satisfies. Asserting equality made every later legitimate bump a
+		// failure: the schema moved to 1.5.0 and this went red on a change that
+		// was entirely correct.
+		//
+		// Worse than the red is the fix it invites. The obvious way to make an
+		// equality assertion pass again is to put the version back, which would
+		// undo a real re-import and silently strand the newer schema on every
+		// existing install — the exact failure this test was written to catch.
+		$this->assertTrue(
+			version_compare($version, '1.4.0', '>='),
+			'The `source` schema version must be at least 1.4.0 so the ocon#242 write-only path '
+			. 'additions re-import; found ' . $version
 		);
 	}//end testSourceSchemaVersionWasBumped()
 

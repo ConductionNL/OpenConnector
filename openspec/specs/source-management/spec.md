@@ -110,6 +110,7 @@ company lookup, person lookup, and SMS/WhatsApp dispatch out of the box.
   `{ resultaten: [...] }` `mockResponse`
 - **THEN** the OpenRegister KvK leaf returns the canned Dutch companies without a
   real KvK API call
+- @e2e exclude requires mock mode enabled for the BRP, KvK or SMS source. `ci-seed.sh` provisions the register but does not turn mock mode on, so these canned responses never appear on the e2e instance. The mock descriptor exists (`lib/Settings/integriq_mock_register.json`) and nothing drives it
 
 #### Scenario: BRP source returns a fake test person plus audit meta
 
@@ -118,6 +119,7 @@ company lookup, person lookup, and SMS/WhatsApp dispatch out of the box.
 - **THEN** the BRP leaf returns the canned person plus a synthesized Wet-BRP
   audit `meta` (`status`, `durationMs`, `correlationId`) without a real
   HaalCentraal call, and no real person's BSN is used
+- @e2e exclude requires mock mode enabled for the BRP, KvK or SMS source. `ci-seed.sh` provisions the register but does not turn mock mode on, so these canned responses never appear on the e2e instance. The mock descriptor exists (`lib/Settings/integriq_mock_register.json`) and nothing drives it
 
 #### Scenario: SMS/WhatsApp sources return a canned send-success in mock mode
 
@@ -127,6 +129,7 @@ company lookup, person lookup, and SMS/WhatsApp dispatch out of the box.
 - **THEN** the message-dispatch leaf returns `{ status: 'sent', source, response }`
   carrying the mock message id (`MOCK-SMS-…` / `wamid.MOCK…`) without sending a
   real message
+- @e2e exclude requires mock mode enabled for the SMS source. `ci-seed.sh` provisions the register but does not turn mock mode on, so the canned send-success never appears on the e2e instance
 
 #### Scenario: removing the mock flag restores the real upstream call
 
@@ -134,6 +137,7 @@ company lookup, person lookup, and SMS/WhatsApp dispatch out of the box.
   removes `configuration.mock`
 - **THEN** the leaf performs the real upstream call against the production
   `location` with no other change required
+- @e2e exclude requires mock mode enabled for the BRP, KvK or SMS source. `ci-seed.sh` provisions the register but does not turn mock mode on, so these canned responses never appear on the e2e instance. The mock descriptor exists (`lib/Settings/integriq_mock_register.json`) and nothing drives it
 
 ### Requirement: Pre-built BRP HaalCentraal source seed
 

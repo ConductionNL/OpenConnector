@@ -21,6 +21,7 @@ Integriq is an API gateway and integration hub for Nextcloud. It brings enterpri
 | [Prometheus Metrics](prometheus-metrics.md) | Prometheus exposition format metrics + health endpoint | Implemented |
 | [DSO / Omgevingsloket Adapter](dso-omgevingsloket.md) | DSO-LV STAM koppelvlak integration | Implemented |
 | [iBabs & NotuBiz Connector](ibabs-notubiz-connector.md) | RIS integration for bestuurlijke besluitvorming | Implemented |
+| [Integration leaves](integration-leaves.md) | Files, Deck, Talk and Calendar linked to sources and synchronizations | Implemented |
 
 ## Architecture Overview
 

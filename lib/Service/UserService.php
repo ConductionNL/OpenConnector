@@ -25,9 +25,11 @@ namespace OCA\Integriq\Service;
 
 use OCP\Accounts\IAccountManager;
 use OCP\IConfig;
+use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserSession;
+use OCP\L10N\IFactory;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -50,6 +52,8 @@ class UserService {
 	 * @param IAccountManager $accountManager The account manager service
 	 * @param LoggerInterface $logger The logger interface
 	 * @param OrganisationBridgeService $organisationBridgeService The organization bridge service
+	 * @param IDBConnection $db The database connection used for the memory-safe quota lookup
+	 * @param IFactory $l10nFactory The l10n factory used to resolve a fallback language
 	 */
 	public function __construct(
 		private readonly IUserSession $userSession,
@@ -58,6 +62,8 @@ class UserService {
 		private readonly IAccountManager $accountManager,
 		private readonly LoggerInterface $logger,
 		private readonly OrganisationBridgeService $organisationBridgeService,
+		private readonly IDBConnection $db,
+		private readonly IFactory $l10nFactory,
 	) {
 	}//end __construct()
 
@@ -434,8 +440,7 @@ class UserService {
 			}
 
 			// Try to get size from database if available (NextCloud stores this).
-			$connection = \OCP\Server::get(\OCP\IDBConnection::class);
-			$query = $connection->getQueryBuilder();
+			$query = $this->db->getQueryBuilder();
 
 			// Check if NextCloud has cached storage stats.
 			$query->select('size')
@@ -493,7 +498,7 @@ class UserService {
 			$language = $user->getLanguage();
 			// If empty, try to get from browser or system default.
 			if (empty($language) === true) {
-				$language = \OCP\Server::get(\OCP\L10N\IFactory::class)->findLanguage();
+				$language = $this->l10nFactory->findLanguage();
 			}
 		}
 

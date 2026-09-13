@@ -259,5 +259,6 @@ required (reject) comment.
 - GIVEN a `pending` approval request the current user is authorized to act on
 - WHEN they open its detail page
 - THEN Approve and Reject actions are visible, and Reject requires a
+- @e2e exclude `manifest-pages.spec.ts` mounts ApprovalDetail and asserts no console error, but nothing asserts an Approve ACTION is offered on it. A real, testable gap on a real surface
   non-empty comment before it can be submitted
 

@@ -22,12 +22,14 @@ The 15 files are:
 `lib/Db/SynchronizationLogMapper.php`.
 
 #### Scenario: Mapper files are absent post-merge
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it. Verified 2026-09-07: `lib/Db` is gone and the only two `*Mapper.php` left are StUFFieldMapper and FormFieldMapper, which are field mappers, not entity QBMappers
 
 GIVEN the chain C merge commit has been applied
 WHEN a developer runs `find lib/ -name '*Mapper.php' | grep -v 'StUFFieldMapper'`
 THEN the command produces zero output (all legacy mapper files are gone)
 
 #### Scenario: Quality gate rejects mapper re-introduction
+- @e2e exclude the behaviour of a quality gate, exercised by feeding it deliberately bad input, which an e2e against a running app cannot do
 
 GIVEN the quality gate (PHPCS sniff or grep-based composer script) is active
 WHEN a developer accidentally adds `use OCA\Integriq\Db\SourceMapper;` to any file under `lib/` or `tests/`
@@ -52,12 +54,14 @@ The 15 files are:
 `lib/Db/SynchronizationContractLog.php`, `lib/Db/SynchronizationLog.php`.
 
 #### Scenario: Entity files are absent post-merge
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it. Verified 2026-09-07: `lib/Db` does not exist
 
 GIVEN the chain C merge commit has been applied
 WHEN a developer runs `find lib/Db/ -maxdepth 1 -name '*.php' -not -path '*/Dto/*'`
 THEN the command produces zero output (only the `Dto/` subdirectory remains under `lib/Db/`)
 
 #### Scenario: No entity type hints survive in services
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "OCA\\\\Integriq\\\\Db\\\\Source\b" lib/ tests/` is run
@@ -67,7 +71,7 @@ THEN the command produces zero matches (no surviving references to deleted entit
 
 ### Requirement: integriq data migration MUST run at upgrade time
 
-The Nextcloud migration class `lib/Migration/Version2Date20260520000001.php` MUST run on `occ upgrade` and MUST: (a) call `\OCA\OpenRegister\Service\ConfigurationService::importFromApp()` to materialise the openconnector register from `lib/Settings/integriq_register.json`, then (b) call `\OCA\Integriq\Service\Migration\LegacyToRegisterMigrator::migrateAll()` to copy every row from each of the 15 `oc_openconnector_*` legacy tables into `oc_openregister_objects`.
+The Nextcloud migration class `lib/Migration/Version2Date20260908000000.php` MUST run on `occ upgrade` and MUST: (a) call `\OCA\OpenRegister\Service\ConfigurationService::importFromApp()` to materialise the openconnector register from `lib/Settings/integriq_register.json`, then (b) call `\OCA\Integriq\Service\Migration\LegacyToRegisterMigrator::migrateAll()` to copy every row from each of the 15 `oc_openconnector_*` legacy tables into `oc_openregister_objects`.
 
 The migrator MUST be idempotent (the migration class skips when the `openconnector.storage_migrated` IAppConfig flag is `'true'`), MUST preserve uuids byte-for-byte, MUST translate the 6 integer FK columns to OR uuids via a post-INSERT UPDATE pass, MUST branch `Synchronization.sourceId/targetId` across the 3 documented value formats (integer-PK, register/schema slug, uuid), MUST set the `owner` column to null on every migrated row (system-owned), and MUST emit a single summary entry in `oc_openregister_audit_trail` (NOT per-row).
 
@@ -76,19 +80,22 @@ The migrator MUST assert the codebase is in the plaintext-credentials state docu
 On a clean full run, the migrator MUST set `openconnector.storage_migrated` to `'true'`. Until that flag flips, the connector-specific services that use `ObjectService` MUST refuse to start (startup assertion in `Application.php`).
 
 #### Scenario: Migration runs on upgrade
+- @e2e exclude an `occ upgrade` behaviour. A migration and its repair step run there and nowhere else, so a browser session never reaches this path
 
 GIVEN integriq is upgraded from a pre-chain-C version (legacy tables present, `storage_migrated` unset)
 WHEN `occ upgrade` runs
-THEN `Version2Date20260520000001::postSchemaChange()` MUST call `ConfigurationService::importFromApp()` followed by `LegacyToRegisterMigrator::migrateAll()`
+THEN `Version2Date20260908000000::postSchemaChange()` MUST call `ConfigurationService::importFromApp()` followed by `LegacyToRegisterMigrator::migrateAll()`
 AND on success MUST set `openconnector.storage_migrated = 'true'`
 
 #### Scenario: Migration is idempotent
+- @e2e exclude an `occ upgrade` behaviour. A migration and its repair step run there and nowhere else, so a browser session never reaches this path
 
 GIVEN `openconnector.storage_migrated = 'true'` is already set
 WHEN `occ upgrade` re-runs
 THEN the migration class MUST detect the flag and skip without re-running the migrator (no duplicate rows)
 
 #### Scenario: OCC retry command exists
+- @e2e exclude a console command's existence. Verified 2026-09-07: `lib/Command/MigrateToOpenRegister.php`. `occ` has no browser session, so an e2e cannot reach it
 
 GIVEN the migration partially failed and `storage_migrated` is NOT `'true'`
 WHEN an admin runs `occ integriq:migrate-storage --entity source` (single-entity retry)
@@ -111,11 +118,14 @@ No service SHALL retain a constructor dependency on any of the 31 deleted types 
 
 #### Scenario: Source service reads a Source object via ObjectService
 
+> ⚠️ **Stale as written.** Verified 2026-09-07 against the tree: no such class exists under `lib/`. The cutover landed differently from this change's design, and the scenario below describes an artefact that was never built. Left in place rather than deleted so the divergence stays visible; it needs rewriting against what shipped, not annotating.
+
 GIVEN `SourceService` has been rewritten
 WHEN `SourceService::getSource($uuid)` is called
 THEN the service calls `$this->objectService->find(id: $uuid, register: 'integriq', schema: 'source')` exactly once and returns the resulting `ObjectEntity`
 
 #### Scenario: Job service saves a new job via ObjectService
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg (`tests/Unit/Service/JobServiceTest.php`)
 
 GIVEN `JobService` has been rewritten
 WHEN `JobService::createJob(array $data)` is called with valid job data
@@ -123,11 +133,14 @@ THEN the service passes the data to `$this->objectService->saveObject(object: $d
 
 #### Scenario: Source service deletes a Source via ObjectService
 
+> ⚠️ **Stale as written.** Verified 2026-09-07 against the tree: no such class exists under `lib/`. The cutover landed differently from this change's design, and the scenario below describes an artefact that was never built. Left in place rather than deleted so the divergence stays visible; it needs rewriting against what shipped, not annotating.
+
 GIVEN `SourceService` has been rewritten
 WHEN `SourceService::deleteSource($uuid)` is called
 THEN the service calls `$this->objectService->deleteObject(uuid: $uuid)` exactly once and propagates a true return value
 
 #### Scenario: No mapper constructor dependency survives in any service
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "Mapper \$" lib/Service/` is run
@@ -147,18 +160,21 @@ The HTTP wire format (response JSON shape) SHALL remain byte-for-byte identical
 to the chain B baseline, produced via `ObjectEntity::jsonSerialize()`.
 
 #### Scenario: SourcesController returns the correct wire format
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg (`tests/Unit/Controller/SourcesControllerTest.php`)
 
 GIVEN the Sources controller has been rewritten
 WHEN a GET request is made to `/api/sources`
 THEN the response JSON contains a `results` array where each element has `id`, `uuid`, `name`, `type`, `created`, `updated` fields matching the chain A schema property names
 
 #### Scenario: Controller rejects invalid POST payload with 400
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg (`tests/Unit/Controller/SourcesControllerTest.php`)
 
 GIVEN the Sources controller uses `SourceDto::fromArray()` for write validation
 WHEN a POST request to `/api/sources` is made without a required `name` field
 THEN the controller returns HTTP 400 with an error message identifying the missing field
 
 #### Scenario: No mapper dependency in any controller constructor
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "Mapper \$" lib/Controller/` is run
@@ -177,18 +193,21 @@ needed, following the standard Nextcloud DI container resolution pattern (no
 manual alias required if openregister already registers it).
 
 #### Scenario: Application boots without mapper service registrations
+- @e2e exclude a container-wiring behaviour at app boot. Every e2e in this suite boots the app, so a regression here fails all of them rather than one, but nothing asserts the ABSENCE of a registration from the browser
 
 GIVEN the chain C merge is applied and `openconnector.storage_migrated` is `'true'`
 WHEN Nextcloud boots the integriq app
 THEN `Application::register()` completes without errors and no mapper alias is registered in the DI container
 
 #### Scenario: Application fails fast when storage_migrated is not set
+- @e2e exclude requires booting the app with the flag UNSET, which is a state the e2e instance is never in: `ci-seed.sh` provisions the register before Playwright starts
 
 GIVEN a fresh environment where chain B has not been run (`storage_migrated !== 'true'`)
 WHEN Nextcloud boots the integriq app
 THEN `Application::register()` throws `\LogicException` with a message containing the operator runbook command `occ integriq:migrate-storage`
 
 #### Scenario: Pre-flight check is bypassable in CI via env var
+- @e2e exclude an environment-variable behaviour of the boot check, exercised by CI configuration rather than by a browser
 
 GIVEN the env var `INTEGRIQ_SKIP_STORAGE_MIGRATED_ASSERT=1` is set (or the
 still-honoured legacy spelling `OPENCONNECTOR_SKIP_STORAGE_MIGRATED_ASSERT=1`)
@@ -207,12 +226,14 @@ classes. Any `psalm.xml` or `phpstan.neon` exclusion entries that existed solely
 to suppress errors on the now-deleted types MUST be removed.
 
 #### Scenario: Quality gates pass after file deletions
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN all 31 files have been deleted and callers have been rewritten
 WHEN `composer check:strict` is run in the integriq repository root
 THEN the command exits with code 0 (PHPCS, PHPMD, Psalm, PHPStan all pass)
 
 #### Scenario: Autoload does not reference deleted classes
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C merge is applied
 WHEN `composer dump-autoload --dry-run` is run
@@ -235,18 +256,21 @@ appears in a `use` statement or direct class reference anywhere under `lib/` or
 This gate SHALL be active in CI and SHALL run on every push to the chain C branch.
 
 #### Scenario: Quality gate blocks forbidden entity import
+- @e2e exclude the behaviour of a quality gate, exercised by feeding it deliberately bad input, which an e2e against a running app cannot do
 
 GIVEN the quality gate is installed and running
 WHEN a file under `lib/` contains `use OCA\Integriq\Db\Job;`
 THEN the quality gate exits non-zero and reports the forbidden import with file and line number
 
 #### Scenario: Quality gate blocks ObjectMapperFacade re-introduction
+- @e2e exclude the behaviour of a quality gate, exercised by feeding it deliberately bad input, which an e2e against a running app cannot do. Verified 2026-09-07: no file under lib/ names ObjectMapperFacade
 
 GIVEN the quality gate is installed and running
 WHEN any file under `lib/` or `tests/` contains `use OCA\Integriq\Service\Storage\ObjectMapperFacade;`
 THEN the quality gate exits non-zero with a message: "ObjectMapperFacade was deliberately deleted in chain C — services MUST inject ObjectService directly"
 
 #### Scenario: Quality gate does not flag DTO or unrelated classes
+- @e2e exclude the behaviour of a quality gate, exercised by feeding it deliberately bad input, which an e2e against a running app cannot do
 
 GIVEN the quality gate is installed
 WHEN a file under `lib/Db/Dto/` contains `use OCA\Integriq\Db\Dto\SourceDto;`
@@ -267,11 +291,14 @@ types after this change ships.
 
 #### Scenario: SourceService unit test passes with ObjectService mock
 
+> ⚠️ **Stale as written.** Verified 2026-09-07 against the tree: no such class exists under `lib/`. The cutover landed differently from this change's design, and the scenario below describes an artefact that was never built. Left in place rather than deleted so the divergence stays visible; it needs rewriting against what shipped, not annotating.
+
 GIVEN the SourceService unit test has been rewritten
 WHEN the test calls `SourceService::getSource($uuid)` with a mocked `ObjectService` that returns a stub `ObjectEntity`
 THEN the test passes and the assertion verifies that `objectService->find` was called with `('openconnector', 'source', $uuid)`
 
 #### Scenario: All unit tests pass after rewrite
+- @e2e exclude a statement about the PHPUnit suite itself, not about the product
 
 GIVEN all unit tests under `tests/Unit/` have been rewritten
 WHEN `composer phpunit` is run targeting the `tests/Unit/` directory
@@ -291,6 +318,7 @@ chain A schema produces the same field names and value types as the deleted type
 entities did.
 
 #### Scenario: Sources list endpoint returns unchanged JSON shape
+- @e2e exclude no test asserts the WIRE SHAPE. `configuration-export-import.spec.ts` reaches OpenRegister's objects surface for `source`, which touches the subject without establishing that the JSON shape is unchanged
 
 GIVEN chain C is deployed
 WHEN the Newman collection runs the `GET /api/sources` test case
@@ -318,24 +346,28 @@ semantics. The helper MUST be unit-tested with at least four scenarios covering
 each format variant plus the unrecognised-format fallback.
 
 #### Scenario: Integer-PK sourceId is resolved to a UUID via ObjectService
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN a `Synchronization` record whose `sourceId` is the string `"42"` (legacy integer PK format)
 WHEN `SyncRefResolver::resolve("42")` is called
 THEN the resolver identifies the variant as `'integer-pk'`, looks up the integer-PK→uuid mapping via the per-resource cache or a one-shot `findAll(config: ['filters' => ['register' => 'integriq', 'schema' => 'source', 'legacyId' => 42]])` query, then calls `$objectService->find(id: $resolvedUuid, register: 'integriq', schema: 'source')` to obtain the canonical `ObjectEntity`
 
 #### Scenario: Register-schema slug-pair sourceId is resolved
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN a `Synchronization` record whose `sourceId` is `"integriq/source"` (slug-pair format)
 WHEN `SyncRefResolver::resolve("integriq/source")` is called
 THEN the resolver identifies the variant as `'register-schema'` and returns the resolved pair without a direct ObjectService lookup
 
 #### Scenario: UUID sourceId passes through unchanged
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN a `Synchronization` record whose `sourceId` is `"00000000-0000-0000-0000-000000000000"` (UUID format)
 WHEN `SyncRefResolver::resolve("00000000-0000-0000-0000-000000000000")` is called
 THEN the resolver identifies the variant as `'uuid'` and returns the value unchanged
 
 #### Scenario: Unrecognised format is skipped without error
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN a `Synchronization` record whose `sourceId` is an empty string or a value matching none of the three formats
 WHEN `SyncRefResolver::resolve("")` is called
@@ -358,12 +390,14 @@ acknowledges the current plaintext state (ADR-007) and ensures that when
 are already in place.
 
 #### Scenario: CallService reads apikey via explicit decrypt call
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg (`tests/Unit/Service/CallServiceTest.php`)
 
 GIVEN `CallService` has been rewritten
 WHEN `CallService` reads the `apikey` field from a Source `ObjectEntity`
 THEN the code path calls `$this->encryptionService->decrypt($obj->getObject()['apikey'])` before passing the value to Guzzle auth configuration (not reading the raw field value directly)
 
 #### Scenario: No raw field access for credential fields in any service
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "getObject()\['apikey'\]" lib/Service/` is run (without a surrounding decrypt call)
@@ -384,18 +418,21 @@ than from typed entity getters, and the dispatch branching SHALL remain otherwis
 unchanged.
 
 #### Scenario: register/schema targetType dispatches to ObjectService CRUD
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN an Endpoint record with `targetType = 'register/schema'` and `targetId = '20/111'`
 WHEN a request is made to that endpoint
 THEN `EndpointService` splits `targetId` on `/`, validates both parts as numeric, and dispatches to `ObjectService::getMapper(schema, register)` (unchanged from chain B)
 
 #### Scenario: api targetType dispatches to CallService proxy
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN an Endpoint record with `targetType = 'api'` and `targetId = '00000000-0000-0000-0000-000000000000'` (Source UUID)
 WHEN a request is made to that endpoint
 THEN `EndpointService` reads the Source object via `$objectService->find(id: $targetId, register: 'integriq', schema: 'source')` and proxies the request through `CallService`
 
 #### Scenario: Unknown targetType returns a meaningful error
+- @e2e exclude a PHPUnit service behaviour, not a DOM one; the suite runs 2770 tests on every CI leg
 
 GIVEN an Endpoint record with `targetType = 'unknown-type'`
 WHEN a request is made to that endpoint
@@ -414,12 +451,14 @@ quoting) is explicitly out of scope for this change — it MUST NOT be fixed her
 but MUST be tracked as a follow-up issue (cross-reference ADR-009).
 
 #### Scenario: No new MySQL-specific SQL is introduced
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "DATE_ADD\|SHOW COLUMNS\|INTERVAL.*MICROSECOND" lib/` is run
 THEN every match found is a pre-existing occurrence in `SettingsService.php` (not any newly written code)
 
 #### Scenario: New calls to ObjectService use platform-neutral interface
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C rewrite is complete
 WHEN `grep -rn "executeQuery\|createFunction\|backtick" lib/Service/` is run (excluding pre-existing known violations)
@@ -434,6 +473,7 @@ Controllers under `lib/Controller/` that exposed only standard CRUD operations o
 Schema-driven input validation (rejecting missing required fields, type-coercing inputs, etc.) is handled by OR's built-in schema validator when `ObjectService::saveObject()` is called against a register+schema with declared `required` and typed `properties`. The chain A descriptor at `lib/Settings/integriq_register.json` defines those constraints. **No integriq-side DTO layer is needed at CRUD boundaries.** Dedicated DTO classes MAY be introduced ONLY at the input boundary of connector-specific actions (e.g. a `SyncTriggerDto` for the body of `POST /api/synchronizations/{id}/trigger`) when the action's input shape doesn't match any single schema.
 
 #### Scenario: per-schema CRUD controller is deleted
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it. gate-17 redundant-controller also holds this shape
 
 GIVEN the chain C cutover is applied
 WHEN `find lib/Controller/ -name '<Resource>sController.php'` is run for each of the 15 schema-CRUD controllers identified during apply
@@ -441,6 +481,7 @@ THEN each named file MUST NOT exist
 AND the corresponding routes in `appinfo/routes.php` MUST be removed
 
 #### Scenario: connector-specific action controller is preserved
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it
 
 GIVEN the chain C cutover is applied
 WHEN inspecting `lib/Controller/CallController.php`, `lib/Controller/ExportController.php`, `lib/Controller/ImportController.php`, `lib/Controller/EndpointController.php` (inbound dispatch — NOT the deleted `EndpointsController` CRUD), and the new `lib/Controller/MigrateStorageController.php`
@@ -448,6 +489,7 @@ THEN each MUST still exist
 AND their action routes MUST still be present in `appinfo/routes.php`
 
 #### Scenario: OR CRUD route handles a Source create without an integriq controller
+- @e2e exclude no test asserts that a Source CREATE lands on OpenRegister's route rather than an integriq one. The UI CRUD spec creates Sources, but through the app, so it cannot tell the two apart
 
 GIVEN integriq is post-chain-C
 WHEN a client issues `POST /index.php/apps/openregister/api/objects/integriq/source` with `{"name":"test","type":"api"}`
@@ -464,12 +506,14 @@ AND no integriq-side controller MUST be involved in serving this request
 - **DashboardController deletion is justified by manifest declarative widgets:** the post-D2 `src/manifest.json` `Dashboard` page uses `type: dashboard` and declares its widgets via `dataSource: { register, schema, filter, aggregate: 'count' }` blocks resolved by `CnStatsBlockWidget` from `@conduction/nextcloud-vue` against OR's generic aggregate endpoint. Decidesk's manifest (`/decidesk/src/manifest.json` Dashboard entry) demonstrates the working pattern with stats-block widgets for review/published/open-items counts — analogous widgets cover integriq's CallStats, JobStats, SyncStats.
 
 #### Scenario: ImportController + ExportController files are absent post-merge
+- @e2e exclude a static assertion over the tree (file presence, constructor shapes, imports). Nothing a browser can observe; `composer check:strict` (phpcs, phpmd, psalm, phpstan) and the hydra gates are what hold it. Verified 2026-09-07: neither file exists
 
 GIVEN the chain C cutover is applied
 WHEN `find lib/Controller/ -name 'ImportController.php' -o -name 'ExportController.php' -o -name 'DashboardController.php'` is run
 THEN the command produces zero output
 
 #### Scenario: OR export endpoint serves a Source export without an integriq controller
+- @e2e exclude no test drives the EXPORT endpoint. `configuration-export-import.spec.ts` reaches OpenRegister's configuration listing and objects surfaces, which is a different endpoint
 
 GIVEN integriq is post-chain-C with at least one Source object stored in OR
 WHEN a client issues `GET /index.php/apps/openregister/api/objects/integriq/source/{uuid}` with `Accept: application/json`
@@ -477,6 +521,7 @@ THEN OR's generic objects endpoint MUST return the Source object JSON (no integr
 AND if the request includes `X-Slug-Translation: true`, the response JSON MUST have integer FK fields replaced with their portable slug form by the `SlugTranslatorService` decorator (per local ADR-015)
 
 #### Scenario: Dashboard page uses declarative manifest widgets, not the deleted controller
+- @e2e exclude the manifest type and the page mount are proven by `manifest-pages.spec.ts`, and that file's own header already records this scenario as deliberately NOT anchored: that widget counts resolve via dataSource blocks against OpenRegister's aggregate endpoint is not asserted anywhere
 
 GIVEN integriq is post-chain-C
 WHEN the user navigates to the Dashboard page
@@ -490,6 +535,8 @@ AND the page's widgets MUST resolve their counts via `dataSource` blocks pointin
 `lib/Controller/SettingsController.php` MUST be reduced from ~200 LOC to ~80 LOC. The methods `stats()`, `getSettings()`, `updateSettings()`, and `rebase()` MUST be deleted — they reimplement OR's `/api/settings/*` surface or are superseded by other chain-C deliverables. The ONLY method preserved on the controller is the integriq-specific `applyRetention()` action (itself flagged for follow-up replacement per [#822](https://github.com/ConductionNL/integriq/issues/822) Postgres portability).
 
 #### Scenario: SettingsController only exposes the applyRetention action
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: `SettingsController` exposes `rebase`, not `applyRetention`. The controller survived the cutover with a different surface than this change anticipated.
 
 GIVEN the chain C cutover is applied
 WHEN `grep -E 'public function (page|stats|getSettings|updateSettings|rebase|applyRetention)' lib/Controller/SettingsController.php` is run
@@ -505,11 +552,15 @@ The rename also resolves the namespace ambiguity introduced by having two `Confi
 
 #### Scenario: SlugTranslatorService replaces ConfigurationService
 
+> ⚠️ **Stale as written.** Verified 2026-09-07 against the tree: no such class exists under `lib/`. The cutover landed differently from this change's design, and the scenario below describes an artefact that was never built. Left in place rather than deleted so the divergence stays visible; it needs rewriting against what shipped, not annotating.
+
 GIVEN the chain C cutover is applied
 WHEN `find lib/Service/ -name 'ConfigurationService.php'` is run
 THEN the command produces zero output (the file MUST have been renamed/replaced by `SlugTranslatorService.php`)
 
 #### Scenario: SlugTranslatorService roundtrip preserves portability
+
+> ⚠️ **Stale as written.** Verified 2026-09-07 against the tree: no such class exists under `lib/`. The cutover landed differently from this change's design, and the scenario below describes an artefact that was never built. Left in place rather than deleted so the divergence stays visible; it needs rewriting against what shipped, not annotating.
 
 GIVEN an OR Source object with `synchronizationId: 'a1b2c3d4-...-...'` (uuid form)
 WHEN `SlugTranslatorService::translateOnExport($object)` is called

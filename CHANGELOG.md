@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 ### Added
+- `eolProduct` and `eolCycle` are now `eol_product` and `eol_cycle`. They were
+  the only two camelCase slugs among the fifty-five this app declares, which
+  made their object URLs the only ones an operator could not guess from the
+  pattern the other fifty-three follow. An existing install is renamed in place
+  by the `MigrateEolSchemaSlugs` repair step, which runs before the register
+  import: `ImportHandler` matches a schema by `slug` and never by the dict key,
+  so renaming the fragment alone would create a second schema and strand the
+  original row, its magic table and its eight seeded product objects. Objects
+  bind to a schema by numeric id, so nothing moves; the step also re-points the
+  `integriq/eolCycle` strings the eight endoflife-date synchronizations hold in
+  `target_id`, which is the one place a schema slug is written into data.
+  (endoflife-date-source)
+- Integration leaves, Integriq's first adoption of OpenRegister's leaf
+  machinery: `files`, `deck` and `talk` on `source`, `calendar` on
+  `synchronization`. A supplier's documentation, the incident follow-up cards
+  and the war-room conversation now hang off the connection they belong to, and
+  a sync's maintenance windows off the sync. Four of the roughly seventeen
+  app-agnostic leaves, on 2 of 39 schemas; every other schema and leaf stays off
+  with a documented reason. Declarative only: two `configuration.linkedTypes`
+  entries in a register fragment plus three widgets on SourceDetail. Deck, Talk
+  and Calendar stay runtime-optional, so an instance without them renders
+  nothing extra. The calendar leaf surfaces through the object sidebar rather
+  than a widget, because `SynchronizationDetail` is a custom page the manifest
+  cannot place widgets on. (leaf-integrations)
 - Read-only MCP tool surface (ADR-063): 8 schemas (endpoint, job, mapping,
   synchronization, synchronization_contract, call_log, job_log,
   synchronization_log) declare an `x-openregister-mcp` dialect exposing only

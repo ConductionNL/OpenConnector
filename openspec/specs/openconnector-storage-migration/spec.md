@@ -6,7 +6,7 @@ TBD - created by archiving change openconnector-register-storage. Update Purpose
 ### Requirement: Migration class MUST provision the register via importFromApp
 
 The system MUST ship a Nextcloud migration class at
-`lib/Migration/Version2Date20260520xxxxxx.php` that on its `postSchemaChange`
+`lib/Migration/Version2Date20260908000000.php` that on its `postSchemaChange`
 hook calls
 `OCA\OpenRegister\Service\ConfigurationService::importFromApp('openconnector',
 <absolute-path-to-integriq_register.json>, <integriq-app-version>,
@@ -19,6 +19,7 @@ migration is a no-op.
 - THEN the migration class executes
 - AND `oc_openregister_registers` gains one row with `slug='openconnector'`
 - AND `oc_openregister_schemas` gains 15 rows
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 
 #### Scenario: Idempotent re-run
 - GIVEN `oc_openregister_registers` already contains a row with
@@ -27,6 +28,7 @@ migration is a no-op.
 - THEN the migration class executes without error
 - AND no duplicate register or schema rows are created
 - AND schema-metadata updates are applied in-place
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 
 ### Requirement: Migrator MUST copy all legacy rows preserving uuids
 
@@ -54,6 +56,7 @@ method. For each of the 15 entities, the migrator MUST:
   the openconnector register PK and `schema` = the source schema PK
 - AND each inserted row's `uuid` matches the source row's `uuid` byte-for-byte
 - AND the migration log records "source: 12 → 12, 0 skipped"
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 
 #### Scenario: Postgres JSON build
 - GIVEN the runtime database is PostgreSQL
@@ -61,6 +64,7 @@ method. For each of the 15 entities, the migrator MUST:
 - THEN the SQL statement uses `jsonb_build_object(...)` to assemble the
   `object` column
 - AND the resulting `object` value is JSONB type
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 #### Scenario: MySQL JSON build
 - GIVEN the runtime database is MariaDB or MySQL
@@ -68,12 +72,14 @@ method. For each of the 15 entities, the migrator MUST:
 - THEN the SQL statement uses `JSON_OBJECT(...)` to assemble the `object`
   column
 - AND the resulting `object` value is JSON type
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 #### Scenario: UUID preservation
 - GIVEN a `Source` row with `uuid='00000000-0000-0000-0000-000000000123'`
 - WHEN the migrator processes it
 - THEN the resulting `oc_openregister_objects` row has the same uuid
 - AND any existing FK that referenced this uuid as a string-typed column
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
   still resolves after migration
 
 ### Requirement: FK rewrite pass MUST translate 6 integer FK columns to uuids
@@ -107,6 +113,7 @@ object's payload, per chain A REQ-A-008.
 - THEN the OR object's `object` JSON is updated to contain
   `"source": "00000000-0000-0000-0000-000000000042"`
 - AND the legacy `"sourceId": 42` field is preserved (chain A REQ-A-008)
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 #### Scenario: Missing target row triggers skip + log
 - GIVEN a `oc_openconnector_call_logs` row with `source_id=99` where no
@@ -115,6 +122,7 @@ object's payload, per chain A REQ-A-008.
 - THEN the OR object's `source` field is NOT set
 - AND the migration log records "call_log row {uuid}: sourceId=99 has no
   target — skipped FK rewrite, legacy sourceId preserved"
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 ### Requirement: Synchronization.sourceId/targetId branching MUST handle 3 formats
 
@@ -141,11 +149,13 @@ unrecognised: 1 (skipped)").
 - WHEN the migrator processes this row
 - THEN the resulting OR object's `sourceId` field is
   `"00000000-0000-0000-0000-000000000042"`
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 #### Scenario: Register/schema slug pair preserved
 - GIVEN a synchronization row with `source_id='zaken/zaak'`
 - WHEN the migrator processes this row
 - THEN the resulting OR object's `sourceId` field is `"zaken/zaak"`
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
   unchanged
 
 #### Scenario: Unrecognised format skipped
@@ -154,6 +164,7 @@ unrecognised: 1 (skipped)").
 - THEN the migration log records the skip with row uuid + raw value
 - AND the migrator's return tally increments `unrecognised` by 1
 - AND the OR object's `sourceId` field is set to the raw legacy value (not
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
   rewritten)
 
 ### Requirement: Migrator MUST set the storage_migrated app-config flag on success
@@ -171,6 +182,7 @@ run).
 - GIVEN all 15 entities migrate without skips or errors
 - WHEN the migrator's `migrateAll()` returns
 - THEN `IAppConfig::getValue('openconnector', 'storage_migrated', null)` is
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path. The `storage_migrated` flag itself is still read, by SynchronizationContractProvider among others
   `'true'`
 
 #### Scenario: Failure path leaves flag false
@@ -179,6 +191,7 @@ run).
 - THEN `IAppConfig::getValue('openconnector', 'storage_migrated', null)` is
   NOT `'true'` (either unset or `'false'`)
 - AND mappers continue to use the legacy table path
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 
 ### Requirement: ObjectMapperFacade MUST translate the mapper API to ObjectService
 
@@ -203,6 +216,8 @@ populated lazily on first `find(int)` call and invalidated on any
 `createFromArray` or `delete` call for the same register/schema.
 
 #### Scenario: find(int) resolves via the cache
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: the entity mappers this describes are deleted: `lib/Db` does not exist. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN a freshly-booted facade with an empty cache
 - AND an OR object exists for `(openconnector, source, uuid=U)` whose legacy
   payload includes `"id": 42`
@@ -213,6 +228,8 @@ populated lazily on first `find(int)` call and invalidated on any
   OR query
 
 #### Scenario: createFromArray hydrates returned typed entity
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: the entity mappers this describes are deleted: `lib/Db` does not exist. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN the facade is asked `createFromArray('openconnector', 'source',
   ['name' => 'New Source', 'type' => 'api'], Source::class)`
 - WHEN OR's `ObjectService::saveObject` returns an `ObjectEntity`
@@ -220,6 +237,8 @@ populated lazily on first `find(int)` call and invalidated on any
   via `(new Source())->hydrate($objectEntity->getObject())`
 
 #### Scenario: delete invalidates the cache
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: the entity mappers this describes are deleted: `lib/Db` does not exist. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN the facade's int-id→uuid cache contains `42 → U` for
   `(openconnector, source)`
 - WHEN the facade is asked `delete('openconnector', 'source', uuid=U)`
@@ -243,12 +262,16 @@ Public method signatures, exception types, and return types MUST be
 preserved byte-for-byte from before this change.
 
 #### Scenario: Flag false routes to legacy path
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: there is no legacy path left to route to; no file under `lib/` carries one. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN `openconnector.storage_migrated = 'false'`
 - WHEN any controller calls `SourceMapper::find(42)`
 - THEN execution runs the legacy SQL query against `oc_openconnector_sources`
 - AND the returned `Source` entity is identical to the pre-migration behaviour
 
 #### Scenario: Flag true routes to facade path
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: there is no facade left to route to; no file under `lib/` names ObjectMapperFacade. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN `openconnector.storage_migrated = 'true'`
 - WHEN any controller calls `SourceMapper::find(42)`
 - THEN execution routes to `ObjectMapperFacade::find('openconnector', 'source', 42)`
@@ -256,6 +279,8 @@ preserved byte-for-byte from before this change.
   return
 
 #### Scenario: Append-only enforcement on log mappers
+
+> ⚠️ **Stale as written.** Verified 2026-09-07: the log mappers this describes are deleted: `lib/Db` does not exist. The cutover this spec describes has COMPLETED, and its transitional machinery is gone. Left visible rather than annotated, because a waiver would record coverage for deleted code.
 - GIVEN `openconnector.storage_migrated = 'true'`
 - WHEN any controller calls `JobLogMapper::updateFromArray(uuid=U, data=[...])`
 - THEN execution propagates OR's `AppendOnlyException` (or its facade
@@ -282,6 +307,7 @@ The command MUST:
 - AND output reports "source: 12 rows would migrate"
 - AND `oc_openregister_objects` count for the source schema is unchanged
 - AND `openconnector.storage_migrated` is unchanged
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 
 #### Scenario: Per-entity retry after partial failure
 - GIVEN a previous migration failed during the `job` entity, leaving
@@ -290,30 +316,47 @@ The command MUST:
 - THEN only the `job` entity migrates
 - AND on success, the flag is NOT flipped (because other entities are still
   legacy); a follow-up full run is required
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path (`lib/Command/MigrateToOpenRegister.php`)
 
-### Requirement: Legacy tables MUST stay readable for one release as rollback buffer
+### Requirement: Legacy tables MUST be dropped once every row has reached OpenRegister
 
-After `storage_migrated = 'true'`, the system MUST NOT drop, truncate, or
-schema-alter `oc_openconnector_*` tables. Application code MUST NOT
-write to them either (write attempts via mapper code paths route to OR via
-the facade; direct SQL writes are out-of-band and not addressed here).
+The rollback buffer this requirement used to describe has served its purpose and
+is now removed. `Version2Date20260908000000` drops all 15 `oc_openconnector_*`
+tables in the same `occ upgrade` that drains them.
 
-A follow-up cleanup change (one release later, tracked as a separate GH issue
-that MUST be filed at proposal time per user's deferred-work rule) removes
-the legacy tables and the storage_migrated flag.
+The drop is conditional. It runs only when the drain reports every entity copied,
+or when `storage_migrated` was already `'true'` from an earlier run. A drain that
+reports a skip or an error leaves every table in place, because dropping a table
+whose rows did not reach OpenRegister would destroy them.
 
-#### Scenario: Legacy tables present after migration
-- GIVEN the migration succeeded and `storage_migrated = 'true'`
-- WHEN an admin queries `SELECT count(*) FROM oc_openconnector_sources`
-- THEN the table still exists and contains the pre-migration rows
+A fresh install never creates these tables at all, so there is nothing to drop
+there.
 
-#### Scenario: Rollback to legacy path
-- GIVEN the migration succeeded and `storage_migrated = 'true'`
-- WHEN an admin runs `occ config:app:set openconnector storage_migrated --value=false`
-- THEN subsequent reads through `SourceMapper::find(int)` route to the
-  legacy table
-- AND the returned data matches the pre-migration data (legacy table not
-  modified)
+#### Scenario: Legacy tables dropped after a successful drain
+- GIVEN an instance carrying the 15 legacy tables
+- WHEN `occ upgrade` runs and the drain reports every entity copied
+- THEN `storage_migrated` is `'true'`
+- AND none of the 15 `oc_openconnector_*` tables remains
+- @e2e exclude a database state reached through `occ upgrade`. A browser session never sees a table list, and the drop runs on the console path only
+
+#### Scenario: Legacy tables kept when the drain is incomplete
+- GIVEN an instance carrying the 15 legacy tables
+- WHEN `occ upgrade` runs and the drain reports a skip or an error for any entity
+- THEN `storage_migrated` is NOT set
+- AND every legacy table is left in place, so no unmigrated row is lost
+- AND the migration reports that `occ integriq:migrate-storage` should be retried before the next upgrade
+- @e2e exclude the same `occ upgrade` path as the scenario above, and it turns on a partial drain that a browser cannot provoke
+
+#### Scenario: Rollback to the legacy read path is no longer possible
+
+> Recorded as removed rather than deleted. The legacy read path was deleted at
+> the cutover, and the tables that backed it are now dropped too, so setting
+> `storage_migrated` back to `'false'` no longer restores anything.
+
+- GIVEN an instance where the migration has dropped the legacy tables
+- WHEN an admin runs `occ config:app:set integriq storage_migrated --value=false`
+- THEN no read routes to a legacy table, because neither the path nor the tables exist
+- @e2e exclude an `occ` console behaviour over dropped tables, with no browser surface
 
 ### Requirement: Credential columns on Source MUST be copied verbatim during migration (currently plaintext)
 
@@ -345,12 +388,14 @@ belongs in the follow-up change, not here.
 - WHEN the migrator's startup assertion runs
 - THEN the assertion passes
 - AND the migrator copies the credential columns verbatim from `oc_openconnector_sources` to `oc_openregister_objects` with no transformation
+- @e2e exclude a boot-time assertion about the codebase, made before any request is served
 
 #### Scenario: Encryption-was-introduced-since-this-spec aborts (defensive)
 - GIVEN an `OCA\Integriq\Service\EncryptionService` class HAS BEEN ADDED to the codebase since this spec was written (hypothetical future state)
 - WHEN the migrator's startup assertion runs and detects the class
 - THEN it raises `\LogicException` "encryption layer introduced since chain B spec was written; the verbatim-copy strategy no longer applies — see ADR-007 follow-up and revise this requirement"
 - AND no rows are written to OR
+- @e2e exclude a defensive abort that requires encryption to have been introduced, a state this codebase is not in
 
 ### Requirement: Owner field MUST be left null on every migrated object
 
@@ -369,11 +414,13 @@ null.
 - WHEN the migrator processes it
 - THEN the resulting OR object has `owner IS NULL`
 - AND the object JSON body retains `userId: 'ruben'` as a regular property
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 #### Scenario: Source row migrates with null owner
 - GIVEN a `oc_openconnector_sources` row (Source has no `userId` column)
 - WHEN the migrator processes it
 - THEN the resulting OR object has `owner IS NULL`
+- @e2e exclude a PHPUnit behaviour of the migration service, not a DOM one
 
 ### Requirement: Migrator MUST NOT emit per-object audit-trail entries
 
@@ -395,4 +442,5 @@ exception.
 - WHEN the migrator completes
 - THEN exactly ONE audit-trail entry exists for the migration run
 - AND that entry contains a `perEntity` summary with all 15 entities' counts
+- @e2e exclude an `occ upgrade` / console behaviour. A migration, its repair step and the retry command run there and nowhere else, so a browser session never reaches this path
 

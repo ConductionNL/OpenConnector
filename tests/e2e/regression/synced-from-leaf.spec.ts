@@ -150,7 +150,7 @@ test.describe('Synced-from leaf — contract provenance on objects', () => {
 		//
 		// ⚠️ NOTE FOR WHOEVER PICKS THIS UP: on a FRESH install that flag is
 		// never set, so this leaf is permanently disabled there.
-		// `Version2Date20260520000001` only sets `storage_migrated=true` after
+		// `Version2Date20260908000000` only sets `storage_migrated=true` after
 		// it successfully copies all 15 entities out of the legacy
 		// `oc_openconnector_*` tables — and a fresh install has none to copy.
 		// A brand-new integriq therefore never surfaces "Synced from" on

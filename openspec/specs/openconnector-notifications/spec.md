@@ -17,14 +17,17 @@ and provide both `nl` and `en` subject strings.
 - **WHEN** a `call_log` record is created with `statusCode` >= 400
 - **THEN** the engine dispatches an `nc-notification` to the `userId` on the record and to the `openconnector-ops` group
 - **AND** the subject is rendered in the user's locale (nl/en) including the status code and source id
+- @e2e exclude requires a notification to actually FIRE, which needs an exhausted retry chain or a failed API call against a real upstream. Nothing in the e2e seed produces one, and gate-18 checks the ADR-031 declaration rather than the delivery
 
 #### Scenario: Event delivery retries exhausted notifies ops
 
 - **WHEN** an `event_message` record's `retryCount` reaches or exceeds the threshold (5)
 - **THEN** the engine dispatches an `nc-notification` to the `openconnector-ops` group
+- @e2e exclude requires a notification to actually FIRE, which needs an exhausted retry chain or a failed API call against a real upstream. Nothing in the e2e seed produces one, and gate-18 checks the ADR-031 declaration rather than the delivery
 
 #### Scenario: Disabled-by-default rules do not fire until opted in
 
 - **WHEN** a `synchronization_log` row is created (rule `sync-failed`, `enabled: false`)
 - **THEN** no notification is dispatched unless an admin has enabled the rule via override-only user-config prefs
+- @e2e exclude requires a notification to actually FIRE, which needs an exhausted retry chain or a failed API call against a real upstream. Nothing in the e2e seed produces one, and gate-18 checks the ADR-031 declaration rather than the delivery
 

@@ -6,7 +6,7 @@ TBD - created by archiving change endoflife-date-source. Update Purpose after ar
 ### Requirement: endoflife.date source preset ships enabled, credential-free
 
 Integriq SHALL seed a pre-built `source` object with `@self.slug =
-"endoflife-date"` (register `openconnector`, schema `source`) on app
+"endoflife-date"` (register `integriq`, schema `source`) on app
 install/upgrade, with `location: "https://endoflife.date/api"`, `auth:
 "none"`, and `isEnabled: true`. Unlike a credentialed integration preset
 (e.g. `brp-haalcentraal`, `kvk`), this source SHALL ship live, not dormant,
@@ -25,7 +25,7 @@ OpenRegister's `ImportHandler`.
 - WHEN `occ app:enable integriq` (or an upgrade) runs
   `InitializeRegister`
 - THEN a `source` object with `@self.slug = "endoflife-date"` exists in
-  register `openconnector`, schema `source`, with `location =
+  register `integriq`, schema `source`, with `location =
   "https://endoflife.date/api"`, `auth = "none"`, and `isEnabled = true`
 - @e2e exclude Backend seed materialisation — verified by PHPUnit against the OR object API, not a browser flow.
 
@@ -37,23 +37,23 @@ OpenRegister's `ImportHandler`.
   `@self.slug`)
 - @e2e exclude Backend idempotency — verified by PHPUnit, not a browser flow.
 
-### Requirement: `eolProduct` and `eolCycle` schemas are declared in the existing `openconnector` register
+### Requirement: `eol_product` and `eol_cycle` schemas are declared in the existing `integriq` register
 
-Integriq SHALL declare two new schemas — `eolProduct` (a tracked
-product/technology) and `eolCycle` (one release cycle's lifecycle data for
-a product) — within the existing `openconnector` register (per
+Integriq SHALL declare two new schemas — `eol_product` (a tracked
+product/technology) and `eol_cycle` (one release cycle's lifecycle data for
+a product) — within the existing `integriq` register (per
 `openconnector-register-schema` REQ-A-001's single-register-per-app
 convention), delivered as an ADR-037 register fragment declaring
-`components.registers.openconnector.schemas` and
-`components.schemas.eolProduct` / `components.schemas.eolCycle`.
+`components.registers.integriq.schemas` and
+`components.schemas.eol_product` / `components.schemas.eol_cycle`.
 
-`eolProduct` SHALL declare at minimum: `slug` (string, required, the
+`eol_product` SHALL declare at minimum: `slug` (string, required, the
 endoflife.date product identifier), `name` (string, required), `category`
 (string), `homepage` (string, uri), and `endoflifeUrl` (string, uri, the
 product's `https://endoflife.date/{slug}` page).
 
-`eolCycle` SHALL declare at minimum: `product` (string, required, the
-owning `eolProduct.slug`), `cycle` (string, required, the release-cycle
+`eol_cycle` SHALL declare at minimum: `product` (string, required, the
+owning `eol_product.slug`), `cycle` (string, required, the release-cycle
 label, e.g. `"3.14"`), `releaseDate` (string, format date), `eol` (string
 — an ISO date, or an empty string when no EOL date has been scheduled
 upstream), `support` (string — same date-or-empty-string shape), `latest`
@@ -62,20 +62,20 @@ upstream), `support` (string — same date-or-empty-string shape), `latest`
 `false`/date shape), and `discontinued` (string — same date-or-empty-string
 shape as `eol`/`support`).
 
-#### Scenario: eolProduct and eolCycle schemas are present after install
+#### Scenario: eol_product and eol_cycle schemas are present after install
 
 - GIVEN OpenRegister is installed and enabled
 - WHEN `occ app:enable integriq` (or an upgrade) runs
   `InitializeRegister`
-- THEN `components.schemas.eolProduct` and `components.schemas.eolCycle`
+- THEN `components.schemas.eol_product` and `components.schemas.eol_cycle`
   exist in the merged register descriptor, both listed under register
-  `openconnector`'s `schemas` array
+  `integriq`'s `schemas` array
 - AND no second, separate OpenRegister register is created for them
 - @e2e exclude Backend register materialisation — verified by PHPUnit against the OR object API, not a browser flow.
 
-#### Scenario: eolCycle schema covers the brief's required fields
+#### Scenario: eol_cycle schema covers the brief's required fields
 
-- GIVEN the `eolCycle` schema in the merged register descriptor
+- GIVEN the `eol_cycle` schema in the merged register descriptor
 - WHEN inspecting `properties`
 - THEN `product`, `cycle`, `releaseDate`, `eol`, `support`, `latest`, and
   `lts` are all present, matching the field list a consuming app needs to
@@ -84,10 +84,10 @@ shape as `eol`/`support`).
 
 ### Requirement: a curated starter set of tracked products is seeded declaratively
 
-Integriq SHALL seed one `eolProduct` object per curated starter
+Integriq SHALL seed one `eol_product` object per curated starter
 product — `php`, `nodejs`, `python`, `postgresql`, `mysql`, `nextcloud`,
 `wordpress`, `laravel` — as static catalog metadata (register
-`openconnector`, schema `eolProduct`, keyed by `@self.slug`). These
+`integriq`, schema `eol_product`, keyed by `@self.slug`). These
 objects SHALL be seeded declaratively, not populated by a synchronization
 run, because their metadata (name, category, homepage) is static and does
 not need to be fetched from `/api/all.json` (which returns a bare array of
@@ -95,14 +95,14 @@ product-slug strings, not the object-shaped list the generic
 Synchronization engine's per-item identity/mapping pipeline requires —
 see this change's design.md discovery notes for the underlying finding).
 
-#### Scenario: all eight curated eolProduct objects exist after install
+#### Scenario: all eight curated eol_product objects exist after install
 
 - GIVEN OpenRegister is installed and enabled
 - WHEN `occ app:enable integriq` (or an upgrade) runs
   `InitializeRegister`
-- THEN `eolProduct` objects with `@self.slug` of `php`, `nodejs`, `python`,
+- THEN `eol_product` objects with `@self.slug` of `php`, `nodejs`, `python`,
   `postgresql`, `mysql`, `nextcloud`, `wordpress`, and `laravel` all exist
-  in register `openconnector`, schema `eolProduct`
+  in register `integriq`, schema `eol_product`
 - @e2e exclude Backend seed materialisation — verified by PHPUnit against the OR object API, not a browser flow.
 
 #### Scenario: extending the tracked set requires no code change
@@ -110,17 +110,18 @@ see this change's design.md discovery notes for the underlying finding).
 - GIVEN an operator wants to track a ninth product listed at
   `https://endoflife.date/api/all.json` (e.g. `django`)
 - WHEN they follow the documented recipe (docs page) — duplicating one
-  curated product's `eolProduct` seed object plus its `mapping` /
+  curated product's `eol_product` seed object plus its `mapping` /
   `synchronization` / `job` triple, substituting the new product slug —
   and re-run `InitializeRegister`
-- THEN the new product's `eolCycle` data begins syncing on the same daily
+- THEN the new product's `eol_cycle` data begins syncing on the same daily
   cadence, with no PHP or engine change required
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 ### Requirement: each curated product syncs its cycles via a dedicated, engine-native Synchronization
 
 For each curated product, Integriq SHALL seed one `mapping` object,
 one `synchronization` object, and one `job` object (register
-`openconnector`), reusing the existing Synchronization/Mapping/Job engine
+`integriq`), reusing the existing Synchronization/Mapping/Job engine
 unchanged:
 
 - The `synchronization` object SHALL set `sourceId: "endoflife-date"`,
@@ -131,7 +132,7 @@ unchanged:
   `result`/`results` keys the engine otherwise looks for; omitting this
   field causes every run to fail with "Cannot determine the position of
   objects in the return body"), `sourceConfig.idPosition: "cycle"`,
-  `targetType: "register/schema"`, `targetId: "integriq/eolCycle"`,
+  `targetType: "register/schema"`, `targetId: "integriq/eol_cycle"`,
   and `sourceTargetMapping` set to that product's seeded `mapping` slug.
 - The `mapping` object SHALL map each fetched cycle's `cycle`,
   `releaseDate`, `eol`, `support`, `latest`, `latestReleaseDate`, and `lts`
@@ -165,23 +166,25 @@ different products' same-labelled cycles onto the same target object.
   `https://endoflife.date/api/python.json`
 - AND each returned cycle is mapped via the
   `endoflife-date-python-cycles-mapping` mapping and upserted as an
-  `eolCycle` object with `product = "python"`
+  `eol_cycle` object with `product = "python"`
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 #### Scenario: two curated products never collide on cycle identity
 
 - GIVEN the `python` and `nodejs` products both happen to report a cycle
   labelled `"20"` (or any other coincidentally-shared label)
 - WHEN both products' scheduled syncs run
-- THEN two distinct `eolCycle` objects exist — one with `product =
+- THEN two distinct `eol_cycle` objects exist — one with `product =
   "python"`, one with `product = "nodejs"` — because each product's sync
   uses a distinct `synchronizationId`, so their `SynchronizationContract`s
   (keyed on `(synchronizationId, originId)`) never collide
 - AND neither product's cycle data overwrites the other's
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 ### Requirement: repeated syncs upsert idempotently and garbage-collect soft-deleted cycles
 
 Re-running a product's seeded synchronization SHALL NOT create a
-duplicate `eolCycle` object for a cycle label already synced — the
+duplicate `eol_cycle` object for a cycle label already synced — the
 existing `SynchronizationContract` origin-id/hash mechanism
 (`synchronization-engine` REQ-003/REQ-004) SHALL update the existing
 target object in place when the source content is unchanged (no-op write)
@@ -199,29 +202,31 @@ default 10% guard and block correct cleanup.
 #### Scenario: re-running the same sync produces no duplicate objects
 
 - GIVEN a product's synchronization has already run once, producing N
-  `eolCycle` objects
+  `eol_cycle` objects
 - WHEN the same synchronization runs again with unchanged source data
-- THEN the same N `eolCycle` objects exist afterward (no duplicates, no
+- THEN the same N `eol_cycle` objects exist afterward (no duplicates, no
   new objects created)
 - @e2e exclude Backend idempotency — verified by the live smoke test and PHPUnit, not a browser flow.
 
 #### Scenario: a retired cycle is garbage-collected within the raised deletion-ratio guard
 
-- GIVEN a product's synchronization has 4 existing `eolCycle` contracts
+- GIVEN a product's synchronization has 4 existing `eol_cycle` contracts
   and the source's next complete fetch no longer reports 1 of them (25%
   of the existing contracts)
 - WHEN the synchronization runs
-- THEN the now-absent cycle's `eolCycle` object is deleted (25% is within
+- THEN the now-absent cycle's `eol_cycle` object is deleted (25% is within
   the raised `0.5` threshold, so the deletion-ratio guard does not block
   it — whereas the engine's unmodified `0.10` default would have)
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 #### Scenario: an incomplete fetch never triggers deletion
 
 - GIVEN a product's synchronization run's fetch is marked incomplete
   (`synchronization-engine` REQ-009 — e.g. a non-2xx page response)
 - WHEN `deleteInvalidObjects()` would otherwise run
-- THEN no `eolCycle` object is deleted for that run, unchanged
+- THEN no `eol_cycle` object is deleted for that run, unchanged
   `synchronization-engine` REQ-010 behaviour
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 ### Requirement: the preset is automatically visible on the Catalog page
 
@@ -249,7 +254,7 @@ Integriq SHALL ship an integration test
 (`tests/Integration/EndoflifeDateLiveSyncTest.php`) that dispatches a real,
 unmocked HTTP request against `https://endoflife.date/api` and asserts:
 (1) a full synchronization run for at least one curated product produces
-the expected `eolCycle` objects with `product`, `cycle`, and `eol`
+the expected `eol_cycle` objects with `product`, `cycle`, and `eol`
 populated; and (2) re-running the same synchronization is idempotent (no
 duplicate objects, per the requirement above). Following the repo's
 established `tests/Integration` convention (already excluded from the
@@ -265,10 +270,11 @@ network-isolated CI run.
 - WHEN `vendor/bin/phpunit -c phpunit-unit.xml --testsuite "Integration Tests" --filter EndoflifeDateLiveSyncTest` runs
 - THEN a real HTTP call is made to `https://endoflife.date/api/{product}.json`
   for at least one curated product
-- AND at least one `eolCycle` object is created with a non-empty `cycle`
+- AND at least one `eol_cycle` object is created with a non-empty `cycle`
   value
 - AND running the same synchronization a second time produces no
-  additional `eolCycle` objects for that product
+  additional `eol_cycle` objects for that product
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
 #### Scenario: the live smoke test self-skips without network access
 
@@ -277,4 +283,47 @@ network-isolated CI run.
 - WHEN the same test runs
 - THEN the test reports as skipped, not failed, and the overall test suite
   exit code is unaffected by the missing network access
+- @e2e exclude covered by `tests/Integration/EndoflifeDateLiveSyncTest.php`, which reaches the real endoflife.date API and self-skips without network. A browser session neither runs the scheduled job nor reaches that API
 
+
+### Requirement: the two schema slugs are snake_case, and an existing install is renamed in place
+
+The endoflife.date schemas SHALL be declared as `eol_product` and `eol_cycle`.
+They were `eolProduct` and `eolCycle`, the only two camelCase slugs among the
+fifty-five this app declares, which made their object URLs the only ones an
+operator could not guess from the pattern the other fifty-three follow.
+
+An install that already holds the camelCase rows SHALL have them renamed in
+place by the `MigrateEolSchemaSlugs` repair step, which MUST run before
+`InitializeRegister`. Renaming the fragment alone is not sufficient and is not
+safe: `ImportHandler` matches an incoming schema by its `slug` and never by the
+dict key it is filed under, so an import that finds no match CREATES a second
+schema and leaves the original row, its magic table and its eight seeded objects
+stranded, because the import unions schema ids into the register and never
+removes one.
+
+The rename SHALL also re-point the stored `integriq/eolCycle` strings a
+synchronization holds in `source_id`/`target_id`, which is the one place a
+schema slug is written into data rather than referenced by id. The step SHALL be
+idempotent, SHALL refuse rather than merge when both the old and the new slug
+exist, and SHALL never throw.
+
+#### Scenario: an existing install keeps its objects across the rename
+
+- GIVEN an install whose register holds `eolProduct` with its eight seeded
+  product objects and `eolCycle` with whatever cycles have been synced
+- WHEN the app is upgraded
+- THEN both schema rows carry the snake_case slug
+- AND every object, magic table and register link is unchanged, because an
+  object binds to its schema by numeric id and the shard tables are named from
+  ids, so no slug appears anywhere in the physical layout
+- AND the eight endoflife-date synchronizations address `integriq/eol_cycle`
+- @e2e exclude a repair step runs at `occ upgrade` and nowhere else, so no browser session can reach it. The decision table is covered by `tests/Unit/Repair/MigrateEolSchemaSlugsTest.php`; the in-place rename itself was verified against a live instance by reading the schema rows and the synchronizations' `target_id` back before and after.
+
+#### Scenario: a second upgrade plans nothing
+
+- GIVEN an install whose schemas already carry the snake_case slugs
+- WHEN the app is upgraded again
+- THEN the step reports nothing renamed and nothing refused
+- AND no schema is created, deleted or merged
+- @e2e exclude same reason as above. Idempotence is asserted directly in `tests/Unit/Repair/MigrateEolSchemaSlugsTest.php`.

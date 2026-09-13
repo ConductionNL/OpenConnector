@@ -205,7 +205,7 @@ class MigrateLegacyStorageTest extends TestCase {
 	/**
 	 * A fresh install — no legacy table exists — declares the cutover complete.
 	 *
-	 * This is the ocon#1180 scenario: `Version2Date20260520000099` drops every
+	 * This is the ocon#1180 scenario: `Version2Date20260908000000` drops every
 	 * legacy table in the same schema pass that created it, so a first install
 	 * finds none of them, has nothing to copy, and must still end up with the
 	 * flag set.
@@ -303,7 +303,7 @@ class MigrateLegacyStorageTest extends TestCase {
 	}//end testAnAlreadyMigratedInstanceIsANoop()
 
 	/**
-	 * The step's table list matches the cleanup migration's.
+	 * The step's table list matches the consolidated migration's.
 	 *
 	 * The two lists are the same set of tables held in two places. A table
 	 * added to the migration but not here would be dropped from the cutover
@@ -312,10 +312,10 @@ class MigrateLegacyStorageTest extends TestCase {
 	 * @return void
 	 */
 	public function testTheTableListMatchesTheCleanupMigration(): void {
-		$migration = new \ReflectionClass(\OCA\Integriq\Migration\Version2Date20260520000099::class);
+		$migration = new \ReflectionClass(\OCA\Integriq\Migration\Version2Date20260908000000::class);
 		$expected = $migration->getConstant('LEGACY_TABLES');
 
-		$this->assertIsArray($expected, 'the cleanup migration should still declare LEGACY_TABLES');
+		$this->assertIsArray($expected, 'the consolidated migration should still declare LEGACY_TABLES');
 
 		sort($expected);
 		$actual = MigrateLegacyStorage::LEGACY_TABLES;

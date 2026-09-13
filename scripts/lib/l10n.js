@@ -343,15 +343,104 @@ function localeNameOf(file) {
  * never reported unused, never removed by a cleaner.
  *
  * App-specific — this is the one part deliberately NOT shared with
- * openregister's copy. Empty for integriq: it reaches its dynamic UI copy
- * through `src/manifest.json`, which `collectDynamicKeys` below harvests
- * directly (App.vue passes `translateForApp` to CnAppNav / CnPageRenderer), so
- * there is nothing to enumerate by hand yet.
+ * openregister's copy.
+ *
+ * These are the rule editor's option lists. Nine call sites pass a VARIABLE to
+ * t(), so no static scan can see them:
+ *
+ *   ACTION_TYPES / TIMING_OPTIONS / ACTION_OPTIONS (views/Rule/ruleDraft.js)
+ *     → `t('integriq', entry.label)` in RuleActionConfig.vue,
+ *       RuleDetailPage.vue and modals/v2/RuleEditorModal.vue
+ *   OPERATORS (views/Rule/RuleConditionLeaf.vue)
+ *     → `t('integriq', op.label)` and `t('integriq', op.group)`
+ *   the field rows in views/Rule/actionForms/{Approval,Authentication,
+ *     Locking,WebhookSignature}Form.vue → `t('integriq', row.label)`
+ *
+ * This list used to be empty, on the stated grounds that integriq reaches all
+ * its dynamic UI copy through src/manifest.json. It does not, and the cost was
+ * two-sided: nine of these were in en.js, reported UNUSED, and offered up by
+ * clean:l10n for deletion — deleting a live translation leaves the English
+ * source rendering correctly, so nothing would have failed. The other sixty
+ * were not in en.js at all, which is why the whole rule editor rendered
+ * untranslated in every locale. They were added to en.js alongside this list.
+ *
+ * Regenerate by collecting `label:` and `group:` literals from the six modules
+ * named above; do not hand-edit one entry without re-checking the rest.
  *
  * Add an entry — with the call site — when a variable-keyed t() call is
  * introduced, or the key silently stops being translated.
  */
-const DYNAMIC_KEYS = []
+const DYNAMIC_KEYS = [
+	'API key',
+	'After',
+	'Approval',
+	'Authentication',
+	'Basic (users/groups)',
+	'Before',
+	'Dead-letter for later review',
+	'Delete (Delete)',
+	'Download',
+	'Error',
+	'Extend external input',
+	'Extend input',
+	'Fetch File',
+	'Filepart Upload',
+	'Fileparts Create',
+	'Get (Read)',
+	'GitHub (sha256=)',
+	'JWT',
+	'JWT (ZGW)',
+	'JavaScript',
+	'Lock resource',
+	'Locking',
+	'Mapping',
+	'Nextcloud session (users/groups)',
+	'OAuth (users/groups)',
+	'OpenConnector (t=,v1=)',
+	'Post (Create)',
+	'Put (Update)',
+	'Return an error to the caller',
+	'Save object',
+	'Skip (resolve without writing)',
+	'Stripe (t=,v1=)',
+	'Synchronization',
+	'Unlock resource',
+	'Upload',
+	'Webhook signature',
+	'Write File',
+	'add',
+	'all (collection, predicate)',
+	'arithmetic',
+	'array',
+	'comparison',
+	'concatenate strings',
+	'control',
+	'divide',
+	'does not equal',
+	'equals',
+	'exists / truthy',
+	'filter (collection, predicate)',
+	'greater than',
+	'greater than or equal',
+	'if (condition, then, else)',
+	'in (string contains / array member)',
+	'less than',
+	'less than or equal',
+	'map (collection, predicate)',
+	'merge arrays',
+	'missing (list of required paths)',
+	'missing / falsy',
+	'modulo',
+	'multiply',
+	'negation',
+	'none (collection, predicate)',
+	'reduce (collection, predicate)',
+	'some (collection, predicate)',
+	'string',
+	'substring',
+	'subtract',
+	'var (read value at path)',
+]
 
 /**
  * Every key reached dynamically: DYNAMIC_KEYS plus the src/manifest.json fields
@@ -412,15 +501,173 @@ function collectDynamicKeys(repoRoot) {
 	for (const field of ['roadmapLabel', 'documentationLabel']) {
 		add(manifest.nav?.[field])
 	}
-	if (Array.isArray(manifest.pages)) {
-		for (const page of manifest.pages) {
-			if (!page || typeof page !== 'object') continue
-			add(page.title)
-			for (const card of page.config?.cards ?? []) {
-				if (!card || typeof card !== 'object') continue
-				add(card.label)
-				add(card.description)
+	// Every user-visible string anywhere in the manifest, by FIELD NAME.
+	//
+	// Field-scoped rather than "every string": `observability.metrics[].name`
+	// holds Prometheus identifiers, and harvesting those made metric names look
+	// like catalogue keys and put them in front of translators. `name` is not a
+	// visible field, so it stays out.
+	//
+	// This list is deliberately the same one gate-102 (manifest-l10n-coverage)
+	// checks. When the two disagreed, a sweep of "unused" keys deleted eight
+	// manifest strings — walkthrough copy, column labels, a header action — and
+	// gate-102 was the only thing that noticed. Keep them in step.
+	const VISIBLE_FIELDS = new Set([
+		'title',
+		'label',
+		'description',
+		'body',
+		'task',
+		'emptyText',
+		'emptyLabel',
+		'placeholder',
+		'subtitle',
+		'helpText',
+	])
+	;(function harvest(node) {
+		if (Array.isArray(node)) {
+			for (const item of node) harvest(item)
+			return
+		}
+		if (!node || typeof node !== 'object') return
+		for (const [key, value] of Object.entries(node)) {
+			if (VISIBLE_FIELDS.has(key)) add(value)
+			harvest(value)
+		}
+	})(manifest.pages)
+	// Report categories are a map of id -> label, so the label is the VALUE.
+	for (const page of manifest.pages ?? []) {
+		for (const label of Object.values(page?.config?.categories ?? {})) {
+			add(label)
+		}
+	}
+	harvestWalkthrough(manifest, add)
+	return out
+}
+
+/**
+ * Walkthrough tour copy: `walkthrough.tours[].steps[].{title,body,task}` plus
+ * the tour titles. Rendered by CnWalkthrough through the same translate prop.
+ *
+ * @param {object} manifest The parsed manifest.
+ * @param {Function} add Adder that ignores non-strings.
+ * @return {void}
+ */
+function harvestWalkthrough(manifest, add) {
+	for (const tour of manifest.walkthrough?.tours ?? []) {
+		add(tour?.title)
+		for (const step of tour?.steps ?? []) {
+			add(step?.title)
+			add(step?.body)
+			add(step?.task)
+		}
+	}
+	for (const step of manifest.setup?.steps ?? []) {
+		add(step?.title)
+		add(step?.body)
+	}
+}
+
+/**
+ * Every string the BACKEND translates, harvested from PHP `->t()` calls.
+ *
+ * These are invisible to a scan of `src/`, and they must count as used for the
+ * same reason DYNAMIC_KEYS must: `l10n/<locale>.js` is GENERATED from
+ * `l10n/<locale>.json`, and the JSON is the catalogue PHP `IL10N` reads. A
+ * backend-only string therefore appears in `en.js` legitimately, and reporting
+ * it "unused" is a false positive of the frontend scan, not a finding.
+ *
+ * CLAUDE.md used to say there was "no scanner for the backend set" and that
+ * auditing it "would mean walking lib/ for PHP $l->t() calls". This is that
+ * walk. Measured 2026-09-07: 409 distinct strings reach PHP `->t()` in lib/,
+ * and 71 of them were being reported as UNUSED frontend keys and offered up by
+ * clean:l10n. Deleting one removes the backend's translation and leaves the
+ * English source rendering correctly, so nothing fails.
+ *
+ * Deliberately generous about what a `->t(` is: any object's `t()` taking a
+ * literal first argument. A false POSITIVE here only keeps a key alive, which
+ * is the safe direction; a false negative deletes a live translation.
+ *
+ * @param {string} repoRoot Absolute path to the app root.
+ * @return {Set<string>} Keys the backend translates.
+ */
+function collectBackendKeys(repoRoot) {
+	const out = new Set()
+	const libDir = path.join(repoRoot, 'lib')
+	if (!fs.existsSync(libDir)) return out
+	const unescape = (raw, quote) =>
+		raw.replace(new RegExp('\\\\' + quote, 'g'), quote).replace(/\\\\/g, '\\')
+	for (const file of walk(libDir, ['.php'])) {
+		const source = fs.readFileSync(file, 'utf8')
+		for (const match of source.matchAll(/->t\(\s*'((?:[^'\\]|\\.)*)'/g)) {
+			out.add(unescape(match[1], "'"))
+		}
+		for (const match of source.matchAll(/->t\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+			out.add(unescape(match[1], '"'))
+		}
+	}
+	return out
+}
+
+/**
+ * Every user-visible string a shipped REGISTER descriptor declares: schema
+ * titles, and each property's `title` and `description`.
+ *
+ * These reach the user through OpenRegister's form renderer, not through any
+ * t() call in src/ and not through PHP, so both other collectors miss them.
+ * `scripts/check-schema-l10n.js` audits their coverage from the other side and
+ * holds a baseline; this is what stops the same strings being reported UNUSED
+ * by check:l10n and swept.
+ *
+ * Learned the hard way: a sweep of 595 "unused" keys removed 55 of these, and
+ * check:schema-l10n was the only thing that noticed, on CI rather than locally
+ * because it is not part of check:strict.
+ *
+ * @param {string} repoRoot Absolute path to the app root.
+ * @return {Set<string>} Keys the register descriptors declare.
+ */
+function collectSchemaKeys(repoRoot) {
+	const out = new Set()
+	const settingsDir = path.join(repoRoot, 'lib', 'Settings')
+	if (!fs.existsSync(settingsDir)) return out
+	const add = (value) => {
+		if (typeof value === 'string' && value.trim() !== '') out.add(value)
+	}
+	// Deliberately the SAME walk as scripts/check-schema-l10n.js `collect()`:
+	// recurse everywhere, and at any node carrying `properties` harvest the
+	// schema title, each property's title/description, and x-enum-labels.
+	// A one-level version missed nested shapes
+	// (`event_subscription.properties.action.properties.*`) and every enum
+	// label. The two must not drift: one decides coverage, the other decides
+	// what a sweep may delete.
+	const collect = (node) => {
+		if (Array.isArray(node)) {
+			for (const item of node) collect(item)
+			return
+		}
+		if (node === null || typeof node !== 'object') return
+		const props = node.properties
+		if (props !== null && typeof props === 'object' && !Array.isArray(props)) {
+			add(node.title)
+			for (const prop of Object.values(props)) {
+				if (prop === null || typeof prop !== 'object') continue
+				add(prop.title)
+				add(prop.description)
+				for (const source of [prop, prop.items]) {
+					if (source === null || typeof source !== 'object') continue
+					const labels = source['x-enum-labels']
+					if (labels === null || typeof labels !== 'object') continue
+					for (const label of Object.values(labels)) add(label)
+				}
 			}
+		}
+		for (const value of Object.values(node)) collect(value)
+	}
+	for (const file of walk(settingsDir, ['.json'])) {
+		try {
+			collect(JSON.parse(fs.readFileSync(file, 'utf8')))
+		} catch {
+			continue
 		}
 	}
 	return out
@@ -439,4 +686,6 @@ module.exports = {
 	localeNameOf,
 	DYNAMIC_KEYS,
 	collectDynamicKeys,
+	collectBackendKeys,
+	collectSchemaKeys,
 }

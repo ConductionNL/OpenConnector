@@ -20,8 +20,68 @@
  *
  * @spec openspec/specs/flow-orchestration/spec.md#REQ-017
  */
+import type { Locator, Page } from '@playwright/test'
+
 import { expect, test } from '@playwright/test'
 import { expectRouteMatched, gotoAppRoute } from '../support/appRoot.ts'
+
+/**
+ * Reveal a flow action, opening the sidebar's Actions menu when it is closed.
+ *
+ * `CnFlowSidebar` hands `flowActions` to NcAppSidebar's `#secondary-actions`
+ * slot, which renders each as an `NcActionButton` inside an `NcActions` MENU.
+ * The items are not in the DOM until the menu is opened, so a direct click on
+ * one waits out its whole budget and reads as a missing control.
+ *
+ * The trigger's accessible name has moved more than once, so several are tried
+ * and the failure names every one attempted rather than reporting the last.
+ *
+ * @param {Page} page The page.
+ * @param {Locator} item The action to reveal.
+ * @return {Promise<void>} Resolves once the item is visible.
+ */
+async function openFlowActionsMenu(page: Page, item: Locator): Promise<void> {
+	if (await item.isVisible().catch(() => false)) {
+		return
+	}
+
+	const triggers = [
+		page.getByRole('button', { name: 'Flow actions' }),
+		// The sidebar's own Actions button, scoped. CnFlowSidebar puts the
+		// 'Flow actions' aria-label on the NcActions WRAPPER, and NcAppSidebar
+		// wraps that slot in an NcActions of its own, so the button a user
+		// clicks is named plainly 'Actions'.
+		page.locator('.app-sidebar-header__menu button'),
+		page.getByRole('button', {
+			name: /^(Actions|Open actions menu|More actions)$/i,
+		}),
+	]
+
+	for (const trigger of triggers) {
+		// Visible only, and a bounded click. The flow canvas renders three more
+		// buttons named 'Actions' that are never painted, so the unscoped
+		// name match finds four and `.first()` picks a hidden one. Clicking a
+		// hidden element waits for actionability, and with no timeout that wait
+		// is the whole 60s test budget: the run then reports 'Target page,
+		// context or browser has been closed' from the NEXT call, which reads
+		// as a hung editor rather than as the wrong button.
+		const candidate = trigger.filter({ visible: true }).first()
+		if ((await candidate.count()) === 0) {
+			continue
+		}
+
+		await candidate.click({ timeout: 5000 }).catch(() => {})
+		if (await item.isVisible().catch(() => false)) {
+			return
+		}
+	}
+
+	throw new Error(
+		'could not open the flow Actions menu: tried "Flow actions", '
+			+ '"Actions"/"Open actions menu"/"More actions", and the sidebar '
+			+ 'header menu button, and the item never appeared',
+	)
+}
 
 const RUN_ID = `e2e-ocflow-${Date.now().toString(36)}`
 
@@ -83,6 +143,17 @@ test.describe('the Flows surface', () => {
 		// The palette offers the catalogue; an in-flight catalogue must not be
 		// reported as an unreadable one (the failure text used to show on
 		// every first paint of this route).
+		//
+		// ⚠️ THE PALETTE IS STILL IN THE SIDEBAR HERE. It moves to a modal off
+		// the toolbar in nextcloud-vue 2.40.0, and #1889 rewrote this to drive
+		// that modal — but this app's lockfile resolves 2.39.0, where the
+		// sidebar still carries the palette under a Steps tab and the toolbar
+		// has no "Add a step" button at all. The rewrite turned a passing
+		// assertion into a 60-second timeout.
+		//
+		// When this app moves to 2.40.0, this is the line that changes, and
+		// openregister's `tests/e2e/ci/flow-controls.spec.ts` is the worked
+		// example.
 		await expect(
 			page.locator('.cn-flow-sidebar__palette-item').first(),
 		).toBeVisible({ timeout: 15000 })
@@ -102,8 +173,45 @@ test.describe('the Flows surface', () => {
 		})
 
 		// Name the flow after this run so a failed cleanup is identifiable.
-		await page.getByRole('tab', { name: 'Flow' }).click()
-		await page.getByLabel('Name').first().fill(`${RUN_ID} minted`)
+		//
+		// 🔴 THERE IS NO FLOW TAB. The sidebar registers exactly two tabs,
+		// Steps and Runs, and the flow's own fields live in
+		// `CnFlowSettingsModal` behind the sidebar's Actions menu. This is
+		// already true in the 2.39.0 this app resolves; it is not a 2.40.0
+		// change.
+		//
+		// This is what the job was red on: a 60s timeout waiting for
+		// `getByRole('tab', { name: 'Flow' })`, which reads as a hung editor
+		// rather than as a control that does not exist. The page snapshot in
+		// the trace shows the tablist with its two tabs, which is the fastest
+		// way to settle a question like this.
+		const editAction = page.locator('[data-testid="flow-action-edit"]')
+		await openFlowActionsMenu(page, editAction)
+		await editAction.click()
+
+		const settings = page.locator('[data-testid="flow-settings-modal"]')
+		await expect(settings).toBeVisible({ timeout: 15000 })
+		// By LABEL, not by the testid's descendant: `data-testid` is a
+		// fallthrough attribute on `NcTextField`, so whether it lands on the
+		// wrapper or on the input itself is that component's business, and
+		// `[data-testid=…] input` finds nothing if it lands on the input.
+		await settings.getByLabel('Name', { exact: true }).fill(`${RUN_ID} minted`)
+
+		// Dismiss the dialog before touching the toolbar. CnFlowSettingsModal is
+		// an NcDialog and stays open until something closes it, and NcDialog's
+		// `.modal-wrapper` covers the page: Playwright reported the toolbar Save
+		// as "visible, enabled and stable" and then retried the click 96 times
+		// against `<div class="modal-wrapper"> from <div role="dialog"
+		// aria-modal="true">` until the 60s budget ran out. An overlay eating a
+		// click reads as a hung editor, which is how this spec was misdiagnosed
+		// before.
+		// Click the dialog's own Close button. Escape does not dismiss it: the
+		// previous attempt pressed Escape and then watched `toBeHidden` resolve
+		// the dialog as visible 24 times over 10s. The page snapshot in that
+		// trace lists the control by name, `button "Close"`, which is the
+		// fastest way to settle a question like this.
+		await settings.getByRole('button', { name: 'Close' }).click()
+		await expect(settings).toBeHidden({ timeout: 10000 })
 
 		await toolbar.getByRole('button', { name: 'Save' }).click()
 

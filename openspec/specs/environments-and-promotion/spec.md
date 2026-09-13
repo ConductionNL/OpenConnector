@@ -22,12 +22,14 @@ resolution — unchanged and unforked.
 - WHEN they create an `environment` object with `slug: "acceptance"`, `role: "target"`, and `sourceRef` pointing at an existing `type: "api"` Source
 - THEN the `environment` object is created in the `openconnector` register
 - AND no new credential or connection material is stored on the `environment` object itself
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: An environment without a resolvable sourceRef cannot be used as a promotion target
 - GIVEN an `environment` object whose `sourceRef` no longer resolves to an existing Source
 - WHEN an operator attempts to preview or confirm a promotion to that environment
 - THEN the request is rejected with an actionable error naming the missing `sourceRef`
 - AND no export or remote call is attempted
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 ### Requirement: Promotion exports locally, unchanged, and dispatches to the target's existing import endpoints (REQ-002)
 
@@ -47,12 +49,14 @@ source of truth for both.
 - WHEN an operator promotes `cfg-1` from the local environment to a registered target environment
 - THEN the system calls `ConfigurationService::exportConfiguration('cfg-1')` unchanged to build the document
 - AND the redaction and slug-translation behaviour documented in `configuration-export-import` (REQ-001–REQ-005) applies identically to a promotion export as to a manual UI export
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: Promotion dispatch reuses CallService against the target's environment Source
 - GIVEN a target environment whose `sourceRef` Source has `location: "https://acceptance.example.org"`
 - WHEN a promotion is confirmed
 - THEN the system dispatches the import call via `CallService::call()` using that Source
 - AND the resulting `CallLog` is created exactly as it would be for any other Source call against that Source
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 ### Requirement: Diff preview merges the target's existing preview response with a credential-rebind classification (REQ-003)
 
@@ -71,11 +75,13 @@ knows its own object state.
 - GIVEN a Source in the export document whose slug already exists on the target environment, and a second Source whose slug does not
 - WHEN the promotion preview is requested
 - THEN the response's `updates` array contains the first Source and `creates` contains the second, exactly as the target's own `/api/configurations/import/preview` response would classify them
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: Preview is required before a promotion can be confirmed
 - GIVEN a valid configuration id and target environment
 - WHEN an operator attempts to confirm a promotion without having first retrieved a preview in the same request flow
 - THEN the system still computes the preview internally as part of the confirm call (mirroring REQ-005's `confirmed: true` requirement) before dispatching the write, so a promotion can never write without an equivalent preview having been computed
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 ### Requirement: credentialRef placeholders are re-bound per target environment, never resolved to a secret (REQ-004)
 
@@ -97,18 +103,21 @@ re-binding SHALL operate on reference strings only.
 - GIVEN a Source in the export document with `configuration.authentication.credentialRef.credentialId` set to a UUID from the source environment's credential broker
 - WHEN the promotion preview is computed
 - THEN the response's `credentialRefsNeedingRebind` array contains that Source's slug and the field `configuration.authentication.credentialRef`
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: An operator-supplied rebinding replaces the reference before the target ever sees the original
 - GIVEN the promotion request includes `credentialBindings: [{"sourceSlug": "my-api-source", "credentialName": "prod-api-key"}]` for a flagged Source
 - WHEN the promotion is confirmed
 - THEN the document dispatched to the target environment's import endpoint contains `configuration.authentication.credentialRef.credentialName = "prod-api-key"` for that Source, not the original source-environment credentialId
 - AND at no point does the system read or transmit the plaintext secret behind either reference
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: An un-rebound credentialRef is sent verbatim, not resolved or dropped
 - GIVEN a flagged Source with no corresponding entry in the promotion request's `credentialBindings`
 - WHEN the promotion is confirmed
 - THEN the document dispatched to the target contains the original, unmodified `credentialRef` value
 - AND the target's own Source-auth guard (not the promotion path) is what eventually fails when that Source is eventually called against a credential that does not exist on the target
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 ### Requirement: Promotion requires explicit confirmation and the same action-matrix authorization as export/import (REQ-005)
 
@@ -125,6 +134,7 @@ separate `environment.manage` action key, also seeded `["admin"]`.
 - WHEN the confirm endpoint is called with `confirmed` omitted or `false`
 - THEN the response is HTTP 400
 - AND no export is dispatched to the target and no `promotion_audit` object is written
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: A user without the environment.promote action permission cannot promote
 - GIVEN a non-admin user whose groups are not mapped to `environment.promote` in the action matrix
@@ -149,15 +159,18 @@ the existing `call_log`/`job_log` schemas.
 - WHEN the promotion completes
 - THEN a `promotion_audit` object is created with `outcome: "success"`, `fromEnvironmentSlug: "local"`, `toEnvironmentSlug: "acceptance"`, and a `previewSummary` reflecting the two creates/updates
 - AND the object contains no credential values or full entity payloads
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: A failed promotion is still audited
 - GIVEN a confirmed promotion whose dispatch to the target fails (e.g. the target returns 404 because it runs an older Integriq without the import routes)
 - WHEN the promotion attempt completes
 - THEN a `promotion_audit` object is created with `outcome: "failed"` and a message identifying the failure
 - AND no partial `written` summary is fabricated — only what the target actually confirmed, if anything, is recorded
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 
 #### Scenario: promotion_audit objects cannot be edited or deleted after creation
 - GIVEN an existing `promotion_audit` object
 - WHEN any caller attempts to update or delete it via the OpenRegister object API
 - THEN the write is rejected by OpenRegister's `appendOnly`/`immutable` schema enforcement, identically to how `call_log`/`job_log` objects are protected today
+- @e2e exclude no e2e drives the promotion pipeline. The Environments and promotion surface exists in the manifest, but nothing in tests/e2e/ exercises a preview, a confirmation or an audit entry, so this is uncovered rather than covered elsewhere
 

@@ -50,6 +50,7 @@ use OCA\OpenRegister\Service\ObjectService as ORObjectService;
 use OCP\App\IAppManager;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use ReflectionException;
 use ReflectionMethod;
@@ -144,6 +145,7 @@ class BrokeredCallService {
 	 * @param IUserSession $userSession Session used to determine the acting user.
 	 * @param IUserManager $userManager User manager used to assert the pinned owner still exists and is enabled.
 	 * @param LoggerInterface $logger Logger for secret-free refusal diagnostics.
+	 * @param ContainerInterface $container App container the OpenRegister credential broker is resolved from.
 	 */
 	public function __construct(
 		private readonly ORObjectService $objectService,
@@ -151,6 +153,7 @@ class BrokeredCallService {
 		private readonly IUserSession $userSession,
 		private readonly IUserManager $userManager,
 		private readonly LoggerInterface $logger,
+		private readonly ContainerInterface $container,
 	) {
 
 	}//end __construct()
@@ -601,14 +604,13 @@ class BrokeredCallService {
 	}//end isBrokerClassAvailable()
 
 	/**
-	 * Resolves the broker instance from the server container (protected seam for tests).
+	 * Resolves the broker instance from the injected container (protected seam for tests).
 	 *
 	 * @return object The CredentialBrokerService instance.
 	 *
 	 * @throws BrokeredCallConfigurationException When the container cannot resolve the broker.
 	 *
-	 * @SuppressWarnings(PHPMD.StaticAccess) -- \OCP\Server is the only way to
-	 * lazily resolve a cross-app class that may not exist at DI wiring time.
+	 * @spec exclude Container-resolution seam — lazy cross-app service lookup, no domain behavior (overridden in tests).
 	 */
 	protected function resolveBroker(): object {
 		if ($this->broker !== null) {
@@ -616,7 +618,7 @@ class BrokeredCallService {
 		}
 
 		try {
-			$this->broker = \OCP\Server::get(self::BROKER_CLASS);
+			$this->broker = $this->container->get(self::BROKER_CLASS);
 		} catch (Throwable $exception) {
 			throw new BrokeredCallConfigurationException(
 				message: 'credentialRef is configured but the OpenRegister credential broker could not be resolved: '

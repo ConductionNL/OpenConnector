@@ -16,11 +16,13 @@ remain default-OFF: a schema without the dialect MUST produce no tools.
 - **WHEN** the change is complete
 - **THEN** `lib/` contains no MCP provider, no tool descriptor, and no `#[McpTool]` attribute
 - **AND** the only artifact changed is `lib/Settings/integriq_register.json`
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 #### Scenario: undeclared schemas produce no tools
 - **GIVEN** a schema with no `x-openregister-mcp` block
 - **WHEN** the MCP tool list is enumerated
 - **THEN** no `integriq.{that-schema}.{verb}` tool exists
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 ### Requirement: REQ-MCP-102 — Exactly 8 operational schemas MUST be exposed, read-only, and every declared `search` filter MUST be a real property of its schema
 
@@ -40,11 +42,13 @@ change that argues against the exclusion rationale in `design.md`.
 - **WHEN** the MCP tool list is enumerated
 - **THEN** exactly 16 integriq tools exist (8 schemas x `search` + `get`)
 - **AND** every one of them is `readOnlyHint: true` and `scope: "read"`
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 #### Scenario: an unknown search filter fails the import rather than shipping
 - **GIVEN** a `search.filters` entry that is not a property of its schema
 - **WHEN** the register is imported
 - **THEN** `McpAnnotationValidator` rejects the schema and the import fails loudly
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 ### Requirement: REQ-MCP-103 — Integriq MUST NOT expose any MCP write verb on any schema, because its objects are the integration control plane
 
@@ -66,11 +70,13 @@ attribution in the audit trail.
 - **WHEN** the MCP tool list is enumerated
 - **THEN** no `integriq.*.create`, `integriq.*.update`, or `integriq.*.delete` tool exists
 - **AND** no integriq tool declares `destructiveHint: true` or a write `scope`
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 #### Scenario: an agent cannot redirect, create, or destroy a data flow
 - **GIVEN** an agent instructed (or prompt-injected via ingested upstream data) to repoint a source, add an endpoint, or delete a mapping
 - **WHEN** it searches the tool registry for an integriq write tool
 - **THEN** none exists, and the action cannot be taken through MCP at all
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 ### Requirement: REQ-MCP-104 — Credential-bearing schemas MUST be excluded from the tool surface entirely, including `get`, because controller-side redaction does not protect a derived tool
 
@@ -93,11 +99,13 @@ stored object, and a schema so protected MAY be exposed read-only.
 - **WHEN** the MCP tool list is enumerated
 - **THEN** no `integriq.source.*`, `integriq.consumer.*`, `integriq.rule.*`, `integriq.event_subscription.*`, `integriq.lti_platform.*`, `integriq.lti_tool.*`, or `integriq.eudi_*.*` tool exists
 - **AND** no plaintext password, API key, OAuth secret, JWT, signing key, or webhook signing secret is reachable through any integriq tool
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 
 #### Scenario: call_log is exposed because its secrets are stripped before storage
 - **GIVEN** `CallService::buildResponseData()` redacts secret-bearing locations before the CallLog is persisted
 - **WHEN** an agent calls `integriq.call_log.get`
 - **THEN** the returned request/response carries no live secret
 - **AND** the agent can still see the status code, status message, direction, and timing needed to triage the failure
+- @e2e exclude the MCP tool surface is consumed by an AI agent over the MCP protocol, not by a browser. The scenarios assert which tools are DERIVED from the schema declarations, which is a property of the derivation and not of any rendered page
 </content>
 

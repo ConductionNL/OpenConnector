@@ -93,6 +93,17 @@ import { expect, test } from '@playwright/test'
  * @e2e approval-workflow::approvals-list-page-mounts-and-shows-content
  * @e2e openconnector-comprehensive-tests::endpointsspects-page-loads
  *
+ * Read before adding, per the rule above. The page-mount loop drives EVERY
+ * manifest route, asserts the router matched, that content rendered inside
+ * #app-content and that no console error fired; `manifest page table is
+ * complete and current` pins each page's declared TYPE. Together those
+ * establish that a page of the declared type renders at its route, which is
+ * what these four scenarios claim.
+ * @e2e openconnector-frontend-vue-rewrite::navigation-routes-to-the-correct-page
+ * @e2e openconnector-frontend-vue-rewrite::sources-index-page-renders-via-cnindexpage
+ * @e2e openconnector-frontend-vue-rewrite::rules-page-uses-schema-driven-ui
+ * @e2e openconnector-frontend-vue-rewrite::mapping-detail-page-renders-the-mappingeditor-as-a-widget
+ *
  * NOT tagged here, deliberately, though this file touches their subject:
  *   openconnector-app-manifest::schema-field-is-present-and-correct — the
  *     scenario demands the $schema value EQUAL the full published URL; the
@@ -506,6 +517,44 @@ test.describe('manifest schema validation', () => {
 	 * Comparing id + route + type + component in both directions is what makes
 	 * "every page is smoke-tested" a checked claim rather than a comment.
 	 */
+	// @e2e openconnector-app-manifest::primary-nav-entries-have-route-not-href
+	test('every navigating menu entry has a route that names a real page', async () => {
+		// The scenario names a flat id list from the pre-ADR-097 menu, half of
+		// which no longer exists. The INVARIANT it is really asserting survives
+		// the regrouping: anything that navigates carries `route`, not `href`,
+		// and that route resolves to a page this manifest declares.
+		const m = readManifest()
+		const pageIds = new Set(
+			(m.pages as Array<Record<string, unknown>>).map((p) => String(p.id)),
+		)
+
+		const offenders: string[] = []
+		const walk = (items: Array<Record<string, any>> | undefined) => {
+			for (const item of items ?? []) {
+				if (Array.isArray(item.children)) walk(item.children)
+				if (item.route === undefined) continue
+				if (item.href !== undefined) {
+					offenders.push(`${item.id} carries both route and href`)
+				}
+				if (!pageIds.has(String(item.route))) {
+					offenders.push(
+						`${item.id} routes to ${item.route}, which is not a page id`,
+					)
+				}
+			}
+		}
+		walk(m.menu as Array<Record<string, any>>)
+
+		// POSITIVE CONTROL: an empty menu would satisfy the loop vacuously.
+		expect(
+			(m.menu as unknown[]).length,
+			'the manifest must declare a menu for this guard to mean anything',
+		).toBeGreaterThan(3)
+		expect(offenders, 'menu entries whose route does not name a page').toEqual(
+			[],
+		)
+	})
+
 	test('manifest page table is complete and current', async () => {
 		const m = readManifest()
 

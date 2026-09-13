@@ -7,7 +7,7 @@
  * Wraps {@see LegacyToRegisterMigrator::migrateAll()} so admins can run, dry-run,
  * retry per-entity, or verify the migration from the CLI — outside the
  * `occ upgrade` window. The chain-B migration class
- * ({@see \OCA\Integriq\Migration\Version2Date20260520000001}) points
+ * ({@see \OCA\Integriq\Migration\Version2Date20260908000000}) points
  * operators here for per-entity retry when a full run reports skips/errors.
  *
  * Flags:

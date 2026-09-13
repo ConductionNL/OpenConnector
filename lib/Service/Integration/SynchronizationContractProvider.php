@@ -378,7 +378,7 @@ class SynchronizationContractProvider extends AbstractIntegrationProvider {
 	 *
 	 * The provider is available once the integriq chain-C cutover has
 	 * materialised SyncContract objects in OR storage. That happens when
-	 * {@see \OCA\Integriq\Migration\Version2Date20260520000001} flips
+	 * {@see \OCA\Integriq\Migration\Version2Date20260908000000} flips
 	 * `integriq.storage_migrated` to `'true'`.
 	 *
 	 * @return bool True when the storage migration has run, false otherwise.

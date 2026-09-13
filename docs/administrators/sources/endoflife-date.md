@@ -8,13 +8,13 @@ A ready-to-run, credential-free source preset for the public
 - One **source** object (`endoflife-date`, `https://endoflife.date/api`,
   `auth: none`) — ships **enabled**, not dormant. There is nothing to
   configure before it starts working: the API is public and free.
-- Two new schemas in the existing `openconnector` register:
-  - `eolProduct` — a tracked product/technology (`slug`, `name`,
+- Two new schemas in the existing `integriq` register:
+  - `eol_product` — a tracked product/technology (`slug`, `name`,
     `category`, `homepage`, `endoflifeUrl`).
-  - `eolCycle` — one release-cycle's lifecycle data for a product
+  - `eol_cycle` — one release-cycle's lifecycle data for a product
     (`product`, `cycle`, `releaseDate`, `eol`, `support`, `latest`,
     `latestReleaseDate`, `lts`, `discontinued`).
-- Eight curated `eolProduct` objects, seeded declaratively: `php`,
+- Eight curated `eol_product` objects, seeded declaratively: `php`,
   `nodejs`, `python`, `postgresql`, `mysql`, `nextcloud`, `wordpress`,
   `laravel`.
 - One `mapping` + `synchronization` + `job` triple per curated product,
@@ -38,7 +38,7 @@ A ready-to-run, credential-free source preset for the public
 
 ## Field shapes
 
-### `eolProduct`
+### `eol_product`
 
 | Field          | Type          | Notes                                             |
 |----------------|---------------|----------------------------------------------------|
@@ -48,11 +48,11 @@ A ready-to-run, credential-free source preset for the public
 | `homepage`     | string (uri)  | Product's official homepage                       |
 | `endoflifeUrl` | string (uri)  | `https://endoflife.date/{slug}`                    |
 
-### `eolCycle`
+### `eol_cycle`
 
 | Field               | Type                 | Notes                                                                 |
 |---------------------|----------------------|------------------------------------------------------------------------|
-| `product`           | string, req'd        | Owning `eolProduct.slug`, set as a literal by the product's mapping   |
+| `product`           | string, req'd        | Owning `eol_product.slug`, set as a literal by the product's mapping   |
 | `cycle`             | string, req'd        | Release-cycle label (e.g. `"3.14"`) — the sync origin id              |
 | `releaseDate`       | string (date)        | First release date of this cycle                                      |
 | `eol`               | string                | ISO end-of-life date, or `""` when none is scheduled upstream         |
@@ -67,7 +67,7 @@ mapping because endoflife.date reports these fields as either an ISO date
 string or the JSON literal `false` (no scheduled date) — casting collapses
 both shapes into one consistently-typed column (`false` → `""`).
 
-`eolCycle` is **never hand-seeded** — it is populated live by each curated
+`eol_cycle` is **never hand-seeded** — it is populated live by each curated
 product's daily Synchronization. A static seed here would be immediately
 stale.
 
@@ -76,7 +76,7 @@ stale.
 To track a ninth product (e.g. `django`) from the 460+ listed at
 [`https://endoflife.date/api/all.json`](https://endoflife.date/api/all.json):
 
-1. Duplicate one curated product's `eolProduct` seed object in
+1. Duplicate one curated product's `eol_product` seed object in
    `lib/Settings/register.d/endoflife-date-source.json`, substituting the
    new product's `slug`/`name`/`category`/`homepage`/`endoflifeUrl`.
 2. Duplicate that same product's `mapping` + `synchronization` + `job`
@@ -90,7 +90,7 @@ To track a ninth product (e.g. `django`) from the 460+ listed at
    Omitting it fails every run with "Cannot determine the position of
    objects in the return body."
 4. Re-run `InitializeRegister` (`occ app:enable integriq` or an
-   upgrade). The new product's `eolCycle` data begins syncing on the same
+   upgrade). The new product's `eol_cycle` data begins syncing on the same
    daily cadence — no PHP or engine change required.
 
 Give every product its **own** `Synchronization` (its own
@@ -110,3 +110,21 @@ requires each fetched item to already be array-shaped). Full-catalog
 auto-discovery would need a small, separately-scoped repair-step/command
 (per ADR-031's external-integration exemption) and is a natural follow-up
 once this preset is live — not part of this preset.
+
+## A note on the schema slugs
+
+These schemas were called `eolProduct` and `eolCycle` until 2026-09-07. They were
+the only two camelCase slugs among the fifty-five this app declares, so their
+object URLs were the only ones you could not guess from the pattern the other
+fifty-three follow.
+
+An existing install is renamed in place on upgrade by the
+`MigrateEolSchemaSlugs` repair step. Nothing moves: an object binds to its schema
+by numeric id and the storage tables are named from ids, so no slug appears
+anywhere in the physical layout. The step also rewrites the
+`integriq/eolCycle` string the eight seeded synchronizations hold in
+`targetId`, which is the one place a schema slug is written into data rather
+than referenced by id.
+
+If you scripted anything against `/apps/openregister/api/objects/integriq/eolProduct`
+or `.../eolCycle`, point it at `eol_product` and `eol_cycle`.

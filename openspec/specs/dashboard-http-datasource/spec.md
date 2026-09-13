@@ -14,11 +14,13 @@ when it is absent.
 - GIVEN Integriq is installed with this change applied
 - WHEN a leaf app queries the capability registry for `dashboard-http-datasource`
 - THEN it SHALL receive the capability with an enabled flag set to true and a version string
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Capability absent
 - GIVEN Integriq is NOT installed
 - WHEN a leaf app probes for the capability
 - THEN the probe SHALL report absence and the leaf app SHALL NOT attempt any Integriq call
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 ### Requirement: Resolve endpoint returns a single value from a named source
 
@@ -31,16 +33,19 @@ stale }`.
 - GIVEN a configured, enabled `source` the current user may read
 - WHEN the user POSTs `{ "valueExpr": "$.data.open_count" }` to its resolve endpoint
 - THEN Integriq SHALL fetch the source (applying its configured auth from the encrypted store), evaluate the JSONPath-lite expression against the response body, and return `{ value: <resolved>, fetchedAt: <iso8601>, stale: false }`
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Value expression finds nothing
 - GIVEN a source whose response does not contain the expression's path
 - WHEN the value is resolved
 - THEN the response SHALL be `{ value: null, fetchedAt: <iso8601>, stale: false }` and SHALL NOT error
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Read-only guarantee
 - GIVEN any resolve request
 - WHEN it is processed
 - THEN Integriq SHALL only perform the source's read/GET operation and SHALL NOT mutate the source, its synchronizations, or any object
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 ### Requirement: Egress is constrained to the source, never the caller
 
@@ -52,11 +57,13 @@ the caller.
 - GIVEN a resolve request whose body contains a `url` or `host` field
 - WHEN it is processed
 - THEN Integriq SHALL ignore any caller-supplied URL/host and use only the stored source location
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Credentials never returned
 - GIVEN a source configured with an API key or bearer token in the encrypted store
 - WHEN a value is resolved
 - THEN the response SHALL contain only the resolved value and metadata, and SHALL NOT include the source URL, headers, or any credential
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 ### Requirement: Responses are cached with stale-on-error fallback
 
@@ -68,17 +75,20 @@ maximum), and SHALL serve a stale value when a refresh fails.
 - GIVEN a value resolved 60 seconds ago with ttl 300
 - WHEN the same resolve request arrives again
 - THEN Integriq SHALL return the cached value with `stale: false` and SHALL NOT perform a new upstream fetch
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Stale-on-error
 - GIVEN a previously cached value whose upstream is now unreachable or returns non-2xx
 - WHEN a refresh is attempted
 - THEN Integriq SHALL return the last-known value with `stale: true`
 - AND WHEN no cached value exists THEN it SHALL return `{ value: null, stale: true }`
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Per-source rate limit
 - GIVEN a source configured with a per-source rate limit
 - WHEN resolve calls exceed that rate within the window
 - THEN excess calls SHALL be served from cache or rejected with a rate-limit response, and SHALL NOT hit the upstream
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 ### Requirement: Caller authorization honours the source's read access
 
@@ -89,9 +99,11 @@ the source's own read-authorization.
 - GIVEN a source the current user may not read
 - WHEN the user calls its resolve endpoint
 - THEN Integriq SHALL return 403 and SHALL NOT perform the fetch
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 
 #### Scenario: Unauthenticated caller
 - GIVEN no authenticated Nextcloud session
 - WHEN the resolve endpoint is called
 - THEN Integriq SHALL reject the request per standard controller auth
+- @e2e exclude a service behaviour of the dashboard datasource, covered by `tests/Unit/Service/Datasource/DashboardDatasourceServiceTest.php` and `JsonPathLiteEvaluatorTest.php`, not by a DOM assertion
 

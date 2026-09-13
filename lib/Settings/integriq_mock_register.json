@@ -1903,12 +1903,12 @@
         "appendOnly": false,
         "immutable": false
       },
-      "eolCycle": {
-        "slug": "eolCycle",
+      "eol_cycle": {
+        "slug": "eol_cycle",
         "title": "EOL Cycle",
         "icon": "CalendarClock",
         "version": "1.0.0",
-        "summary": "One release-cycle's lifecycle data (release date, EOL, support window) for a tracked eolProduct",
+        "summary": "One release-cycle's lifecycle data (release date, EOL, support window) for a tracked eol_product",
         "description": "Populated live by each curated product's dedicated, daily-scheduled Synchronization against https://endoflife.date/api/{slug}.json: never hand-seeded (a static seed here would be immediately stale; see design.md Seed Data). `product` is set as a plain literal string by that product's Mapping (design.md Decision 4), not an OpenRegister relation `$ref`, so each product's Synchronization stays a simple, independent, collision-proof triple (design.md Decision 2 / discovery.md Finding 4).",
         "required": [
           "product",
@@ -1923,7 +1923,7 @@
           },
           "product": {
             "type": "string",
-            "description": "The owning eolProduct.slug (e.g. \"python\"): a literal string set by this cycle's owning product's Mapping",
+            "description": "The owning eol_product.slug (e.g. \"python\"): a literal string set by this cycle's owning product's Mapping",
             "title": "Product"
           },
           "cycle": {
@@ -1983,8 +1983,8 @@
         "appendOnly": false,
         "immutable": false
       },
-      "eolProduct": {
-        "slug": "eolProduct",
+      "eol_product": {
+        "slug": "eol_product",
         "title": "EOL Product",
         "icon": "PackageVariantClosed",
         "version": "1.0.0",
@@ -8177,7 +8177,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolCycle",
+          "schema": "eol_cycle",
           "slug": "eolcycle-eolcycle-1-1"
         },
         "product": "Voorbeeld Product 1",
@@ -8196,7 +8196,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolCycle",
+          "schema": "eol_cycle",
           "slug": "eolcycle-eolcycle-2-2"
         },
         "product": "Voorbeeld Product 2",
@@ -8215,7 +8215,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolCycle",
+          "schema": "eol_cycle",
           "slug": "eolcycle-eolcycle-3-3"
         },
         "product": "Voorbeeld Product 3",
@@ -8234,7 +8234,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolProduct",
+          "schema": "eol_product",
           "slug": "eolproduct-voorbeeld-name-1-1"
         },
         "slug": "Voorbeeld Slug 1",
@@ -8249,7 +8249,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolProduct",
+          "schema": "eol_product",
           "slug": "eolproduct-voorbeeld-name-2-2"
         },
         "slug": "Voorbeeld Slug 2",
@@ -8264,7 +8264,7 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "eolProduct",
+          "schema": "eol_product",
           "slug": "eolproduct-voorbeeld-name-3-3"
         },
         "slug": "Voorbeeld Slug 3",

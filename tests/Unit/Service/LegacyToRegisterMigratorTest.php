@@ -29,6 +29,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\DB\QueryBuilder\IExpressionBuilder;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
+use OCP\Security\ISecureRandom;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -53,6 +54,11 @@ class LegacyToRegisterMigratorTest extends TestCase {
 	private $logger;
 
 	/**
+	 * @var ISecureRandom|\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private $secureRandom;
+
+	/**
 	 * Captured JSON bodies inserted into oc_openregister_objects, keyed by call order.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -68,6 +74,8 @@ class LegacyToRegisterMigratorTest extends TestCase {
 		$this->db = $this->createMock(IDBConnection::class);
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
+		$this->secureRandom = $this->createMock(ISecureRandom::class);
+		$this->secureRandom->method('generate')->willReturn('00000000-0000-4000-8000-000000000000');
 
 		$this->insertedBodies = [];
 
@@ -444,7 +452,7 @@ class LegacyToRegisterMigratorTest extends TestCase {
 	 * @return LegacyToRegisterMigrator
 	 */
 	private function makeMigrator(): LegacyToRegisterMigrator {
-		return new LegacyToRegisterMigrator($this->db, $this->appConfig, $this->logger);
+		return new LegacyToRegisterMigrator($this->db, $this->appConfig, $this->logger, $this->secureRandom);
 	}//end makeMigrator()
 
 	/**

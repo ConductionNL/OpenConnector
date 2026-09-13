@@ -32,7 +32,7 @@ Integriq SHALL serve `GET /apps/integriq/api/metrics` through the AppHost engine
 
 #### Scenario: Dropped legacy table degrades to zero samples
 
-- **GIVEN** an instance where migration `Version2Date20260520000099` has dropped a counted legacy table
+- **GIVEN** an instance where migration `Version2Date20260908000000` has dropped a counted legacy table
 - **WHEN** `GET /apps/integriq/api/metrics` is called by an admin
 - **THEN** the affected metric MUST still be emitted with a `0` sample (mirroring the pre-adoption catch-fallback) and the endpoint MUST NOT return a 500
 - @e2e exclude API-only endpoint — covered by the OR AppHost Newman contract collection

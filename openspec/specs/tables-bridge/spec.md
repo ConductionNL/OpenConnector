@@ -27,6 +27,7 @@ contract's `targetId` exactly like every other target type.
 - **AND** 3 `SynchronizationContract`s are persisted, each with `originId`
   set to the source object's id and `targetId` set to the Tables row id
   returned by the create call
+- @e2e exclude covered by `tests/Integration/Tables/TablesBridgeIntegrationTest::testCreateUpdateDeleteRoundTripAgainstRealTable`; neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive
 
 #### Scenario: re-sync updates only changed rows
 
@@ -38,6 +39,7 @@ contract's `targetId` exactly like every other target type.
   Tables API
 - **AND** the other rows receive no write call, and their contracts'
   `targetHash` is unchanged
+- @e2e exclude covered by `TablesBridgeIntegrationTest::testCreateUpdateDeleteRoundTripAgainstRealTable`; neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive
 
 #### Scenario: title-keyed column mapping resolves to the current column id
 
@@ -48,6 +50,7 @@ contract's `targetId` exactly like every other target type.
 - **THEN** the write payload's `data` object uses `{"7": <mapped value>}`
   (numeric column id key), resolved from the cached column list for this
   run
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: ambiguous column title is a hard config error, never a guess
 
@@ -57,6 +60,7 @@ contract's `targetId` exactly like every other target type.
 - **THEN** the system SHALL fail that row's write with a config-error log
   entry naming the ambiguous title and the match count
 - **AND** SHALL NOT guess by picking the first match
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 ### Requirement: Nextcloud Table as a synchronization source (REQ-002)
 
@@ -78,6 +82,7 @@ order-independent `hashObject()` primitive against each row's `data`.
 - **THEN** all 50 rows are fetched (paginated as needed) and each row's
   `data` is passed through `MappingService`, exactly as an `api`-sourced
   object would be
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: unchanged row content produces no downstream write
 
@@ -86,6 +91,7 @@ order-independent `hashObject()` primitive against each row's `data`.
 - **WHEN** the synchronization runs again
 - **THEN** `hashObject()` on the row's `data` matches the contract's
   `sourceHash`, and no downstream target write occurs for that row
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 ### Requirement: Column-type coercion (REQ-003)
 
@@ -107,6 +113,7 @@ MUST be logged and skipped without aborting the rest of the run.
 - **WHEN** the row is written
 - **THEN** the value is coerced to the float `19.999` rounded/represented
   per `numberDecimals` before being sent to the Tables API
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: non-numeric value fails only that row
 
@@ -117,6 +124,7 @@ MUST be logged and skipped without aborting the rest of the run.
 - **THEN** that row's write is skipped with a logged coercion-failure entry
   naming the column and the offending value
 - **AND** the run continues and writes the other rows
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: selection value with no matching option fails that row
 
@@ -125,6 +133,7 @@ MUST be logged and skipped without aborting the rest of the run.
 - **WHEN** that row is written
 - **THEN** the write is skipped with a logged entry naming the column, the
   offending value, and the allowed options
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 ### Requirement: Feature detection — Tables app absence hides the type entirely (REQ-004)
 
@@ -143,6 +152,7 @@ attempting any HTTP call to a Tables endpoint.
 - **WHEN** the synchronization editor requests the list of available
   source/target types
 - **THEN** `nextcloud-table` is not present in the returned list
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: run against nextcloud-table fails cleanly when Tables is disabled
 
@@ -152,6 +162,7 @@ attempting any HTTP call to a Tables endpoint.
 - **THEN** it fails with a config-error log entry stating the Tables app is
   not enabled
 - **AND** no HTTP call is attempted against any Tables endpoint
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive, which is also the state this scenario describes; nothing asserts the clean failure
 
 ### Requirement: Source-deleted rows are removed only under the shared deletion-safety guard (REQ-005)
 
@@ -173,6 +184,7 @@ fetch itself failed or returned a partial page set).
 - **THEN** the row corresponding to the one missing origin id is deleted via
   the Tables API
 - **AND** the corresponding `SynchronizationContract` is removed
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: a failed or partial source fetch does not trigger row deletion
 
@@ -183,6 +195,7 @@ fetch itself failed or returned a partial page set).
 - **THEN** no row deletion is attempted for this target
 - **AND** the run's log records that deletion was skipped due to an
   incomplete fetch
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 ### Requirement: Permission-denied writes fail the run, not a partial subset of rows (REQ-006)
 
@@ -203,6 +216,7 @@ response is the sole authority.
 - **AND** none of the remaining 4 rows are attempted
 - **AND** no partial set of rows is left in an inconsistent contract state
   (no contract is created/updated for a write that was never attempted)
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 ### Requirement: Table and column discovery for the synchronization editor (REQ-007)
 
@@ -219,12 +233,14 @@ column-mapping helper without the frontend talking to Tables directly.
   otherwise exist on the target instance
 - **WHEN** the editor calls the table-list endpoint with that Source's id
 - **THEN** exactly the 2 accessible tables are returned
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
 
 #### Scenario: column list includes type metadata for the mapping helper
 
 - **GIVEN** a table with a `number` column and a `selection` column
 - **WHEN** the editor calls the column-list endpoint for that table
 - **THEN** each column's `type`/`subtype`/constraints (e.g.
+- @e2e exclude neither the Tables nor the Forms app is installed on the e2e instance, so this surface does not exist for a browser to drive. The one integration test here covers a create/update/delete round trip and does not reach this behaviour, so it is uncovered rather than covered elsewhere
   `selectionOptions`) are returned, sufficient for the mapping helper to
   render an appropriate input control
 

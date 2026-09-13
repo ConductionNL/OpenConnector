@@ -38,6 +38,8 @@
  *     one thing to get right.
  */
 
+import { assertInstancePermitted } from '../shared-instance.ts'
+
 const CANDIDATES = [
 	'PLAYWRIGHT_BASE_URL',
 	'BASE_URL',
@@ -66,8 +68,14 @@ if (!RAW) {
 
 /**
  * The base URL of the Nextcloud under test, without a trailing slash.
+ *
+ * The guard runs here because this is the one place a target enters the suite.
+ * It throws when the resolved origin is the shared development instance and
+ * the run did not name it. See tests/e2e/shared-instance.ts.
  */
-export const BASE_URL: string = RAW.trim().replace(/\/+$/, '')
+export const BASE_URL: string = assertInstancePermitted(
+	RAW.trim().replace(/\/+$/, ''),
+)
 
 /**
  * Build an absolute URL against the instance under test.

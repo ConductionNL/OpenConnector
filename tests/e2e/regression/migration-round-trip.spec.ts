@@ -10,7 +10,7 @@
  *   show the same data counts as before migration.
  *
  * On the dev/CI container the chain-B migration runs automatically as a repair
- * step (lib/Migration/Version2Date20260520000001.php) during `occ upgrade` /
+ * step (lib/Migration/Version2Date20260908000000.php) during `occ upgrade` /
  * app enable — it sets `integriq.storage_migrated = 'true'` on a clean run.
  * There is currently NO standalone `occ integriq:migrate-storage` console
  * command registered in this repo (the migration is invoked from the repair

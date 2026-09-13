@@ -224,6 +224,10 @@ test.afterAll(async () => {
 })
 
 test.describe('Synchronization workflow — pipeline setup & linking', () => {
+	// Anchored after reading the body: this test POSTs to
+	// `/synchronizations/{id}/run` and asserts the endpoint RESOLVES the sync
+	// rather than 404ing, which is the scenario's THEN.
+	// @e2e openconnector-direct-or-usage::synchronization-run-endpoint-is-still-reachable
 	test('the full source→sync→target pipeline persists and is linked', async () => {
 		expect(fx).not.toBeNull()
 		const { api, sourceId, mappingId, syncId, registerId, tgtSchemaId } = fx!

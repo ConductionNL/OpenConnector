@@ -23,7 +23,7 @@
 - 📋 Pas bedrijfsregels toe op endpoint-verkeer en houd een audit trail per object bij
 
     ]]></description>
-	<version>0.4.2</version>
+	<version>0.4.6-unstable.20260912101736</version>
 	<licence>EUPL-1.2</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>Integriq</namespace>
@@ -157,6 +157,27 @@
 			     <install>, where an escaping exception aborts the install and
 			     the app never enables. -->
 			<step>OCA\Integriq\Repair\MigrateSchemaApplicationId</step>
+			<!-- `eolProduct`/`eolCycle` -> `eol_product`/`eol_cycle`. The only
+			     two camelCase slugs among the 55 this app declares. It MUST run
+			     before InitializeRegister: ImportHandler matches an incoming
+			     schema by its `slug`, never by the dict key it is filed under,
+			     so a fragment renamed without renaming the stored row first
+			     creates a SECOND schema and strands the original, its magic
+			     table and its eight seeded objects — the import unions schema
+			     ids into the register and never removes one. Run after the
+			     import and this step can only refuse.
+
+			     Safe as a row rename: objects bind to a schema by numeric id
+			     and the shard tables are named from ids, so no slug appears
+			     anywhere in the physical layout. It also re-points the stored
+			     `integriq/eolCycle` strings a synchronization holds in
+			     source_id/target_id, which are the one place a schema slug IS
+			     written into data.
+
+			     Refuses rather than merges when both slugs exist, and never
+			     throws — it runs under <install>, where an escaping exception
+			     aborts the install and the app never enables. -->
+			<step>OCA\Integriq\Repair\MigrateEolSchemaSlugs</step>
 			<step>OCA\Integriq\Repair\InitializeRegister</step>
 			<!-- Third leg of the app-id rename, and the one that lives in
 			     OpenRegister rather than in oc_appconfig. A job object stores its
@@ -316,6 +337,27 @@
 			     <install>, where an escaping exception aborts the install and
 			     the app never enables. -->
 			<step>OCA\Integriq\Repair\MigrateSchemaApplicationId</step>
+			<!-- `eolProduct`/`eolCycle` -> `eol_product`/`eol_cycle`. The only
+			     two camelCase slugs among the 55 this app declares. It MUST run
+			     before InitializeRegister: ImportHandler matches an incoming
+			     schema by its `slug`, never by the dict key it is filed under,
+			     so a fragment renamed without renaming the stored row first
+			     creates a SECOND schema and strands the original, its magic
+			     table and its eight seeded objects — the import unions schema
+			     ids into the register and never removes one. Run after the
+			     import and this step can only refuse.
+
+			     Safe as a row rename: objects bind to a schema by numeric id
+			     and the shard tables are named from ids, so no slug appears
+			     anywhere in the physical layout. It also re-points the stored
+			     `integriq/eolCycle` strings a synchronization holds in
+			     source_id/target_id, which are the one place a schema slug IS
+			     written into data.
+
+			     Refuses rather than merges when both slugs exist, and never
+			     throws — it runs under <install>, where an escaping exception
+			     aborts the install and the app never enables. -->
+			<step>OCA\Integriq\Repair\MigrateEolSchemaSlugs</step>
 			<step>OCA\Integriq\Repair\InitializeRegister</step>
 			<!-- See the note on this step in <post-migration>. Idempotent, and a
 			     no-op on a first install (no stored jobs yet), but declared here

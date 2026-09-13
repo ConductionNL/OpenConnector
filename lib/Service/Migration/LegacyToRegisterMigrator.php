@@ -50,6 +50,7 @@ use InvalidArgumentException;
 use LogicException;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IDBConnection;
+use OCP\Security\ISecureRandom;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -171,11 +172,13 @@ class LegacyToRegisterMigrator {
 	 * @param IDBConnection $db Database connection used for legacy + OR queries.
 	 * @param IAppConfig $appConfig App config used to flip storage_migrated on success.
 	 * @param LoggerInterface $logger Logger for per-batch progress and warnings.
+	 * @param ISecureRandom $secureRandom Source of the uuids written for migrated rows.
 	 */
 	public function __construct(
 		private readonly IDBConnection $db,
 		private readonly IAppConfig $appConfig,
 		private readonly LoggerInterface $logger,
+		private readonly ISecureRandom $secureRandom,
 	) {
 
 	}//end __construct()
@@ -927,7 +930,7 @@ SQL;
 			$qb->insert('openregister_audit_trail')
 				->values(
 					[
-						'uuid' => $qb->createNamedParameter(\OC::$server->get(\OCP\Security\ISecureRandom::class)->generate(36)),
+						'uuid' => $qb->createNamedParameter($this->secureRandom->generate(36)),
 						'action' => $qb->createNamedParameter('chain-b-migration'),
 						'changed' => $qb->createNamedParameter(
 							json_encode(
