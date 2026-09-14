@@ -55,6 +55,11 @@
 			:open="configurationExport.open"
 			@close="closeConfigurationExport" />
 		<PromotePreviewModal :open="promotion.open" @close="closePromotion" />
+		<LinkSourceDialog
+			:open="linkSource.open"
+			:app="linkSource.app"
+			@linked="onSourceLinked"
+			@close="closeLinkSource" />
 	</div>
 </template>
 
@@ -62,6 +67,7 @@
 import CatalogItemDetailDialog from '../../dialogs/CatalogItemDetailDialog.vue'
 import ExportConfigurationDialog from '../../dialogs/ExportConfigurationDialog.vue'
 import ImportPreviewDialog from '../../dialogs/ImportPreviewDialog.vue'
+import LinkSourceDialog from '../../dialogs/LinkSourceDialog.vue'
 import PromotePreviewModal from '../PromotePreviewModal.vue'
 import SubscriptionSigningModal from '../Subscription/SubscriptionSigningModal.vue'
 import AddEndpointRuleModal from './AddEndpointRuleModal.vue'
@@ -73,6 +79,7 @@ import {
 	EVENT_OPEN_CATALOG_ITEM_DETAIL,
 	EVENT_OPEN_CONFIGURATION_EXPORT,
 	EVENT_OPEN_CONFIGURATION_IMPORT,
+	EVENT_OPEN_LINK_SOURCE,
 	EVENT_OPEN_PROMOTION,
 	EVENT_OPEN_RUN_ACTION,
 	EVENT_OPEN_SUBSCRIPTION_SIGNING,
@@ -94,6 +101,7 @@ export default {
 		ImportPreviewDialog,
 		ExportConfigurationDialog,
 		PromotePreviewModal,
+		LinkSourceDialog,
 	},
 
 	data() {
@@ -107,7 +115,36 @@ export default {
 			configurationImport: { open: false },
 			configurationExport: { open: false },
 			promotion: { open: false },
+			linkSource: { open: false, app: '' },
 		}
+	},
+
+	watch: {
+		/**
+		 * `?link=1` on the App connections page opens the link-a-source
+		 * dialog, pre-filtered by `?app=` (connection-registry D9). An adopting
+		 * app's "Add integration" action links here. `link` is removed from the
+		 * URL straight away: the index page reads every unprefixed query key as
+		 * a property filter, and no row has a `link` property.
+		 */
+		'$route.query': {
+			/**
+			 * @param {object} query The current route query.
+			 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-the-link-query-opens-the-dialog-pre-filtered
+			 */
+			handler(query) {
+				if (this.$route?.name !== 'AppConnections' || String(query?.link ?? '') !== '1') {
+					return
+				}
+				const app = typeof query.app === 'string' ? query.app : ''
+				const rest = { ...query }
+				delete rest.link
+				this.$router.replace({ query: rest })
+				this.openLinkSource({ app })
+			},
+
+			immediate: true,
+		},
 	},
 
 	/** @spec openspec/specs/app-shell-and-logs-ui/spec.md */
@@ -121,6 +158,7 @@ export default {
 		modalBus.on(EVENT_OPEN_CONFIGURATION_IMPORT, this.openConfigurationImport)
 		modalBus.on(EVENT_OPEN_CONFIGURATION_EXPORT, this.openConfigurationExport)
 		modalBus.on(EVENT_OPEN_PROMOTION, this.openPromotion)
+		modalBus.on(EVENT_OPEN_LINK_SOURCE, this.openLinkSource)
 	},
 
 	/** @spec openspec/specs/app-shell-and-logs-ui/spec.md */
@@ -134,6 +172,7 @@ export default {
 		modalBus.off(EVENT_OPEN_CONFIGURATION_IMPORT, this.openConfigurationImport)
 		modalBus.off(EVENT_OPEN_CONFIGURATION_EXPORT, this.openConfigurationExport)
 		modalBus.off(EVENT_OPEN_PROMOTION, this.openPromotion)
+		modalBus.off(EVENT_OPEN_LINK_SOURCE, this.openLinkSource)
 	},
 
 	methods: {
@@ -254,6 +293,33 @@ export default {
 		/** @spec openspec/specs/environments-and-promotion/spec.md#requirement-diff-preview-merges-the-targets-existing-preview-response-with-a-credential-rebind-classification-req-003 */
 		closePromotion() {
 			this.promotion = { open: false }
+		},
+
+		/**
+		 * @param {object} payload `{ app }`, the app id to pre-filter by.
+		 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-add-integration-opens-the-dialog
+		 */
+		openLinkSource(payload) {
+			this.linkSource = { open: true, app: payload?.app ?? '' }
+		},
+
+		/** @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#requirement-add-integration-links-a-source-and-probes-it-at-once-req-conn-007 */
+		closeLinkSource() {
+			this.linkSource = { open: false, app: '' }
+		},
+
+		/**
+		 * Reload the App connections list after a link, so the row shows its
+		 * source and probe. The index page re-fetches on any query change, and
+		 * a `_`-prefixed key is never read as a filter.
+		 *
+		 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-linking-a-source-probes-it-straight-away
+		 */
+		onSourceLinked() {
+			if (this.$route?.name !== 'AppConnections') {
+				return
+			}
+			this.$router.replace({ query: { ...this.$route.query, _linked: String(Date.now()) } })
 		},
 	},
 }

@@ -26,6 +26,7 @@ import {
 	EVENT_OPEN_ADD_ENDPOINT_RULE,
 	EVENT_OPEN_CONFIGURATION_EXPORT,
 	EVENT_OPEN_CONFIGURATION_IMPORT,
+	EVENT_OPEN_LINK_SOURCE,
 	EVENT_OPEN_PROMOTION,
 	EVENT_OPEN_RUN_ACTION,
 	EVENT_OPEN_SUBSCRIPTION_SIGNING,
@@ -175,6 +176,18 @@ export function openConfigurationExportHandler() {
  */
 export function openPromotionHandler() {
 	modalBus.emit(EVENT_OPEN_PROMOTION, {})
+}
+
+/**
+ * Open the link-a-source dialog (connection-registry D9), pre-filtered by the
+ * App connections page's `?app=` query when it carries one. Wired to that
+ * page's "Add integration" header action.
+ *
+ * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-add-integration-opens-the-dialog
+ */
+export function openLinkSourceHandler() {
+	const app = getRouter()?.currentRoute?.value?.query?.app
+	modalBus.emit(EVENT_OPEN_LINK_SOURCE, { app: typeof app === 'string' ? app : '' })
 }
 
 // Query-aware "View logs" navigation. See #837 + nc-vue#330.
