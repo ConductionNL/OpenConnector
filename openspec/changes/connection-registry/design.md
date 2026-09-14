@@ -55,7 +55,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 ## Amendment: a refresh retires older observations (umbrella D6, D12 item 5, hydra#674)
 
-**Two refresh paths, one of them stamps.** `ConnectionRegistryService::refreshRequested()` is what the refresh listener calls. It writes `refreshedAt` and saves every requested row, even when the status stays the same. `refresh()` is the plain resolve that the hourly job and `AppDisableEvent` use. It never writes `refreshedAt`, so the job cannot retire an observation an hour after it was made.
+**Two refresh paths, one of them stamps.** `ConnectionRegistryService::refreshRequested()` is what the refresh listener calls. It writes `refreshedAt` and saves every requested row whose data changed. That is every row, unless it was already stamped in the same second. `refresh()` is the plain resolve that the hourly job and `AppDisableEvent` use. It never writes `refreshedAt`, so the job cannot retire an observation an hour after it was made.
 
 **How the comparison reads.** Both times are parsed to instants, so `12:05+02:00` equals `10:05Z`. An observation retires only when it is strictly older. An equal time counts, because `now()` has one-second precision and a report sent in the same second as the save may describe the new settings. An observation without `at` is older than any refresh. A `refreshedAt` that does not parse retires nothing.
 
