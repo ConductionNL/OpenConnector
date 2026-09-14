@@ -62,6 +62,8 @@ import {
 	openConfigurationImportHandler,
 	openLinkSourceHandler,
 	openPromotionHandler,
+	previewDirectorySyncHandler,
+	runDirectorySyncHandler,
 	runJobHandler,
 	runSynchronizationHandler,
 	testJobHandler,
@@ -85,6 +87,11 @@ export default {
 	testSynchronizationHandler,
 	testMappingModalHandler,
 	addEndpointRuleHandler,
+	// Directory connections are Sources, so their run and preview actions sit on
+	// the Sources index. Both open DirectoryRunModal, which owns the POST so a
+	// guarded removal can be shown and confirmed rather than silently dropped.
+	runDirectorySyncHandler,
+	previewDirectorySyncHandler,
 	// Webhook signing-secret manager (opens SubscriptionSigningModal via
 	// the modal bus). See openconnector-webhook-signing.
 	manageSigningHandler,

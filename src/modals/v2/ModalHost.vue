@@ -40,6 +40,11 @@
 			:mode="runAction.mode"
 			:item="runAction.item"
 			@close="closeRunAction" />
+		<DirectoryRunModal
+			:open="directoryRun.open"
+			:source="directoryRun.source"
+			:mode="directoryRun.mode"
+			@close="closeDirectoryRun" />
 		<SubscriptionSigningModal
 			:open="subscriptionSigning.open"
 			:subscription="subscriptionSigning.subscription"
@@ -68,6 +73,7 @@ import CatalogItemDetailDialog from '../../dialogs/CatalogItemDetailDialog.vue'
 import ExportConfigurationDialog from '../../dialogs/ExportConfigurationDialog.vue'
 import ImportPreviewDialog from '../../dialogs/ImportPreviewDialog.vue'
 import LinkSourceDialog from '../../dialogs/LinkSourceDialog.vue'
+import DirectoryRunModal from '../Directory/DirectoryRunModal.vue'
 import PromotePreviewModal from '../PromotePreviewModal.vue'
 import SubscriptionSigningModal from '../Subscription/SubscriptionSigningModal.vue'
 import AddEndpointRuleModal from './AddEndpointRuleModal.vue'
@@ -79,6 +85,7 @@ import {
 	EVENT_OPEN_CATALOG_ITEM_DETAIL,
 	EVENT_OPEN_CONFIGURATION_EXPORT,
 	EVENT_OPEN_CONFIGURATION_IMPORT,
+	EVENT_OPEN_DIRECTORY_RUN,
 	EVENT_OPEN_LINK_SOURCE,
 	EVENT_OPEN_PROMOTION,
 	EVENT_OPEN_RUN_ACTION,
@@ -96,6 +103,7 @@ export default {
 		TestSourceModal,
 		AddEndpointRuleModal,
 		RunActionModal,
+		DirectoryRunModal,
 		SubscriptionSigningModal,
 		CatalogItemDetailDialog,
 		ImportPreviewDialog,
@@ -110,6 +118,7 @@ export default {
 			testSource: { open: false, source: null },
 			addEndpointRule: { open: false, endpoint: null },
 			runAction: { open: false, target: '', mode: '', item: null },
+			directoryRun: { open: false, source: null, mode: 'run' },
 			subscriptionSigning: { open: false, subscription: null },
 			catalogItemDetail: { open: false, item: null },
 			configurationImport: { open: false },
@@ -153,6 +162,7 @@ export default {
 		modalBus.on(EVENT_OPEN_TEST_SOURCE, this.openTestSource)
 		modalBus.on(EVENT_OPEN_ADD_ENDPOINT_RULE, this.openAddEndpointRule)
 		modalBus.on(EVENT_OPEN_RUN_ACTION, this.openRunAction)
+		modalBus.on(EVENT_OPEN_DIRECTORY_RUN, this.openDirectoryRun)
 		modalBus.on(EVENT_OPEN_SUBSCRIPTION_SIGNING, this.openSubscriptionSigning)
 		modalBus.on(EVENT_OPEN_CATALOG_ITEM_DETAIL, this.openCatalogItemDetail)
 		modalBus.on(EVENT_OPEN_CONFIGURATION_IMPORT, this.openConfigurationImport)
@@ -167,6 +177,7 @@ export default {
 		modalBus.off(EVENT_OPEN_TEST_SOURCE, this.openTestSource)
 		modalBus.off(EVENT_OPEN_ADD_ENDPOINT_RULE, this.openAddEndpointRule)
 		modalBus.off(EVENT_OPEN_RUN_ACTION, this.openRunAction)
+		modalBus.off(EVENT_OPEN_DIRECTORY_RUN, this.openDirectoryRun)
 		modalBus.off(EVENT_OPEN_SUBSCRIPTION_SIGNING, this.openSubscriptionSigning)
 		modalBus.off(EVENT_OPEN_CATALOG_ITEM_DETAIL, this.openCatalogItemDetail)
 		modalBus.off(EVENT_OPEN_CONFIGURATION_IMPORT, this.openConfigurationImport)
@@ -234,6 +245,25 @@ export default {
 		/** @spec openspec/specs/app-shell-and-logs-ui/spec.md#requirement-shared-runtest-modal-for-row-actions-req-shellui-004 */
 		closeRunAction() {
 			this.runAction = { open: false, target: '', mode: '', item: null }
+		},
+
+		/**
+		 * Open the directory-run modal for one connection.
+		 *
+		 * @param {object} payload The modal-bus payload: source and mode.
+		 * @spec openspec/changes/directory-and-group-sync/specs/directory-sync/spec.md#requirement-a-run-can-be-previewed-and-a-large-removal-is-guarded-req-ds-005
+		 */
+		openDirectoryRun(payload) {
+			this.directoryRun = {
+				open: true,
+				source: payload?.source ?? null,
+				mode: payload?.mode ?? 'run',
+			}
+		},
+
+		/** @spec openspec/changes/directory-and-group-sync/specs/directory-sync/spec.md#requirement-a-run-can-be-previewed-and-a-large-removal-is-guarded-req-ds-005 */
+		closeDirectoryRun() {
+			this.directoryRun = { open: false, source: null, mode: 'run' }
 		},
 
 		/**

@@ -365,6 +365,14 @@
           "order": 15
         },
         {
+          "id": "DirectoryRuns",
+          "label": "Directory runs",
+          "icon": "AccountGroup",
+          "route": "DirectoryRuns",
+          "order": 18,
+          "permission": "admin"
+        },
+        {
           "id": "DeadLetters",
           "label": "Dead letters",
           "icon": "EmailAlertOutline",
@@ -960,6 +968,18 @@
             "label": "Test connection",
             "icon": "CheckCircleOutline",
             "handler": "testSourceHandler"
+          },
+          {
+            "id": "preview-directory-run",
+            "label": "Preview directory run",
+            "icon": "EyeOutline",
+            "handler": "previewDirectorySyncHandler"
+          },
+          {
+            "id": "run-directory-sync",
+            "label": "Run directory sync",
+            "icon": "Sync",
+            "handler": "runDirectorySyncHandler"
           },
           {
             "id": "view-source-logs",
@@ -4009,6 +4029,79 @@
         },
         "documentationUrl": "https://integriq.conduction.nl",
         "_configurationUiNote": "REQ-006/007/008 Configuration import/export UI actions live here as header actions (ExportConfigurationDialog / ImportPreviewDialog) rather than on a bespoke Configurations index page: OR Configuration groups are a NATIVE OR table (lib/Db/Configuration.php) served by /apps/openregister/api/configurations, not an object register/schema, so a type:index page cannot back them — and a type:custom page is exactly what this change avoids (custom-widget-ratchet)."
+      }
+    },
+    {
+      "id": "DirectoryRuns",
+      "route": "/directory-runs",
+      "type": "logs",
+      "title": "Directory runs",
+      "_note": "The run record a directory connection writes, read back. It is the shared synchronization_log schema rather than a table of its own, because a directory sync is a synchronization: same run log, same retention, same per-item failure capture. See openspec/changes/directory-and-group-sync.",
+      "config": {
+        "register": "integriq",
+        "schema": "synchronization_log",
+        "sortKey": "created",
+        "sortOrder": "desc",
+        "pagination": {
+          "limit": 50
+        },
+        "rowDetail": true,
+        "fixedLayout": true,
+        "columns": [
+          {
+            "key": "created",
+            "label": "Time",
+            "sortable": true,
+            "width": "16%",
+            "formatter": "datetime"
+          },
+          {
+            "key": "result.connectionName",
+            "label": "Connection",
+            "sortable": false,
+            "width": "16%"
+          },
+          {
+            "key": "message",
+            "label": "Message",
+            "sortable": true,
+            "width": "20%"
+          },
+          {
+            "key": "result.membershipsAdded",
+            "label": "Added",
+            "sortable": false,
+            "width": "9%"
+          },
+          {
+            "key": "result.membershipsRemoved",
+            "label": "Removed",
+            "sortable": false,
+            "width": "9%"
+          },
+          {
+            "key": "result.usersRead",
+            "label": "Users read",
+            "sortable": false,
+            "width": "10%"
+          },
+          {
+            "key": "test",
+            "label": "Preview",
+            "sortable": true,
+            "width": "10%"
+          },
+          {
+            "key": "executionTime",
+            "label": "Duration",
+            "sortable": true,
+            "width": "10%",
+            "format": {
+              "style": "duration",
+              "unit": "milliseconds"
+            }
+          }
+        ]
       }
     },
     {
