@@ -10,7 +10,7 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 ## 2. Backend
 
 - [x] 2.1 `ConnectionDeclarationValidator`, mirroring the JSON Schema, with a drift test against it.
-- [x] 2.2 `ConnectionStatusResolver`, the D4 rules in order.
+- [x] 2.2 `ConnectionStatusResolver`, the D4 rules in order, reading app config through `ConnectionConfigReader`.
 - [x] 2.3 `ConnectionRegistryService::sync()`, `report()`, `refresh()`, `probe()`, `link()` (D5, D6, D7, D9).
 - [x] 2.4 `ConnectionStatusReportedEvent` and `ConnectionRefreshRequestedEvent` exactly as D6, with listeners that never throw.
 - [x] 2.5 `SyncConnectionDeclarations` repair step on install and post-migration, and an app lifecycle listener for `AppEnableEvent` and `AppDisableEvent`.
@@ -29,3 +29,12 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 
 - [x] 4.1 PHPUnit: resolver (every D4 row and both orderings), validator, sync, listeners, health job, controller.
 - [x] 4.2 Playwright spec for the overview page and the dialog, `tests/e2e/spec-coverage/connection-registry.spec.ts` (runs nightly, not run in this PR).
+
+## 5. Amendments after the first adopters (umbrella D12)
+
+- [x] 5.1 `adapter.jsonPath` and `adapter.simulatedValues` in `connections.schema.json`, the validator and D4 rule 3, with defaults that keep every existing declaration's meaning.
+- [x] 5.2 `reportedOnly` skips rules 3 and 5.
+- [x] 5.3 Rule 4a: a `simulated` report wins over any probe, with the report's time. Rule 4b is the old rule 4.
+- [x] 5.4 `limited` in the `app_connection` enum (schema 1.1.0), the report allow-list, the `connectionStatus` formatter and the English and Dutch catalogues.
+- [x] 5.5 `ConnectionHealthJob` resolves every row after the probes, with no outbound call and no cap.
+- [x] 5.6 PHPUnit for each new D4 behaviour, the JSON path edge cases, the defaults, a `limited` report and the job's resolve of unlinked rows. Rule 4a's order is mutation-checked.

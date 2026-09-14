@@ -1031,7 +1031,6 @@ OC.L10N.register(
         "Incident war-room": "Incident war-room",
         "Absolute path into the Nextcloud instance. Omit it when no settings section exists.": "Absolute path into the Nextcloud instance. Omit it when no settings section exists.",
         "App": "App",
-        "App-config key naming the adapter class. Empty in the app's config means a mock answers.": "App-config key naming the adapter class. Empty in the app's config means a mock answers.",
         "App-config keys of the declaring app. All non-empty means the settings are saved.": "App-config keys of the declaring app. All non-empty means the settings are saved.",
         "Configured": "Configured",
         "Connection": "Connection",
@@ -1062,14 +1061,12 @@ OC.L10N.register(
         "The connection key from the declaration file.": "The connection key from the declaration file.",
         "The entry as the app declared it.": "The entry as the app declared it.",
         "The integriq source this connection is checked against.": "The integriq source this connection is checked against.",
-        "The last status the app reported: status, message and time.": "The last status the app reported: status, message and time.",
         "The last test of the linked source: status, message and time.": "The last test of the linked source: status, message and time.",
         "The name of the connection.": "The name of the connection.",
         "Unique within the file and frozen once shipped. A row is keyed by app and key.": "Unique within the file and frozen once shipped. A row is keyed by app and key.",
         "What the connection is for.": "What the connection is for.",
         "When the fact behind the status was observed.": "When the fact behind the status was observed.",
         "Where an admin configures this connection.": "Where an admin configures this connection.",
-        "Whether the connection works, as integriq last worked it out.": "Whether the connection works, as integriq last worked it out.",
         "Why the connection has this status.": "Why the connection has this status.",
         "Why the connection is not usable.": "Why the connection is not usable.",
         "false means declared and not usable yet. Default true.": "false means declared and not usable yet. Default true.",
@@ -1119,7 +1116,14 @@ OC.L10N.register(
         "{user} still holds: {answers}": "{user} still holds: {answers}",
         "Directory runs": "Directory runs",
         "Preview directory run": "Preview directory run",
-        "Run directory sync": "Run directory sync"
+        "Run directory sync": "Run directory sync",
+        "Limited": "Limited",
+        "App-config key that selects the adapter: a class name, a provider name or a JSON settings blob.": "App-config key that selects the adapter: a class name, a provider name or a JSON settings blob.",
+        "Dot path into the value when configKey holds a JSON object, such as chat.provider. A missing path reads as empty.": "Dot path into the value when configKey holds a JSON object, such as chat.provider. A missing path reads as empty.",
+        "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.": "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.",
+        "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false.": "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false.",
+        "Whether the connection works, works in part or not at all, as integriq last worked it out.": "Whether the connection works, works in part or not at all, as integriq last worked it out.",
+        "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "The last status the app reported: status, message and time. A report of simulated stands against any probe."
     },
     "nplurals=2; plural=(n != 1);"
 )

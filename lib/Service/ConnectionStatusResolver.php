@@ -6,19 +6,27 @@
  * Works out a connection row's `status`, `statusMessage` and `checkedAt` by the
  * rules of the hydra umbrella design D4, first match wins:
  *
- *   1. the declaring app is disabled                 -> unavailable, now
- *   2. the declaration says `available: false`       -> unavailable, sync time
- *   3. `adapter.configKey` is empty in the app config -> simulated, sync time
- *   4. a `lastProbe` or `lastReport` exists          -> the newer one, its time
- *   5. every `requiredConfig` key is filled          -> configured, now
- *   6. otherwise                                     -> unconfigured, empty
+ *   1.  the declaring app is disabled                  -> unavailable, now
+ *   2.  the declaration says `available: false`        -> unavailable, sync time
+ *   3.  not `reportedOnly`, and the adapter value is
+ *       one of `adapter.simulatedValues`               -> simulated, sync time
+ *   4a. `lastReport.status` is `simulated`             -> simulated, its time
+ *   4b. a `lastProbe` or `lastReport` exists           -> the newer one, its time
+ *   5.  not `reportedOnly`, and every `requiredConfig`
+ *       key is filled                                  -> configured, now
+ *   6.  otherwise                                      -> unconfigured, empty
  *
  * Rule 6 uses the declared `unconfiguredMessage` when there is one, and rule
  * 5 says "Required settings are filled." rather than "saved": a register
  * import can fill the keys too (umbrella amendment from dossiq#2715).
  *
  * Rule 3 sits above rule 4 on purpose. A mock adapter never calls the source,
- * so a green probe says nothing about what the app actually sends.
+ * so a green probe says nothing about what the app actually sends. Rule 4a
+ * applies the same reasoning to the app's own report (umbrella D12).
+ *
+ * Reading the declaring app's config, including `adapter.jsonPath` and
+ * `adapter.simulatedValues`, lives in {@see ConnectionConfigReader}.
+ * No declaration produces `limited`; only a report can.
  *
  * @category Service
  * @package  OCA\Integriq\Service
@@ -53,11 +61,18 @@ use OCP\IAppConfig;
 class ConnectionStatusResolver {
 
 	/**
-	 * The five stored status values.
+	 * The six stored status values.
 	 *
 	 * @var string[]
 	 */
-	public const STATUSES = ['configured', 'unconfigured', 'simulated', 'unavailable', 'error'];
+	public const STATUSES = ['configured', 'limited', 'unconfigured', 'simulated', 'unavailable', 'error'];
+
+	/**
+	 * Reads the declaring app's settings.
+	 *
+	 * @var ConnectionConfigReader
+	 */
+	private readonly ConnectionConfigReader $config;
 
 	/**
 	 * Constructor.
@@ -66,9 +81,10 @@ class ConnectionStatusResolver {
 	 * @param ITimeFactory $timeFactory The clock.
 	 */
 	public function __construct(
-		private readonly IAppConfig $appConfig,
+		IAppConfig $appConfig,
 		private readonly ITimeFactory $timeFactory,
 	) {
+		$this->config = new ConnectionConfigReader(appConfig: $appConfig);
 	}//end __construct()
 
 	/**
@@ -97,6 +113,7 @@ class ConnectionStatusResolver {
 		return $this->ruleAppDisabled(row: $row, appEnabled: $appEnabled, now: $now)
 			?? $this->ruleDeclaredUnavailable(row: $row, declaration: $declaration, now: $now)
 			?? $this->ruleSimulated(row: $row, declaration: $declaration, now: $now)
+			?? $this->ruleReportedSimulated(row: $row)
 			?? $this->ruleObserved(row: $row)
 			?? $this->ruleSettingsSaved(row: $row, declaration: $declaration, now: $now)
 			?? $this->outcome(
@@ -154,7 +171,9 @@ class ConnectionStatusResolver {
 	}//end ruleDeclaredUnavailable()
 
 	/**
-	 * Rule 3: the adapter key is empty, so a mock answers.
+	 * Rule 3: the adapter value is one of the simulated values, so a mock answers.
+	 *
+	 * Skipped for a `reportedOnly` row: only the app can tell what answers there.
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param array<string,mixed> $declaration The declaration entry.
@@ -164,12 +183,12 @@ class ConnectionStatusResolver {
 	 */
 	private function ruleSimulated(array $row, array $declaration, string $now): ?array {
 		$adapter = $declaration['adapter'] ?? null;
-		if (is_array($adapter) === false) {
+		if (is_array($adapter) === false || $this->isReportedOnly(declaration: $declaration) === true) {
 			return null;
 		}
 
 		$configKey = (string)($adapter['configKey'] ?? '');
-		if ($configKey === '' || $this->readConfig(app: (string)($row['app'] ?? ''), key: $configKey) !== '') {
+		if ($configKey === '' || $this->config->isSimulated(app: (string)($row['app'] ?? ''), adapter: $adapter) === false) {
 			return null;
 		}
 
@@ -187,7 +206,32 @@ class ConnectionStatusResolver {
 	}//end ruleSimulated()
 
 	/**
-	 * Rule 4: the newer of the last probe and the last report.
+	 * Rule 4a: the app reported that a mock answers.
+	 *
+	 * The report stands against any probe, newer ones included: a green test
+	 * on the source says nothing about what a mock adapter sends. The outcome
+	 * carries rule number 4, like rule 4b.
+	 *
+	 * @param array<string,mixed> $row The stored row data.
+	 *
+	 * @return array{status:string,statusMessage:string,checkedAt:?string,rule:int}|null
+	 */
+	private function ruleReportedSimulated(array $row): ?array {
+		$report = $this->readObservation(value: $row['lastReport'] ?? null, isProbe: false);
+		if ($report === null || $report['status'] !== 'simulated') {
+			return null;
+		}
+
+		return $this->outcome(
+			status: 'simulated',
+			message: $report['message'],
+			checkedAt: $report['at'],
+			rule: 4
+		);
+	}//end ruleReportedSimulated()
+
+	/**
+	 * Rule 4b: the newer of the last probe and the last report.
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 *
@@ -210,6 +254,9 @@ class ConnectionStatusResolver {
 	/**
 	 * Rule 5: every required settings key holds a value.
 	 *
+	 * Skipped for a `reportedOnly` row: filled settings say nothing about a
+	 * platform chosen elsewhere.
+	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param array<string,mixed> $declaration The declaration entry.
 	 * @param string $now The current time.
@@ -218,11 +265,11 @@ class ConnectionStatusResolver {
 	 */
 	private function ruleSettingsSaved(array $row, array $declaration, string $now): ?array {
 		$required = $declaration['requiredConfig'] ?? [];
-		if (is_array($required) === false || $required === []) {
+		if (is_array($required) === false || $required === [] || $this->isReportedOnly(declaration: $declaration) === true) {
 			return null;
 		}
 
-		if ($this->allFilled(app: (string)($row['app'] ?? ''), keys: $required) === false) {
+		if ($this->config->allFilled(app: (string)($row['app'] ?? ''), keys: $required) === false) {
 			return null;
 		}
 
@@ -269,7 +316,7 @@ class ConnectionStatusResolver {
 	 * Read one stored observation.
 	 *
 	 * @param mixed $value The stored `{status, message, at}` object.
-	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the five statuses).
+	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the six statuses).
 	 *
 	 * @return array{status:string,message:string,at:?string,time:int}|null
 	 */
@@ -321,47 +368,15 @@ class ConnectionStatusResolver {
 	}//end observationStatus()
 
 	/**
-	 * Whether every key holds a non-empty value in the app's config.
+	 * Whether the declaration says only the app can judge this connection.
 	 *
-	 * @param string $app The declaring app id.
-	 * @param array<int|string,mixed> $keys The required keys.
+	 * @param array<string,mixed> $declaration The declaration entry.
 	 *
 	 * @return bool
 	 */
-	private function allFilled(string $app, array $keys): bool {
-		foreach ($keys as $key) {
-			if (is_string($key) === false || $this->readConfig(app: $app, key: $key) === '') {
-				return false;
-			}
-		}
-
-		return true;
-	}//end allFilled()
-
-	/**
-	 * Read one value from another app's config.
-	 *
-	 * `lazy: true` makes Nextcloud return lazy and non-lazy values alike, so a
-	 * key the app stored as lazy is not mistaken for an empty one. A value
-	 * stored under another type makes getValueString() throw; such a key does
-	 * hold a value, so it counts as filled.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param string $key The config key.
-	 *
-	 * @return string The trimmed value, or '' when absent.
-	 */
-	private function readConfig(string $app, string $key): string {
-		if ($app === '' || $key === '') {
-			return '';
-		}
-
-		try {
-			return trim($this->appConfig->getValueString($app, $key, '', true));
-		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
-			return 'typed';
-		}
-	}//end readConfig()
+	private function isReportedOnly(array $declaration): bool {
+		return ($declaration['reportedOnly'] ?? false) === true;
+	}//end isReportedOnly()
 
 	/**
 	 * Keep the stored `checkedAt` when status and message did not change.

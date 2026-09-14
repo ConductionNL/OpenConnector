@@ -120,10 +120,16 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @param array<string,string> $appPaths App id => path of every enabled app.
 	 * @param LoggerInterface|null $logger A logger double, or null for a silent one.
 	 * @param string[] $disabled App ids that are installed but disabled.
+	 * @param array<string,string> $config App config values as "app.key" => value.
 	 *
 	 * @return ConnectionRegistryService
 	 */
-	private function makeService(array $appPaths, ?LoggerInterface $logger = null, array $disabled = []): ConnectionRegistryService {
+	private function makeService(
+		array $appPaths,
+		?LoggerInterface $logger = null,
+		array $disabled = [],
+		array $config = []
+	): ConnectionRegistryService {
 		$appManager = $this->createMock(originalClassName: IAppManager::class);
 		$appManager->method('getEnabledApps')->willReturn(array_keys($appPaths));
 		$appManager->method('getAppPath')->willReturnCallback(
@@ -141,7 +147,9 @@ class ConnectionRegistryServiceTest extends TestCase {
 		);
 
 		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
-		$appConfig->method('getValueString')->willReturn('');
+		$appConfig->method('getValueString')->willReturnCallback(
+			static fn (string $app, string $key): string => $config[$app . '.' . $key] ?? ''
+		);
 		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable('2026-09-14T12:00:00+00:00'));
 
@@ -466,4 +474,50 @@ class ConnectionRegistryServiceTest extends TestCase {
 		$this->assertSame(expected: [], actual: $summary['skipped']);
 		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testAppWithoutFileIsIgnored()
+
+	/**
+	 * A report may carry limited, and the row then reads limited.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-app-reports-a-connection-that-works-in-part
+	 */
+	public function testLimitedReportIsAccepted(): void {
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
+		$service->sync();
+		$this->saves = [];
+
+		$message = 'Preview API: posting works, reading replies does not.';
+		$this->assertTrue(condition: $service->report('dossiq', 'brp', 'limited', $message));
+
+		$this->assertCount(expectedCount: 1, haystack: $this->saves);
+		$this->assertSame(expected: 'limited', actual: $this->saves[0][1]['lastReport']['status']);
+		$this->assertSame(expected: 'limited', actual: $this->saves[0][1]['status']);
+		$this->assertSame(expected: $message, actual: $this->saves[0][1]['statusMessage']);
+	}//end testLimitedReportIsAccepted()
+
+	/**
+	 * A key set with occ, which sends no refresh event, shows on the next refresh of an unlinked row.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-key-set-with-occ-shows-within-the-hour
+	 */
+	public function testRefreshPicksUpAKeySetWithOcc(): void {
+		$this->rows['r1'] = [
+			'app' => 'dossiq',
+			'key' => 'zgw',
+			'title' => 'ZGW APIs',
+			'declaration' => ['key' => 'zgw', 'title' => 'ZGW APIs', 'requiredConfig' => ['register']],
+			'status' => 'unconfigured',
+			'statusMessage' => 'Not checked yet.',
+			'checkedAt' => null,
+		];
+
+		$service = $this->makeService(appPaths: [], logger: null, disabled: [], config: ['dossiq.register' => 'dossiq']);
+
+		$this->assertSame(expected: 1, actual: $service->refresh());
+		$this->assertSame(expected: 'configured', actual: $this->rows['r1']['status']);
+		$this->assertSame(expected: 'Required settings are filled.', actual: $this->rows['r1']['statusMessage']);
+	}//end testRefreshPicksUpAKeySetWithOcc()
 }//end class

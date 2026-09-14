@@ -6,11 +6,14 @@
  * Every hour (umbrella design D7):
  *
  *   1. syncs the declarations of apps whose version moved (D5);
- *   2. resolves every row again, so a disabled app or a changed setting shows;
- *   3. probes at most 25 linked sources, oldest probe first. An open circuit
- *      breaker is recorded as an error without a call.
+ *   2. probes at most 25 linked sources, oldest probe first. An open circuit
+ *      breaker is recorded as an error without a call;
+ *   3. resolves every row again, linked or not, so a disabled app or a key
+ *      set with `occ config:app:set` shows within the hour. This phase makes
+ *      no outbound call and has no cap.
  *
- * Each phase is caught on its own, so a failing sync does not stop the probes.
+ * Each phase is caught on its own, so a failing sync does not stop the probes,
+ * and failing probes do not stop the resolve.
  *
  * @category BackgroundJob
  * @package  OCA\Integriq\BackgroundJob
@@ -87,12 +90,12 @@ class ConnectionHealthJob extends TimedJob {
 			operation: fn () => $this->container->get(ConnectionRegistryService::class)->syncChangedDeclarations()
 		);
 		$this->phase(
-			name: 'status refresh',
-			operation: fn () => $this->container->get(ConnectionRegistryService::class)->refresh()
-		);
-		$this->phase(
 			name: 'source probes',
 			operation: fn () => $this->container->get(ConnectionProbeService::class)->probeDue(limit: ConnectionProbeService::PROBE_LIMIT)
+		);
+		$this->phase(
+			name: 'status refresh',
+			operation: fn () => $this->container->get(ConnectionRegistryService::class)->refresh()
 		);
 	}//end run()
 
