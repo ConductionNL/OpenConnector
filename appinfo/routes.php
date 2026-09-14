@@ -404,6 +404,11 @@ return [
 		['name' => 'catalog#status', 'url' => '/api/catalog/items/{id}/status', 'verb' => 'GET'],
 		['name' => 'catalog#instantiate', 'url' => '/api/catalog/items/{id}/instantiate', 'verb' => 'POST'],
 
+		// Connection registry (connection-registry D9): link a source to a
+		// declared connection and probe it at once. Listing goes through OR's
+		// generic /api/objects/integriq/connection (ADR-022).
+		['name' => 'connections#link', 'url' => '/api/connections/{id}/link', 'verb' => 'POST'],
+
 		// Configuration import/export UI endpoints (connector-catalog-ui) — a
 		// thin, routed wrapper over the existing, already-tested
 		// ConfigurationService::exportConfiguration()/importConfiguration().

@@ -90,6 +90,10 @@
 		<job>OCA\Integriq\BackgroundJob\ApprovalTimeoutSweepJob</job>
 		<job>OCA\Integriq\BackgroundJob\IwmoIjwRetryJob</job>
 		<job>OCA\Integriq\BackgroundJob\StufZknRetryJob</job>
+		<!-- connection-registry D7: hourly. Syncs declarations whose app
+		     version moved, resolves every connection row, and probes at most
+		     25 linked sources, oldest first. -->
+		<job>OCA\Integriq\BackgroundJob\ConnectionHealthJob</job>
 	</background-jobs>
 
 	<!-- ⚠️ CHILD ORDER IS FIXED BY THE APP STORE SCHEMA, and it is NOT the order
@@ -209,6 +213,11 @@
 			     keeps all five fields on purpose (see the step's docblock). -->
 			<step>OCA\Integriq\Repair\RemoveMigratedSourceSecretFields</step>
 			<step>OCA\Integriq\Repair\MaterializeCatalogItems</step>
+			<!-- connection-registry D5: every enabled app's
+			     lib/Settings/connections.json becomes connection rows. After
+			     InitializeRegister, so the connection schema exists. Idempotent
+			     and never throws. -->
+			<step>OCA\Integriq\Repair\SyncConnectionDeclarations</step>
 			<!-- WRITTEN BUT NEVER REGISTERED until now, which meant it never
 			     ran anywhere. gate-98 (repair-step-registration) found it.
 
@@ -369,6 +378,11 @@
 			<step>OCA\Integriq\Repair\InitializeActions</step>
 			<step>OCA\Integriq\Repair\MigrateLegacyStorage</step>
 			<step>OCA\Integriq\Repair\MaterializeCatalogItems</step>
+			<!-- connection-registry D5: every enabled app's
+			     lib/Settings/connections.json becomes connection rows. After
+			     InitializeRegister, so the connection schema exists. Idempotent
+			     and never throws. -->
+			<step>OCA\Integriq\Repair\SyncConnectionDeclarations</step>
 			<!-- The three inline-secret steps are deliberately NOT here. A first
 			     install has no sources, so they would have nothing to migrate,
 			     and RemoveMigratedSourceSecretFields is IRREVERSIBLE: it would
