@@ -257,3 +257,46 @@ than quietly applied.
 - **dossiq**: the sender declaration per team or per case type. Its
   `inbound-mail-filters` is the inbound sibling and is unaffected.
 - **Nextcloud Mail**: the account and its OAuth 2.0 flow, per D12.
+
+## The pending proposals of the gap register (2026-09-14)
+
+The last half of the parity programme is the register's pending proposals: the
+rows dossiq published from `dossiq#2314` and the 98 rows promoted under decision
+D1. Four of them are integriq's. Two are already answered by a change on
+`development`, by substance rather than by name, and two open here.
+
+| change | rows | size | basis | consumes from |
+|---|---|---|---|---|
+| `records-owned-by-an-external-source` | 5.19 | M | new | dossiq declares the ownership mode and the disappearance policy on the `brpPerson` and `kvkCompany` synchronisations in `register.d/25-brp-kvk.json`, renders the ownership state on the contact and the case party, and drops the delete action on a party it does not own. To be specified in dossiq, on the surface `contacts-domain` opens |
+| `one-off-and-suppressed-recipients` | 6.23 | M | new | dossiq offers the send screen where a handler adds a one-off recipient or suppresses a standing one with a reason, and passes both on the delivery request its `dossiq-delivers-nothing` change already dispatches. To be specified in dossiq |
+| `outbound-communication-log` | 6.24, 6.27 | M | existing, by substance | unchanged from wave 3: dossiq renders the send history on the case and projects the last-contact answer onto its own searchable field |
+
+### The two rows an existing change already carries
+
+Both were read in full before the claim was made, `proposal.md` and the spec.
+
+- **6.27**, "Delivery outcome per recipient on every outgoing message, with a
+  reason", is REQ-OCL-001: "each recipient with its own status, and an ordered
+  list of steps with their outcomes. A failure MUST name the step it happened
+  in and the reason the transport gave", with REQ-OCL-005 keeping delivery and
+  read state honest where a channel reports neither.
+- **6.24**, "When the applicant was last actually reached, sortable in the work
+  list", is REQ-OCL-006: "The log answers when a recipient was last told
+  anything". Wave 3 already splits the row the way the lane marked it,
+  `dossiq-only 6.20`: integriq answers the query and dossiq projects it onto
+  the searchable field.
+
+One reservation is recorded rather than quietly resolved. REQ-OCL-006 answers
+from "the most recent message that reached at least the transport step", and
+the row says *actually reached*, which is the delivery confirmation REQ-OCL-005
+holds per recipient and not the handover. The material for both readings is in
+the same change, so the row is claimed there; whoever implements it should
+decide which of the two the field means, and say so.
+
+### What the competitor evidence is for these rows
+
+Nothing, and that is the finding. All four are D1 rows, and the corpus batch
+file states it: "Every competitor column is `unread`, and none of them is `no`.
+... `no` is a reading of a product somebody opened, and filling these cells with
+it would fabricate thirty readings per row." No proposal in this half claims a
+competitor behaviour.

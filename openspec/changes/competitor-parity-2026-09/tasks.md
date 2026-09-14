@@ -32,3 +32,8 @@
 - [ ] 8.3 Hand dossiq its wave 4 half: the sender identity declared per team on the case type, replacing the single `EmailSettings.php` address.
 - [ ] 8.4 Confirm with the Nextcloud Mail boundary that an identity only references an account and holds no credential.
 
+- [ ] 9.1 Build `records-owned-by-an-external-source` (pending proposal row 5.19). Archive it on merge and tick it here.
+- [ ] 9.2 Build `one-off-and-suppressed-recipients` (pending proposal row 6.23, depends on 5.2). Archive it on merge and tick it here.
+- [ ] 9.3 Mark rows 6.24 and 6.27 as covered by `outbound-communication-log`, REQ-OCL-006 and REQ-OCL-001 with REQ-OCL-005, rather than opening a change for them.
+- [ ] 9.4 Ask whoever implements REQ-OCL-006 to decide whether "last reached" means the transport handover or the confirmed delivery of REQ-OCL-005, and to record the answer in the spec.
+- [ ] 9.5 Hand dossiq its pending-proposal halves: the ownership and disappearance declaration on `register.d/25-brp-kvk.json` with the party rendering, and the send screen that adds or suppresses a recipient with a reason.
