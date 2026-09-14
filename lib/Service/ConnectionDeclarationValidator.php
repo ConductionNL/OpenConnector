@@ -59,7 +59,7 @@ class ConnectionDeclarationValidator {
 		'description' => [false, 'string'],
 		'order' => [false, 'integer'],
 		'settingsUrl' => [false, 'path'],
-		'requiredConfig' => [false, 'stringList'],
+		'requiredConfig' => [false, 'requiredList'],
 		'adapter' => [false, 'object'],
 		'available' => [false, 'boolean'],
 		'unavailableMessage' => [false, 'string'],
@@ -81,6 +81,16 @@ class ConnectionDeclarationValidator {
 	];
 
 	/**
+	 * Fields of a `requiredConfig` entry written as an object: name => [required, type].
+	 *
+	 * @var array<string,array{0:bool,1:string}>
+	 */
+	private const REQUIRED_ENTRY_FIELDS = [
+		'configKey' => [true, 'nonEmptyString'],
+		'jsonPath' => [true, 'dotPath'],
+	];
+
+	/**
 	 * The message per type, used when a value fails its type check.
 	 *
 	 * @var array<string,string>
@@ -94,7 +104,7 @@ class ConnectionDeclarationValidator {
 		'boolean' => 'must be a boolean',
 		'path' => 'must be an absolute path starting with /',
 		'list' => 'must be an array',
-		'stringList' => 'must be an array of non-empty strings',
+		'requiredList' => 'must be an array of non-empty strings or {configKey, jsonPath} objects',
 		'anyStringList' => 'must be an array of strings',
 		'dotPath' => 'must match ^[^.]+(\\.[^.]+)*$',
 		'object' => 'must be an object',
@@ -237,8 +247,12 @@ class ConnectionDeclarationValidator {
 	 * @return bool
 	 */
 	private function matchesPattern(string $type, mixed $value): bool {
-		if ($type === 'stringList' || $type === 'anyStringList') {
-			return $this->isStringList(value: $value, allowEmpty: $type === 'anyStringList');
+		if ($type === 'anyStringList') {
+			return $this->isStringList(value: $value);
+		}
+
+		if ($type === 'requiredList') {
+			return $this->isRequiredList(value: $value);
 		}
 
 		if (is_string($value) === false) {
@@ -255,26 +269,57 @@ class ConnectionDeclarationValidator {
 	}//end matchesPattern()
 
 	/**
-	 * Whether a value is a list of strings.
+	 * Whether a value is a list of strings, empty strings included.
 	 *
 	 * @param mixed $value The value.
-	 * @param bool $allowEmpty Whether an empty string may be an item.
 	 *
 	 * @return bool
 	 */
-	private function isStringList(mixed $value, bool $allowEmpty): bool {
+	private function isStringList(mixed $value): bool {
 		if (is_array($value) === false || array_is_list($value) === false) {
 			return false;
 		}
 
 		foreach ($value as $item) {
-			if (is_string($item) === false || ($allowEmpty === false && $item === '')) {
+			if (is_string($item) === false) {
 				return false;
 			}
 		}
 
 		return true;
 	}//end isStringList()
+
+	/**
+	 * Whether a value is a valid `requiredConfig` list.
+	 *
+	 * Each item is a non-empty app-config key, or an object with exactly a
+	 * non-empty `configKey` and a dot-path `jsonPath`.
+	 *
+	 * @param mixed $value The value.
+	 *
+	 * @return bool
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-required-value-inside-a-json-setting
+	 */
+	private function isRequiredList(mixed $value): bool {
+		if (is_array($value) === false || array_is_list($value) === false) {
+			return false;
+		}
+
+		foreach ($value as $item) {
+			if (is_string($item) === true && $item !== '') {
+				continue;
+			}
+
+			if ($this->isObject(value: $item) === false
+				|| $this->checkObject(data: $item, fields: self::REQUIRED_ENTRY_FIELDS, path: '') !== []
+			) {
+				return false;
+			}
+		}
+
+		return true;
+	}//end isRequiredList()
 
 	/**
 	 * Whether a decoded JSON value is an object.

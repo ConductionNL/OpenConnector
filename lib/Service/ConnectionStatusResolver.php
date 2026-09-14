@@ -15,7 +15,7 @@
  *   4b. a `lastProbe` or `lastReport` exists that is
  *       not older than `refreshedAt`                   -> the newer one, its time
  *   5.  not `reportedOnly`, and every `requiredConfig`
- *       key is filled                                  -> configured, now
+ *       entry is filled                                -> configured, now
  *   6.  otherwise                                      -> unconfigured, empty
  *
  * Rule 6 uses the declared `unconfiguredMessage` when there is one, and rule
@@ -259,7 +259,7 @@ class ConnectionStatusResolver {
 	}//end ruleObserved()
 
 	/**
-	 * Rule 5: every required settings key holds a value.
+	 * Rule 5: every required setting holds a filled value.
 	 *
 	 * Skipped for a `reportedOnly` row: filled settings say nothing about a
 	 * platform chosen elsewhere.
@@ -276,7 +276,7 @@ class ConnectionStatusResolver {
 			return null;
 		}
 
-		if ($this->config->allFilled(app: (string)($row['app'] ?? ''), keys: $required) === false) {
+		if ($this->config->allFilled(app: (string)($row['app'] ?? ''), entries: $required) === false) {
 			return null;
 		}
 
