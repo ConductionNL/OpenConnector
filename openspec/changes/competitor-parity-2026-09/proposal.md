@@ -132,7 +132,87 @@ lanes do not invent two:
 
 ### Later waves
 
-Seven further integriq clusters wait: 23 the outbound communication log,
-27 delivery, retry and replay, 33 directory synchronisation, 45 intake
-channels beyond mail, 56 the statutory gateways, and 60 outbound sender
-identity. Each is added to the table above in the PR that opens it.
+Seven further integriq clusters waited after wave 1. Six of them open in
+wave 3 below. Cluster 60, outbound sender identity, stays closed: D12 moved
+the mail account to Nextcloud Mail, so the cluster needs a re-read before it
+is written.
+
+## Discovery wave 3
+
+Wave 3 is the rest and the long ones. The build plan says what that means:
+"humaniq takes agenda, rostering and time. pipelinq takes the project above
+the cases. hermiq takes the assistant. **integriq takes the statutory
+gateways.** buildiq takes the layout per case type. openregister takes
+tenancy. All L, and none of them blocks a tender answer."
+
+Six changes open here. Five carry one of integriq's eight clusters. The
+sixth and seventh carry work the ownership rule gives integriq inside a
+cluster another app owns, and each names that cluster and its owner in its
+own proposal.
+
+| change | cluster | candidates | size | decision | dossiq consumer |
+|---|---|---|---|---|---|
+| `statutory-gateways-and-frameworks` | 56 "The statutory gateways and the frameworks we claim" | C-integrations-27, 28, 29, 37, 47, 3, 4, 30, 36, 39, 46, 23; rows 12.9 and 12.17 | L | D21, D6 | dossiq declares the WKPB flag on a case type and the registry binding, and keeps its ZGW controllers unchanged |
+| `outbound-communication-log` | 23 "The outbound communication log, per recipient and per step" | C-communication-33, 57, 5 (three matrix holes), 58, 56, 39, 10, 40; rows 6.11, 6.20, 6.23 | M | none | dossiq renders the send history on the case and projects the last-contact answer onto its own searchable field, which the lane marks `dossiq-only 6.20` |
+| `outbound-call-delivery-and-replay` | 27 "Delivery, retry and replay of an outbound call" | C-integrations-7, 31, 45 (three matrix holes), 12, 6, 16, 20, 32; row 6.11 | M | none | dossiq retires the hardcoded schedule in `lib/BackgroundJob/StufRetryJob.php` and shows the call log filtered to a case |
+| `directory-and-group-sync` | 33 "Directory synchronisation and one place for access" | C-access-and-privacy-82 (matrix hole), C-integrations-34, C-integrations-21 | M | none | dossiq's `roleType.ncGroupId` groups are filled from the directory instead of from local configuration |
+| `intake-channels-beyond-mail` | 45 "Intake channels beyond mail" | C-intake-21, 3, 35, 4, 12, C-tasks-and-phases-31 | M | none | dossiq writes `case.intakeChannel` from the channel that delivered the message, and holds no channel-specific code |
+| `migration-source-adapters` | 8 "Migration in and migration out", owner openregister; integriq holds the source adapters by the cluster's own mechanism line | C-configuration-88, C-configuration-16 (both matrix holes), and the read half of C-configuration-95 | M | none | none directly. Migrated cases reach dossiq through OpenRegister in the shape it already reads |
+| `allowlisted-expression-sources` | depth study D-casetype-20; consolidated candidate C-access-and-privacy-40 sits in cluster 4, owner openregister | C-access-and-privacy-40 | S | D3 for the boundary | none directly. An expression in a case type is evaluated by openregister, which asks integriq for a prefixed value |
+
+Numbers from `_round4/discovery/found-and-lacking.md`, "The twenty-five
+loudest": number 2 is the migration path out of a named competing product,
+eight driven; number 7 is directory user and group synchronisation, four
+driven; number 8 is replaying a failed delivery or firing one by hand, five
+driven; number 13 is bulk import from a file with a column mapping, two
+driven. All four are answered above.
+
+### What is deliberately not opened
+
+- **Cluster 28, mail accounts, OAuth2 and alias domains.** D12: Nextcloud
+  Mail owns the account. Recorded in wave 1 above and unchanged.
+- **Cluster 60, outbound sender identity and deliverability.** It now builds
+  on a Nextcloud Mail account rather than an integriq one, which is the
+  re-read wave 1 asked for. `outbound-communication-log` adds the sender
+  identity as one more field on its record when cluster 60 lands.
+- **Cluster 26 and CT-5** are wave 1's `registry-backed-field-source`, merged
+  as integriq#1997. Wave 3 adds nothing to them.
+
+### Candidates recorded and not built
+
+Each is named in the proposal that carries its cluster, with the reason, so
+none of them is rediscovered.
+
+| candidate | why not built | who, if anyone |
+|---|---|---|
+| C-integrations-21, acting as an identity provider for another product | the lane admitted it to record a distinction: "the direction a gemeente wants is the other one". Nextcloud is already an OAuth provider | nobody |
+| C-integrations-6, a scheduled mirror in either direction | `synchronization-engine` already routes both directions, paginates, tracks completeness and guards deletion | a configuration recipe |
+| C-integrations-32, federation between instances | a Nextcloud platform capability; decision D9 asks whether the ten platform integration points run as one programme | the platform programme |
+| C-intake-4, a case created from another application's text box | named by the lane as one of those same ten platform integration points | the platform programme |
+| C-intake-12 and C-tasks-and-phases-31, a native mobile application | documented passers only, capped as an upper bound under D21; none of the four driven Dutch systems ships one either | a product decision |
+| C-communication-40, draft replies kept on the case | a draft is composed on the case surface and is not a send | dossiq |
+| C-integrations-3, a case type flagged for lex silencio positivo or dwangsom | a deadline outcome, not a route; dossiq already ships `NoticeOfDefaultController` and `DwangsomPaymentCallbackController` | dossiq, cluster 18 |
+| C-integrations-23, the shared zakenmagazijn and zaaktypecatalogus | reads `yes` for dossiq: "OpenRegister plus the ZGW controllers" | nobody |
+
+### What other apps owe wave 3
+
+- **openregister**: the import engine, its preview and its conflict policy
+  for cluster 8; whole-instance export and import, C-integrations-50; the
+  restorable dump before destruction, C-integrations-22; the expression
+  language and the rest of cluster 4.
+- **opencatalogi**: cluster 50, publication and the national indexes, over
+  the Wet elektronisch publiceren gateway this wave builds.
+- **portaliq**: cluster 51, the intake form as its own object, which the
+  submission mapping in `intake-channels-beyond-mail` names.
+- **dossiq**: the case-surface halves listed in the consumer column above,
+  plus the `lastTold` field and the case-type flags.
+
+### Two decisions, applied again
+
+- **D6, relevance-led.** Every `must` enters whatever its passer count. In
+  wave 3 that admits the five documented `must` candidates of cluster 56 and
+  C-tasks-and-phases-33's sibling reasoning elsewhere in the fleet.
+- **D21, documented candidates admitted and labelled.** Cluster 56 has five
+  documented passers of six, and D21's own "waits on it" line names it first:
+  "The statutory gateways (five of six passers documented)". Every documented
+  passer in wave 3 is labelled and none is counted in a driven tally.
