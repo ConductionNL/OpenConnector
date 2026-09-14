@@ -141,6 +141,9 @@ class ConnectionRegistryService {
 	/**
 	 * Resolve rows again and save the ones whose status changed.
 	 *
+	 * This plain resolve keeps the stored `refreshedAt`. The hourly job and a
+	 * disabled app use it, so neither retires an observation.
+	 *
 	 * @param string|null $app One app, or null for every row.
 	 * @param string|null $key One connection key of that app, or null for all.
 	 *
@@ -149,22 +152,7 @@ class ConnectionRegistryService {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#requirement-apps-report-and-refresh-through-two-typed-events-req-conn-004
 	 */
 	public function refresh(?string $app = null, ?string $key = null): int {
-		$saved = 0;
-		foreach ($this->store->findRows(app: $app) as $row) {
-			if ($key !== null && ($row['data']['key'] ?? null) !== $key) {
-				continue;
-			}
-
-			$data = $this->resolveRow(data: $row['data']);
-			if ($this->isSame(stored: $row['data'], next: $data) === true) {
-				continue;
-			}
-
-			$this->store->save(data: $data, uuid: $row['uuid']);
-			$saved++;
-		}
-
-		return $saved;
+		return $this->resolveRows(app: $app, key: $key, stamp: []);
 	}//end refresh()
 
 	/**
@@ -183,21 +171,37 @@ class ConnectionRegistryService {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
 	 */
 	public function refreshRequested(string $app, ?string $key = null): int {
-		$now = $this->resolver->now();
+		return $this->resolveRows(app: $app, key: $key, stamp: ['refreshedAt' => $this->resolver->now()]);
+	}//end refreshRequested()
+
+	/**
+	 * Resolve the matching rows with the stamp applied, and save the ones that changed.
+	 *
+	 * @param string|null $app One app, or null for every row.
+	 * @param string|null $key One connection key of that app, or null for all.
+	 * @param array<string,string> $stamp Fields to write before resolving: `refreshedAt`, or nothing.
+	 *
+	 * @return int The number of rows saved.
+	 */
+	private function resolveRows(?string $app, ?string $key, array $stamp): int {
+		$rows = $this->store->findRows(app: $app);
+		if ($key !== null) {
+			$rows = array_filter($rows, static fn (array $row): bool => ($row['data']['key'] ?? null) === $key);
+		}
+
 		$saved = 0;
-		foreach ($this->store->findRows(app: $app) as $row) {
-			if ($key !== null && ($row['data']['key'] ?? null) !== $key) {
+		foreach ($rows as $row) {
+			$data = $this->resolveRow(data: array_merge($row['data'], $stamp));
+			if ($this->isSame(stored: $row['data'], next: $data) === true) {
 				continue;
 			}
 
-			$data = $row['data'];
-			$data['refreshedAt'] = $now;
-			$this->store->save(data: $this->resolveRow(data: $data), uuid: $row['uuid']);
+			$this->store->save(data: $data, uuid: $row['uuid']);
 			$saved++;
 		}
 
 		return $saved;
-	}//end refreshRequested()
+	}//end resolveRows()
 
 	/**
 	 * Record a status an app reported, then resolve the row.
@@ -460,14 +464,7 @@ class ConnectionRegistryService {
 			return $this->declarationPath(app: $app) !== null;
 		}
 
-		$version = $this->appManager->getAppVersion($app);
-		foreach ($declaredVersions as $declaredVersion) {
-			if ($declaredVersion !== $version) {
-				return true;
-			}
-		}
-
-		return false;
+		return array_diff($declaredVersions, [$this->appManager->getAppVersion($app)]) !== [];
 	}//end needsSync()
 
 	/**

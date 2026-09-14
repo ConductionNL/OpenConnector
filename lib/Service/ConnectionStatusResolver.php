@@ -224,7 +224,7 @@ class ConnectionStatusResolver {
 	 * @return array{status:string,statusMessage:string,checkedAt:?string,rule:int}|null
 	 */
 	private function ruleReportedSimulated(array $row): ?array {
-		$report = $this->currentObservation(row: $row, property: 'lastReport', isProbe: false);
+		$report = $this->readObservation(row: $row, property: 'lastReport', isProbe: false);
 		if ($report === null || $report['status'] !== 'simulated') {
 			return null;
 		}
@@ -301,8 +301,8 @@ class ConnectionStatusResolver {
 	 * @return array{status:string,message:string,at:?string}|null The observation, or null when there is none.
 	 */
 	private function newestObservation(array $row): ?array {
-		$probe = $this->currentObservation(row: $row, property: 'lastProbe', isProbe: true);
-		$report = $this->currentObservation(row: $row, property: 'lastReport', isProbe: false);
+		$probe = $this->readObservation(row: $row, property: 'lastProbe', isProbe: true);
+		$report = $this->readObservation(row: $row, property: 'lastReport', isProbe: false);
 
 		if ($probe === null) {
 			return $report;
@@ -320,11 +320,11 @@ class ConnectionStatusResolver {
 	}//end newestObservation()
 
 	/**
-	 * Read one stored observation, or null when a later refresh retired it.
+	 * Read one stored observation, or null when it is missing, invalid or retired.
 	 *
-	 * An observation retires when its time is older than `refreshedAt`. An equal
-	 * time still counts. An observation without a time is older than any
-	 * refresh. A missing or unreadable `refreshedAt` retires nothing.
+	 * An observation retires when its time is older than the row's `refreshedAt`.
+	 * An equal time still counts. An observation without a time is older than
+	 * any refresh. A missing or unreadable `refreshedAt` retires nothing.
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param string $property The row property, `lastProbe` or `lastReport`.
@@ -335,34 +335,8 @@ class ConnectionStatusResolver {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-report-after-the-refresh-counts-again
 	 */
-	private function currentObservation(array $row, string $property, bool $isProbe): ?array {
-		$observation = $this->readObservation(value: $row[$property] ?? null, isProbe: $isProbe);
-		if ($observation === null) {
-			return null;
-		}
-
-		$refreshedAt = $row['refreshedAt'] ?? null;
-		if (is_string($refreshedAt) === false || $refreshedAt === '') {
-			return $observation;
-		}
-
-		$refreshTime = strtotime($refreshedAt);
-		if ($refreshTime !== false && $observation['time'] < $refreshTime) {
-			return null;
-		}
-
-		return $observation;
-	}//end currentObservation()
-
-	/**
-	 * Read one stored observation.
-	 *
-	 * @param mixed $value The stored `{status, message, at}` object.
-	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the six statuses).
-	 *
-	 * @return array{status:string,message:string,at:?string,time:int}|null
-	 */
-	private function readObservation(mixed $value, bool $isProbe): ?array {
+	private function readObservation(array $row, string $property, bool $isProbe): ?array {
+		$value = $row[$property] ?? null;
 		if (is_array($value) === false) {
 			return null;
 		}
@@ -372,18 +346,35 @@ class ConnectionStatusResolver {
 			return null;
 		}
 
+		$observation = ['status' => $status, 'message' => (string)($value['message'] ?? ''), 'at' => null, 'time' => 0];
 		$observedAt = $value['at'] ?? null;
-		if (is_string($observedAt) === false || $observedAt === '') {
-			return ['status' => $status, 'message' => (string)($value['message'] ?? ''), 'at' => null, 'time' => 0];
+		if (is_string($observedAt) === true && $observedAt !== '') {
+			$observation['at'] = $observedAt;
+			$observation['time'] = (int)strtotime($observedAt);
 		}
 
-		return [
-			'status' => $status,
-			'message' => (string)($value['message'] ?? ''),
-			'at' => $observedAt,
-			'time' => (int)strtotime($observedAt),
-		];
+		if ($observation['time'] < $this->refreshTime(row: $row)) {
+			return null;
+		}
+
+		return $observation;
 	}//end readObservation()
+
+	/**
+	 * The row's `refreshedAt` as a Unix time, or 0 when it is missing or unreadable.
+	 *
+	 * @param array<string,mixed> $row The stored row data.
+	 *
+	 * @return int
+	 */
+	private function refreshTime(array $row): int {
+		$refreshedAt = $row['refreshedAt'] ?? null;
+		if (is_string($refreshedAt) === false) {
+			return 0;
+		}
+
+		return (int)strtotime($refreshedAt);
+	}//end refreshTime()
 
 	/**
 	 * Map a stored observation status onto a row status.
