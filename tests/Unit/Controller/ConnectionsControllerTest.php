@@ -45,7 +45,7 @@ class ConnectionsControllerTest extends TestCase {
 	 */
 	protected function setUp(): void {
 		parent::setUp();
-		$this->probe = $this->getMockBuilder(ConnectionProbeService::class)->disableOriginalConstructor()
+		$this->probe = $this->getMockBuilder(className: ConnectionProbeService::class)->disableOriginalConstructor()
 			->onlyMethods(['linkSource', 'linkTemplate'])->getMock();
 	}//end setUp()
 
@@ -57,16 +57,22 @@ class ConnectionsControllerTest extends TestCase {
 	 * @return ConnectionsController
 	 */
 	private function controller(array $params): ConnectionsController {
-		$request = $this->createMock(IRequest::class);
+		$request = $this->createMock(originalClassName: IRequest::class);
 		$request->method('getParam')->willReturnCallback(
 			static fn (string $key, mixed $default = null): mixed => $params[$key] ?? $default
 		);
-		$l10n = $this->createMock(IL10N::class);
+		$l10n = $this->createMock(originalClassName: IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters)
 		);
 
-		return new ConnectionsController('integriq', $request, $this->probe, $l10n, $this->createMock(LoggerInterface::class));
+		return new ConnectionsController(
+			appName: 'integriq',
+			request: $request,
+			probeService: $this->probe,
+			l10n: $l10n,
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
 	}//end controller()
 
 	/**
@@ -77,9 +83,9 @@ class ConnectionsControllerTest extends TestCase {
 	public function testMissingChoiceIsBadRequest(): void {
 		$this->probe->expects($this->never())->method('linkSource');
 
-		$response = $this->controller([])->link('c-1');
+		$response = $this->controller(params: [])->link('c-1');
 
-		$this->assertSame(400, $response->getStatus());
+		$this->assertSame(expected: 400, actual: $response->getStatus());
 	}//end testMissingChoiceIsBadRequest()
 
 	/**
@@ -92,11 +98,11 @@ class ConnectionsControllerTest extends TestCase {
 		$this->probe->expects($this->once())->method('linkSource')->with('c-1', 's-1')
 			->willReturn(['uuid' => 'c-1', 'data' => ['key' => 'kvk', 'source' => 's-1', 'lastProbe' => $probe]]);
 
-		$response = $this->controller(['source' => 's-1'])->link('c-1');
+		$response = $this->controller(params: ['source' => 's-1'])->link('c-1');
 
-		$this->assertSame(200, $response->getStatus());
-		$this->assertSame($probe, $response->getData()['probe']);
-		$this->assertSame('c-1', $response->getData()['connection']['id']);
+		$this->assertSame(expected: 200, actual: $response->getStatus());
+		$this->assertSame(expected: $probe, actual: $response->getData()['probe']);
+		$this->assertSame(expected: 'c-1', actual: $response->getData()['connection']['id']);
 	}//end testLinkSourceReturnsRowAndProbe()
 
 	/**
@@ -108,9 +114,9 @@ class ConnectionsControllerTest extends TestCase {
 		$this->probe->expects($this->once())->method('linkTemplate')->with('c-1')
 			->willReturn(['uuid' => 'c-1', 'data' => ['source' => 's-9']]);
 
-		$response = $this->controller(['fromTemplate' => 'true'])->link('c-1');
+		$response = $this->controller(params: ['fromTemplate' => 'true'])->link('c-1');
 
-		$this->assertSame(200, $response->getStatus());
+		$this->assertSame(expected: 200, actual: $response->getStatus());
 	}//end testFromTemplateUsesTemplateLink()
 
 	/**
@@ -129,14 +135,14 @@ class ConnectionsControllerTest extends TestCase {
 		$reasons = array_keys($cases);
 		$this->probe->method('linkSource')->willReturnCallback(
 			static function () use (&$reasons): array {
-				throw new ConnectionLinkException(array_shift($reasons));
+				throw new ConnectionLinkException(reason: array_shift($reasons));
 			}
 		);
 
 		foreach ($cases as $reason => $status) {
-			$response = $this->controller(['source' => 's-1'])->link('c-1');
-			$this->assertSame($status, $response->getStatus(), $reason);
-			$this->assertNotSame('', $response->getData()['error']);
+			$response = $this->controller(params: ['source' => 's-1'])->link('c-1');
+			$this->assertSame(expected: $status, actual: $response->getStatus(), message: $reason);
+			$this->assertNotSame(expected: '', actual: $response->getData()['error']);
 		}
 	}//end testRefusalsMapToStatuses()
 
@@ -148,9 +154,9 @@ class ConnectionsControllerTest extends TestCase {
 	public function testUnexpectedFailureIsServerError(): void {
 		$this->probe->method('linkSource')->willThrowException(new \RuntimeException('database gone'));
 
-		$response = $this->controller(['source' => 's-1'])->link('c-1');
+		$response = $this->controller(params: ['source' => 's-1'])->link('c-1');
 
-		$this->assertSame(500, $response->getStatus());
-		$this->assertSame('The source could not be linked: database gone', $response->getData()['error']);
+		$this->assertSame(expected: 500, actual: $response->getStatus());
+		$this->assertSame(expected: 'The source could not be linked: database gone', actual: $response->getData()['error']);
 	}//end testUnexpectedFailureIsServerError()
 }//end class

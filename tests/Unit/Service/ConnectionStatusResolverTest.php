@@ -43,17 +43,17 @@ class ConnectionStatusResolverTest extends TestCase {
 	 * @return ConnectionStatusResolver
 	 */
 	private function makeResolver(array $config = []): ConnectionStatusResolver {
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
 		$appConfig->method('getValueString')->willReturnCallback(
 			static function (string $app, string $key, string $default = '', bool $lazy = false) use ($config): string {
 				return $config[$app . '.' . $key] ?? $default;
 			}
 		);
 
-		$time = $this->createMock(ITimeFactory::class);
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable(self::NOW));
 
-		return new ConnectionStatusResolver($appConfig, $time);
+		return new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time);
 	}//end makeResolver()
 
 	/**
@@ -70,10 +70,10 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, false);
 
-		$this->assertSame('unavailable', $outcome['status']);
-		$this->assertSame('The dossiq app is disabled.', $outcome['statusMessage']);
-		$this->assertSame(self::NOW, $outcome['checkedAt']);
-		$this->assertSame(1, $outcome['rule']);
+		$this->assertSame(expected: 'unavailable', actual: $outcome['status']);
+		$this->assertSame(expected: 'The dossiq app is disabled.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: self::NOW, actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 1, actual: $outcome['rule']);
 	}//end testRuleOneDisabledAppIsUnavailable()
 
 	/**
@@ -88,13 +88,13 @@ class ConnectionStatusResolverTest extends TestCase {
 			['app' => 'dossiq', 'declaration' => ['available' => false, 'unavailableMessage' => 'Not wired yet.']],
 			true
 		);
-		$this->assertSame('unavailable', $declared['status']);
-		$this->assertSame('Not wired yet.', $declared['statusMessage']);
-		$this->assertSame(self::NOW, $declared['checkedAt']);
-		$this->assertSame(2, $declared['rule']);
+		$this->assertSame(expected: 'unavailable', actual: $declared['status']);
+		$this->assertSame(expected: 'Not wired yet.', actual: $declared['statusMessage']);
+		$this->assertSame(expected: self::NOW, actual: $declared['checkedAt']);
+		$this->assertSame(expected: 2, actual: $declared['rule']);
 
 		$default = $resolver->resolve(['app' => 'dossiq', 'declaration' => ['available' => false]], true);
-		$this->assertSame('Declared, not built yet.', $default['statusMessage']);
+		$this->assertSame(expected: 'Declared, not built yet.', actual: $default['statusMessage']);
 	}//end testRuleTwoDeclaredUnavailable()
 
 	/**
@@ -113,7 +113,7 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('2026-09-01T08:00:00+00:00', $outcome['checkedAt']);
+		$this->assertSame(expected: '2026-09-01T08:00:00+00:00', actual: $outcome['checkedAt']);
 	}//end testSyncTimeIsKeptWhileNothingChanged()
 
 	/**
@@ -131,9 +131,9 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('simulated', $outcome['status']);
-		$this->assertSame('A mock answers.', $outcome['statusMessage']);
-		$this->assertSame(3, $outcome['rule']);
+		$this->assertSame(expected: 'simulated', actual: $outcome['status']);
+		$this->assertSame(expected: 'A mock answers.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: 3, actual: $outcome['rule']);
 	}//end testRuleThreeEmptyAdapterKeyIsSimulated()
 
 	/**
@@ -146,7 +146,7 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('A mock adapter answers here. Set kvk_adapter to a real adapter.', $outcome['statusMessage']);
+		$this->assertSame(expected: 'A mock adapter answers here. Set kvk_adapter to a real adapter.', actual: $outcome['statusMessage']);
 	}//end testRuleThreeDefaultMessageNamesTheKey()
 
 	/**
@@ -164,7 +164,7 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('simulated', $outcome['status']);
+		$this->assertSame(expected: 'simulated', actual: $outcome['status']);
 	}//end testSimulatedOutranksAPassingProbe()
 
 	/**
@@ -175,9 +175,9 @@ class ConnectionStatusResolverTest extends TestCase {
 	public function testFilledAdapterKeyIsNotSimulated(): void {
 		$row = ['app' => 'dossiq', 'declaration' => ['adapter' => ['configKey' => 'berichtenbox_adapter']]];
 
-		$outcome = $this->makeResolver(['dossiq.berichtenbox_adapter' => 'OCA\\Dossiq\\Real'])->resolve($row, true);
+		$outcome = $this->makeResolver(config: ['dossiq.berichtenbox_adapter' => 'OCA\\Dossiq\\Real'])->resolve($row, true);
 
-		$this->assertSame('unconfigured', $outcome['status']);
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
 	}//end testFilledAdapterKeyIsNotSimulated()
 
 	/**
@@ -194,10 +194,10 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('configured', $outcome['status']);
-		$this->assertSame('The source answered with HTTP 200.', $outcome['statusMessage']);
-		$this->assertSame('2026-09-14T11:00:00+00:00', $outcome['checkedAt']);
-		$this->assertSame(4, $outcome['rule']);
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'The source answered with HTTP 200.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: '2026-09-14T11:00:00+00:00', actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 4, actual: $outcome['rule']);
 	}//end testRuleFourProbeOkReadsAsConfigured()
 
 	/**
@@ -211,13 +211,13 @@ class ConnectionStatusResolverTest extends TestCase {
 		$probe = ['status' => 'error', 'message' => 'HTTP 503', 'at' => '2026-09-14T11:00:00+00:00'];
 
 		$probeNewer = $resolver->resolve(['app' => 'dossiq', 'lastReport' => $report, 'lastProbe' => $probe], true);
-		$this->assertSame('error', $probeNewer['status']);
-		$this->assertSame('2026-09-14T11:00:00+00:00', $probeNewer['checkedAt']);
+		$this->assertSame(expected: 'error', actual: $probeNewer['status']);
+		$this->assertSame(expected: '2026-09-14T11:00:00+00:00', actual: $probeNewer['checkedAt']);
 
 		$report['at'] = '2026-09-14T11:30:00+00:00';
 		$reportNewer = $resolver->resolve(['app' => 'dossiq', 'lastReport' => $report, 'lastProbe' => $probe], true);
-		$this->assertSame('configured', $reportNewer['status']);
-		$this->assertSame('Logged in', $reportNewer['statusMessage']);
+		$this->assertSame(expected: 'configured', actual: $reportNewer['status']);
+		$this->assertSame(expected: 'Logged in', actual: $reportNewer['statusMessage']);
 	}//end testNewerObservationWins()
 
 	/**
@@ -234,7 +234,7 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame(6, $outcome['rule']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
 	}//end testInvalidObservationIsIgnored()
 
 	/**
@@ -245,12 +245,12 @@ class ConnectionStatusResolverTest extends TestCase {
 	public function testRuleFiveSavedSettingsShowConfigured(): void {
 		$row = ['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['register', 'case_schema']]];
 
-		$outcome = $this->makeResolver(['dossiq.register' => 'dossiq', 'dossiq.case_schema' => 'case'])->resolve($row, true);
+		$outcome = $this->makeResolver(config: ['dossiq.register' => 'dossiq', 'dossiq.case_schema' => 'case'])->resolve($row, true);
 
-		$this->assertSame('configured', $outcome['status']);
-		$this->assertSame('Required settings are filled.', $outcome['statusMessage']);
-		$this->assertSame(self::NOW, $outcome['checkedAt']);
-		$this->assertSame(5, $outcome['rule']);
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Required settings are filled.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: self::NOW, actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 5, actual: $outcome['rule']);
 	}//end testRuleFiveSavedSettingsShowConfigured()
 
 	/**
@@ -261,9 +261,9 @@ class ConnectionStatusResolverTest extends TestCase {
 	public function testRuleFiveNeedsEveryKey(): void {
 		$row = ['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['register', 'case_schema']]];
 
-		$outcome = $this->makeResolver(['dossiq.register' => 'dossiq', 'dossiq.case_schema' => '  '])->resolve($row, true);
+		$outcome = $this->makeResolver(config: ['dossiq.register' => 'dossiq', 'dossiq.case_schema' => '  '])->resolve($row, true);
 
-		$this->assertSame('unconfigured', $outcome['status']);
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
 	}//end testRuleFiveNeedsEveryKey()
 
 	/**
@@ -274,10 +274,10 @@ class ConnectionStatusResolverTest extends TestCase {
 	public function testRuleSixNotCheckedYet(): void {
 		$outcome = $this->makeResolver()->resolve(['app' => 'dossiq', 'declaration' => ['key' => 'pdok']], true);
 
-		$this->assertSame('unconfigured', $outcome['status']);
-		$this->assertSame('Not checked yet.', $outcome['statusMessage']);
-		$this->assertNull($outcome['checkedAt']);
-		$this->assertSame(6, $outcome['rule']);
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Not checked yet.', actual: $outcome['statusMessage']);
+		$this->assertNull(actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
 	}//end testRuleSixNotCheckedYet()
 
 	/**
@@ -293,9 +293,9 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$outcome = $this->makeResolver()->resolve($row, true);
 
-		$this->assertSame('unconfigured', $outcome['status']);
-		$this->assertSame('Set integration.brp.mode to use the BRP.', $outcome['statusMessage']);
-		$this->assertNull($outcome['checkedAt']);
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Set integration.brp.mode to use the BRP.', actual: $outcome['statusMessage']);
+		$this->assertNull(actual: $outcome['checkedAt']);
 	}//end testRuleSixUsesDeclaredUnconfiguredMessage()
 
 	/**
@@ -304,16 +304,16 @@ class ConnectionStatusResolverTest extends TestCase {
 	 * @return void
 	 */
 	public function testTypedConfigValueCountsAsFilled(): void {
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
 		$appConfig->method('getValueString')->willThrowException(
 			new \OCP\Exceptions\AppConfigTypeConflictException('conflict with value type from database')
 		);
-		$time = $this->createMock(ITimeFactory::class);
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable(self::NOW));
 
-		$resolver = new ConnectionStatusResolver($appConfig, $time);
+		$resolver = new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time);
 		$outcome = $resolver->resolve(['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['retries']]], true);
 
-		$this->assertSame('configured', $outcome['status']);
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
 	}//end testTypedConfigValueCountsAsFilled()
 }//end class

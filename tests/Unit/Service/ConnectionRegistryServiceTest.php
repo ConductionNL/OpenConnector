@@ -88,7 +88,11 @@ class ConnectionRegistryServiceTest extends TestCase {
 	private function appDir(mixed $declaration): string {
 		$dir = sys_get_temp_dir() . '/integriq-conn-' . bin2hex(random_bytes(6));
 		mkdir($dir . '/lib/Settings', 0777, true);
-		$content = is_string($declaration) === true ? $declaration : (string)json_encode($declaration);
+		$content = $declaration;
+		if (is_string($declaration) === false) {
+			$content = (string)json_encode($declaration);
+		}
+
 		file_put_contents($dir . '/lib/Settings/connections.json', $content);
 		$this->dirs[] = $dir;
 
@@ -120,7 +124,7 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return ConnectionRegistryService
 	 */
 	private function makeService(array $appPaths, ?LoggerInterface $logger = null, array $disabled = []): ConnectionRegistryService {
-		$appManager = $this->createMock(IAppManager::class);
+		$appManager = $this->createMock(originalClassName: IAppManager::class);
 		$appManager->method('getEnabledApps')->willReturn(array_keys($appPaths));
 		$appManager->method('getAppPath')->willReturnCallback(
 			static function (string $app) use ($appPaths): string {
@@ -136,17 +140,17 @@ class ConnectionRegistryServiceTest extends TestCase {
 			static fn (string $app): bool => in_array($app, $disabled, true) === false
 		);
 
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
 		$appConfig->method('getValueString')->willReturn('');
-		$time = $this->createMock(ITimeFactory::class);
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable('2026-09-14T12:00:00+00:00'));
 
 		return new ConnectionRegistryService(
-			$appManager,
-			new ConnectionDeclarationValidator(),
-			new ConnectionStatusResolver($appConfig, $time),
-			$this->makeStore(),
-			$logger ?? $this->createMock(LoggerInterface::class)
+			appManager: $appManager,
+			validator: new ConnectionDeclarationValidator(),
+			resolver: new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time),
+			store: $this->makeStore(),
+			logger: $logger ?? $this->createMock(originalClassName: LoggerInterface::class)
 		);
 	}//end makeService()
 
@@ -156,7 +160,7 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return ConnectionStore&MockObject
 	 */
 	private function makeStore(): ConnectionStore {
-		$store = $this->getMockBuilder(ConnectionStore::class)
+		$store = $this->getMockBuilder(className: ConnectionStore::class)
 			->disableOriginalConstructor()
 			->onlyMethods(['findRows', 'save', 'delete'])
 			->getMock();
@@ -197,18 +201,18 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testValidFileBecomesOneRowPerEntry(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 
 		$summary = $service->sync();
 
-		$this->assertSame(2, $summary['created']);
-		$this->assertCount(2, $this->rows);
+		$this->assertSame(expected: 2, actual: $summary['created']);
+		$this->assertCount(expectedCount: 2, haystack: $this->rows);
 		$slugs = array_column(array_values($this->rows), 'slug');
-		$this->assertSame(['connection-dossiq-zgw', 'connection-dossiq-brp'], $slugs);
+		$this->assertSame(expected: ['connection-dossiq-zgw', 'connection-dossiq-brp'], actual: $slugs);
 		$first = array_values($this->rows)[0];
-		$this->assertSame('dossiq', $first['app']);
-		$this->assertSame('1.2.0', $first['declaredVersion']);
-		$this->assertSame('unconfigured', $first['status']);
+		$this->assertSame(expected: 'dossiq', actual: $first['app']);
+		$this->assertSame(expected: '1.2.0', actual: $first['declaredVersion']);
+		$this->assertSame(expected: 'unconfigured', actual: $first['status']);
 	}//end testValidFileBecomesOneRowPerEntry()
 
 	/**
@@ -217,17 +221,17 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testSyncIsIdempotent(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 		$service->sync();
 		$uuids = array_keys($this->rows);
 		$this->saves = [];
 
 		$summary = $service->sync();
 
-		$this->assertSame([], $this->saves);
-		$this->assertSame([], $this->deletes);
-		$this->assertSame(2, $summary['unchanged']);
-		$this->assertSame($uuids, array_keys($this->rows));
+		$this->assertSame(expected: [], actual: $this->saves);
+		$this->assertSame(expected: [], actual: $this->deletes);
+		$this->assertSame(expected: 2, actual: $summary['unchanged']);
+		$this->assertSame(expected: $uuids, actual: array_keys($this->rows));
 	}//end testSyncIsIdempotent()
 
 	/**
@@ -239,19 +243,19 @@ class ConnectionRegistryServiceTest extends TestCase {
 		$declaration = $this->dossiqDeclaration();
 		unset($declaration['connections'][1]['title']);
 
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('error')->with(
-			$this->stringContains('skipped the connections.json'),
+			$this->stringContains(string: 'skipped the connections.json'),
 			$this->callback(
-				static fn (array $context): bool => $context['declaringApp'] === 'dossiq'
+				callback: static fn (array $context): bool => $context['declaringApp'] === 'dossiq'
 					&& str_contains($context['errors'], '/connections/1/title')
 			)
 		);
 
-		$summary = $this->makeService(['dossiq' => $this->appDir($declaration)], $logger)->sync();
+		$summary = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $declaration)], logger: $logger)->sync();
 
-		$this->assertSame([], $this->saves);
-		$this->assertSame(['dossiq'], $summary['skipped']);
+		$this->assertSame(expected: [], actual: $this->saves);
+		$this->assertSame(expected: ['dossiq'], actual: $summary['skipped']);
 	}//end testInvalidFileIsSkippedWhole()
 
 	/**
@@ -260,12 +264,12 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testBrokenJsonIsSkipped(): void {
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('error');
 
-		$this->makeService(['dossiq' => $this->appDir('{"app": "dossiq",')], $logger)->sync();
+		$this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: '{"app": "dossiq",')], logger: $logger)->sync();
 
-		$this->assertSame([], $this->saves);
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testBrokenJsonIsSkipped()
 
 	/**
@@ -276,16 +280,16 @@ class ConnectionRegistryServiceTest extends TestCase {
 	public function testFileClaimingAnotherAppIsRefused(): void {
 		$this->rows['existing'] = ['app' => 'dossiq', 'key' => 'zgw', 'title' => 'ZGW APIs', 'declaration' => []];
 
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('error')->with(
-			$this->stringContains('claims the app id'),
-			$this->callback(static fn (array $context): bool => $context['declaringApp'] === 'pipelinq' && $context['claimedApp'] === 'dossiq')
+			$this->stringContains(string: 'claims the app id'),
+			$this->callback(callback: static fn (array $context): bool => $context['declaringApp'] === 'pipelinq' && $context['claimedApp'] === 'dossiq')
 		);
 
-		$this->makeService(['pipelinq' => $this->appDir($this->dossiqDeclaration())], $logger)->sync();
+		$this->makeService(appPaths: ['pipelinq' => $this->appDir(declaration: $this->dossiqDeclaration())], logger: $logger)->sync();
 
-		$this->assertSame([], $this->saves);
-		$this->assertSame([], $this->deletes);
+		$this->assertSame(expected: [], actual: $this->saves);
+		$this->assertSame(expected: [], actual: $this->deletes);
 	}//end testFileClaimingAnotherAppIsRefused()
 
 	/**
@@ -294,17 +298,17 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testRemovedKeyWithoutSourceIsDeleted(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 		$service->sync();
 		$brpUuid = array_search('brp', array_column($this->rows, 'key', null), true);
 		$brpUuid = array_keys($this->rows)[$brpUuid];
 
 		$declaration = $this->dossiqDeclaration();
 		unset($declaration['connections'][1]);
-		$this->makeService(['dossiq' => $this->appDir($declaration)])->sync();
+		$this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $declaration)])->sync();
 
-		$this->assertSame([$brpUuid], $this->deletes);
-		$this->assertCount(1, $this->rows);
+		$this->assertSame(expected: [$brpUuid], actual: $this->deletes);
+		$this->assertCount(expectedCount: 1, haystack: $this->rows);
 	}//end testRemovedKeyWithoutSourceIsDeleted()
 
 	/**
@@ -314,7 +318,7 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testRemovedKeyWithSourceIsKept(): void {
-		$this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())])->sync();
+		$this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())])->sync();
 		$brpUuid = '';
 		foreach ($this->rows as $uuid => $data) {
 			if ($data['key'] === 'brp') {
@@ -325,17 +329,17 @@ class ConnectionRegistryServiceTest extends TestCase {
 
 		$declaration = $this->dossiqDeclaration();
 		unset($declaration['connections'][1]);
-		$service = $this->makeService(['dossiq' => $this->appDir($declaration)]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $declaration)]);
 		$service->sync();
 
-		$this->assertSame([], $this->deletes);
-		$this->assertSame('a1b2c3d4-0000-4000-8000-000000000001', $this->rows[$brpUuid]['source']);
-		$this->assertSame('unavailable', $this->rows[$brpUuid]['status']);
-		$this->assertSame('No longer declared by dossiq.', $this->rows[$brpUuid]['statusMessage']);
+		$this->assertSame(expected: [], actual: $this->deletes);
+		$this->assertSame(expected: 'a1b2c3d4-0000-4000-8000-000000000001', actual: $this->rows[$brpUuid]['source']);
+		$this->assertSame(expected: 'unavailable', actual: $this->rows[$brpUuid]['status']);
+		$this->assertSame(expected: 'No longer declared by dossiq.', actual: $this->rows[$brpUuid]['statusMessage']);
 
 		$row = $this->rows[$brpUuid];
 		$row['lastProbe'] = ['status' => 'ok', 'message' => 'HTTP 200', 'at' => '2026-09-14T13:00:00+00:00'];
-		$this->assertSame('unavailable', $service->resolveRow($row)['status']);
+		$this->assertSame(expected: 'unavailable', actual: $service->resolveRow($row)['status']);
 	}//end testRemovedKeyWithSourceIsKept()
 
 	/**
@@ -344,17 +348,20 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testReportReachesTheRow(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 		$service->sync();
 		$this->saves = [];
 
-		$this->assertTrue($service->report('dossiq', 'brp', 'configured', 'Logged in'));
+		$this->assertTrue(condition: $service->report('dossiq', 'brp', 'configured', 'Logged in'));
 
-		$this->assertCount(1, $this->saves);
+		$this->assertCount(expectedCount: 1, haystack: $this->saves);
 		$saved = $this->saves[0][1];
-		$this->assertSame(['status' => 'configured', 'message' => 'Logged in', 'at' => '2026-09-14T12:00:00+00:00'], $saved['lastReport']);
-		$this->assertSame('configured', $saved['status']);
-		$this->assertSame('Logged in', $saved['statusMessage']);
+		$this->assertSame(
+			expected: ['status' => 'configured', 'message' => 'Logged in', 'at' => '2026-09-14T12:00:00+00:00'],
+			actual: $saved['lastReport']
+		);
+		$this->assertSame(expected: 'configured', actual: $saved['status']);
+		$this->assertSame(expected: 'Logged in', actual: $saved['statusMessage']);
 	}//end testReportReachesTheRow()
 
 	/**
@@ -363,18 +370,18 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testReportForUnknownKeyIsRefused(): void {
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('warning')->with(
-			$this->stringContains('no such connection is declared'),
-			$this->callback(static fn (array $context): bool => $context['reportingApp'] === 'dossiq' && $context['key'] === 'mailbox')
+			$this->stringContains(string: 'no such connection is declared'),
+			$this->callback(callback: static fn (array $context): bool => $context['reportingApp'] === 'dossiq' && $context['key'] === 'mailbox')
 		);
 
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())], $logger);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())], logger: $logger);
 		$service->sync();
 		$this->saves = [];
 
-		$this->assertFalse($service->report('dossiq', 'mailbox', 'configured', 'Logged in'));
-		$this->assertSame([], $this->saves);
+		$this->assertFalse(condition: $service->report('dossiq', 'mailbox', 'configured', 'Logged in'));
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testReportForUnknownKeyIsRefused()
 
 	/**
@@ -383,15 +390,15 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testReportWithUnknownStatusIsRefused(): void {
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('warning');
 
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())], $logger);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())], logger: $logger);
 		$service->sync();
 		$this->saves = [];
 
-		$this->assertFalse($service->report('dossiq', 'brp', 'green', 'fine'));
-		$this->assertSame([], $this->saves);
+		$this->assertFalse(condition: $service->report('dossiq', 'brp', 'green', 'fine'));
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testReportWithUnknownStatusIsRefused()
 
 	/**
@@ -402,11 +409,11 @@ class ConnectionRegistryServiceTest extends TestCase {
 	public function testSyncOfDisabledAppResolvesRuleOne(): void {
 		$this->rows['r1'] = ['app' => 'shillinq', 'key' => 'bank', 'title' => 'Bank', 'declaration' => [], 'status' => 'configured'];
 
-		$saved = $this->makeService([], null, ['shillinq'])->sync('shillinq');
+		$saved = $this->makeService(appPaths: [], logger: null, disabled: ['shillinq'])->sync('shillinq');
 
-		$this->assertSame(0, $saved['created']);
-		$this->assertSame('unavailable', $this->rows['r1']['status']);
-		$this->assertSame('The shillinq app is disabled.', $this->rows['r1']['statusMessage']);
+		$this->assertSame(expected: 0, actual: $saved['created']);
+		$this->assertSame(expected: 'unavailable', actual: $this->rows['r1']['status']);
+		$this->assertSame(expected: 'The shillinq app is disabled.', actual: $this->rows['r1']['statusMessage']);
 	}//end testSyncOfDisabledAppResolvesRuleOne()
 
 	/**
@@ -415,13 +422,13 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testRefreshSavesOnlyChangedRows(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 		$service->sync();
 		$this->saves = [];
 
-		$this->assertSame(0, $service->refresh('dossiq'));
-		$this->assertSame(0, $service->refresh('dossiq', 'zgw'));
-		$this->assertSame([], $this->saves);
+		$this->assertSame(expected: 0, actual: $service->refresh('dossiq'));
+		$this->assertSame(expected: 0, actual: $service->refresh('dossiq', 'zgw'));
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testRefreshSavesOnlyChangedRows()
 
 	/**
@@ -430,19 +437,19 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testSyncChangedDeclarationsPicksMovedVersions(): void {
-		$service = $this->makeService(['dossiq' => $this->appDir($this->dossiqDeclaration())]);
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
 
-		$this->assertSame(['dossiq'], $service->syncChangedDeclarations());
-		$this->assertCount(2, $this->rows);
+		$this->assertSame(expected: ['dossiq'], actual: $service->syncChangedDeclarations());
+		$this->assertCount(expectedCount: 2, haystack: $this->rows);
 
-		$this->assertSame([], $service->syncChangedDeclarations());
+		$this->assertSame(expected: [], actual: $service->syncChangedDeclarations());
 
 		foreach (array_keys($this->rows) as $uuid) {
 			$this->rows[$uuid]['declaredVersion'] = '1.1.0';
 		}
 
-		$this->assertSame(['dossiq'], $service->syncChangedDeclarations());
-		$this->assertSame('1.2.0', array_values($this->rows)[0]['declaredVersion']);
+		$this->assertSame(expected: ['dossiq'], actual: $service->syncChangedDeclarations());
+		$this->assertSame(expected: '1.2.0', actual: array_values($this->rows)[0]['declaredVersion']);
 	}//end testSyncChangedDeclarationsPicksMovedVersions()
 
 	/**
@@ -453,10 +460,10 @@ class ConnectionRegistryServiceTest extends TestCase {
 	public function testAppWithoutFileIsIgnored(): void {
 		$dir = sys_get_temp_dir() . '/integriq-conn-none-' . bin2hex(random_bytes(4));
 
-		$summary = $this->makeService(['files' => $dir])->sync();
+		$summary = $this->makeService(appPaths: ['files' => $dir])->sync();
 
-		$this->assertSame(0, $summary['created']);
-		$this->assertSame([], $summary['skipped']);
-		$this->assertSame([], $this->saves);
+		$this->assertSame(expected: 0, actual: $summary['created']);
+		$this->assertSame(expected: [], actual: $summary['skipped']);
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testAppWithoutFileIsIgnored()
 }//end class

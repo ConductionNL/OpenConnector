@@ -42,7 +42,7 @@ class ConnectionEventListenersTest extends TestCase {
 	 * @return ConnectionRegistryService&MockObject
 	 */
 	private function registry(): ConnectionRegistryService {
-		return $this->getMockBuilder(ConnectionRegistryService::class)
+		return $this->getMockBuilder(className: ConnectionRegistryService::class)
 			->disableOriginalConstructor()
 			->onlyMethods(['report', 'refresh', 'sync'])
 			->getMock();
@@ -56,7 +56,7 @@ class ConnectionEventListenersTest extends TestCase {
 	 * @return ContainerInterface
 	 */
 	private function container(?ConnectionRegistryService $registry): ContainerInterface {
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createMock(originalClassName: ContainerInterface::class);
 		if ($registry === null) {
 			$container->method('get')->willThrowException(new \RuntimeException('OpenRegister is not installed'));
 			return $container;
@@ -77,8 +77,11 @@ class ConnectionEventListenersTest extends TestCase {
 			->with('dossiq', 'mailbox', 'configured', 'Logged in to imap.example.nl')
 			->willReturn(true);
 
-		$listener = new ConnectionStatusReportedListener($this->container($registry), $this->createMock(LoggerInterface::class));
-		$listener->handle(new ConnectionStatusReportedEvent('dossiq', 'mailbox', 'configured', 'Logged in to imap.example.nl'));
+		$listener = new ConnectionStatusReportedListener(
+			container: $this->container(registry: $registry),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
+		$listener->handle(new ConnectionStatusReportedEvent(app: 'dossiq', key: 'mailbox', status: 'configured', message: 'Logged in to imap.example.nl'));
 	}//end testReportIsPassedOn()
 
 	/**
@@ -89,11 +92,11 @@ class ConnectionEventListenersTest extends TestCase {
 	public function testUnknownKeyReturnsNormally(): void {
 		$registry = $this->registry();
 		$registry->expects($this->once())->method('report')->willReturn(false);
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->never())->method('error');
 
-		$listener = new ConnectionStatusReportedListener($this->container($registry), $logger);
-		$listener->handle(new ConnectionStatusReportedEvent('dossiq', 'never-declared', 'configured'));
+		$listener = new ConnectionStatusReportedListener(container: $this->container(registry: $registry), logger: $logger);
+		$listener->handle(new ConnectionStatusReportedEvent(app: 'dossiq', key: 'never-declared', status: 'configured'));
 	}//end testUnknownKeyReturnsNormally()
 
 	/**
@@ -104,11 +107,11 @@ class ConnectionEventListenersTest extends TestCase {
 	public function testReportFailureDoesNotThrow(): void {
 		$registry = $this->registry();
 		$registry->method('report')->willThrowException(new \RuntimeException('database gone'));
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('error');
 
-		$listener = new ConnectionStatusReportedListener($this->container($registry), $logger);
-		$listener->handle(new ConnectionStatusReportedEvent('dossiq', 'mailbox', 'error', 'Login failed'));
+		$listener = new ConnectionStatusReportedListener(container: $this->container(registry: $registry), logger: $logger);
+		$listener->handle(new ConnectionStatusReportedEvent(app: 'dossiq', key: 'mailbox', status: 'error', message: 'Login failed'));
 	}//end testReportFailureDoesNotThrow()
 
 	/**
@@ -117,12 +120,14 @@ class ConnectionEventListenersTest extends TestCase {
 	 * @return void
 	 */
 	public function testMissingServiceDoesNotThrow(): void {
-		$logger = $this->createMock(LoggerInterface::class);
-		$logger->expects($this->exactly(4))->method('error');
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
+		$logger->expects($this->exactly(count: 4))->method('error');
 
-		(new ConnectionStatusReportedListener($this->container(null), $logger))->handle(new ConnectionStatusReportedEvent('dossiq', 'mailbox', 'error'));
-		(new ConnectionRefreshRequestedListener($this->container(null), $logger))->handle(new ConnectionRefreshRequestedEvent('dossiq'));
-		$lifecycle = new ConnectionAppLifecycleListener($this->container(null), $logger);
+		$reported = new ConnectionStatusReportedListener(container: $this->container(registry: null), logger: $logger);
+		$reported->handle(new ConnectionStatusReportedEvent(app: 'dossiq', key: 'mailbox', status: 'error'));
+		$refresh = new ConnectionRefreshRequestedListener(container: $this->container(registry: null), logger: $logger);
+		$refresh->handle(new ConnectionRefreshRequestedEvent(app: 'dossiq'));
+		$lifecycle = new ConnectionAppLifecycleListener(container: $this->container(registry: null), logger: $logger);
 		$lifecycle->handle(new AppEnableEvent('dossiq'));
 		$lifecycle->handle(new AppDisableEvent('dossiq'));
 	}//end testMissingServiceDoesNotThrow()
@@ -133,13 +138,13 @@ class ConnectionEventListenersTest extends TestCase {
 	 * @return void
 	 */
 	public function testOtherEventsAreIgnored(): void {
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createMock(originalClassName: ContainerInterface::class);
 		$container->expects($this->never())->method('get');
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 
-		(new ConnectionStatusReportedListener($container, $logger))->handle(new Event());
-		(new ConnectionRefreshRequestedListener($container, $logger))->handle(new Event());
-		(new ConnectionAppLifecycleListener($container, $logger))->handle(new Event());
+		(new ConnectionStatusReportedListener(container: $container, logger: $logger))->handle(new Event());
+		(new ConnectionRefreshRequestedListener(container: $container, logger: $logger))->handle(new Event());
+		(new ConnectionAppLifecycleListener(container: $container, logger: $logger))->handle(new Event());
 	}//end testOtherEventsAreIgnored()
 
 	/**
@@ -151,8 +156,11 @@ class ConnectionEventListenersTest extends TestCase {
 		$registry = $this->registry();
 		$registry->expects($this->once())->method('refresh')->with('dossiq', 'berichtenbox')->willReturn(1);
 
-		$listener = new ConnectionRefreshRequestedListener($this->container($registry), $this->createMock(LoggerInterface::class));
-		$listener->handle(new ConnectionRefreshRequestedEvent('dossiq', 'berichtenbox'));
+		$listener = new ConnectionRefreshRequestedListener(
+			container: $this->container(registry: $registry),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
+		$listener->handle(new ConnectionRefreshRequestedEvent(app: 'dossiq', key: 'berichtenbox'));
 	}//end testRefreshCarriesTheKey()
 
 	/**
@@ -163,18 +171,21 @@ class ConnectionEventListenersTest extends TestCase {
 	public function testAppEnableSyncs(): void {
 		$synced = [];
 		$registry = $this->registry();
-		$registry->expects($this->exactly(2))->method('sync')->willReturnCallback(
+		$registry->expects($this->exactly(count: 2))->method('sync')->willReturnCallback(
 			static function (?string $app = null) use (&$synced): array {
 				$synced[] = $app;
 				return ['created' => 0, 'updated' => 0, 'deleted' => 0, 'unchanged' => 0, 'skipped' => []];
 			}
 		);
 
-		$listener = new ConnectionAppLifecycleListener($this->container($registry), $this->createMock(LoggerInterface::class));
+		$listener = new ConnectionAppLifecycleListener(
+			container: $this->container(registry: $registry),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
 		$listener->handle(new AppEnableEvent('dossiq'));
 		$listener->handle(new AppEnableEvent('integriq'));
 
-		$this->assertSame(['dossiq', null], $synced);
+		$this->assertSame(expected: ['dossiq', null], actual: $synced);
 	}//end testAppEnableSyncs()
 
 	/**
@@ -187,7 +198,10 @@ class ConnectionEventListenersTest extends TestCase {
 		$registry->expects($this->once())->method('refresh')->with('dossiq')->willReturn(3);
 		$registry->expects($this->never())->method('sync');
 
-		$listener = new ConnectionAppLifecycleListener($this->container($registry), $this->createMock(LoggerInterface::class));
+		$listener = new ConnectionAppLifecycleListener(
+			container: $this->container(registry: $registry),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
 		$listener->handle(new AppDisableEvent('dossiq'));
 	}//end testAppDisableRefreshes()
 }//end class

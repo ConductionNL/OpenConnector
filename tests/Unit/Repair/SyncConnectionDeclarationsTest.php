@@ -35,15 +35,15 @@ class SyncConnectionDeclarationsTest extends TestCase {
 	 * @return void
 	 */
 	public function testRunsFullSync(): void {
-		$registry = $this->getMockBuilder(ConnectionRegistryService::class)->disableOriginalConstructor()->onlyMethods(['sync'])->getMock();
+		$registry = $this->getMockBuilder(className: ConnectionRegistryService::class)->disableOriginalConstructor()->onlyMethods(['sync'])->getMock();
 		$registry->expects($this->once())->method('sync')->with(null)
 			->willReturn(['created' => 12, 'updated' => 0, 'deleted' => 0, 'unchanged' => 0, 'skipped' => ['pipelinq']]);
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createMock(originalClassName: ContainerInterface::class);
 		$container->method('get')->willReturn($registry);
-		$output = $this->createMock(IOutput::class);
-		$output->expects($this->once())->method('info')->with($this->stringContains('created 12'));
+		$output = $this->createMock(originalClassName: IOutput::class);
+		$output->expects($this->once())->method('info')->with($this->stringContains(string: 'created 12'));
 
-		(new SyncConnectionDeclarations($container, $this->createMock(LoggerInterface::class)))->run($output);
+		(new SyncConnectionDeclarations(container: $container, logger: $this->createMock(originalClassName: LoggerInterface::class)))->run($output);
 	}//end testRunsFullSync()
 
 	/**
@@ -52,11 +52,11 @@ class SyncConnectionDeclarationsTest extends TestCase {
 	 * @return void
 	 */
 	public function testFailureDoesNotThrow(): void {
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createMock(originalClassName: ContainerInterface::class);
 		$container->method('get')->willThrowException(new \RuntimeException('OpenRegister is not ready'));
-		$output = $this->createMock(IOutput::class);
+		$output = $this->createMock(originalClassName: IOutput::class);
 		$output->expects($this->once())->method('warning');
 
-		(new SyncConnectionDeclarations($container, $this->createMock(LoggerInterface::class)))->run($output);
+		(new SyncConnectionDeclarations(container: $container, logger: $this->createMock(originalClassName: LoggerInterface::class)))->run($output);
 	}//end testFailureDoesNotThrow()
 }//end class

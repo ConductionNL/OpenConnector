@@ -80,7 +80,7 @@ class ConnectionProbeServiceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->store = $this->getMockBuilder(ConnectionStore::class)
+		$this->store = $this->getMockBuilder(className: ConnectionStore::class)
 			->disableOriginalConstructor()
 			->onlyMethods(['findRows', 'findRow', 'save', 'findSource', 'findSourceBySlug', 'createSource'])
 			->getMock();
@@ -92,8 +92,8 @@ class ConnectionProbeServiceTest extends TestCase {
 			}
 		);
 
-		$this->sourceTest = $this->createMock(SourceTestService::class);
-		$this->catalog = $this->createMock(CatalogRegistryService::class);
+		$this->sourceTest = $this->createMock(originalClassName: SourceTestService::class);
+		$this->catalog = $this->createMock(originalClassName: CatalogRegistryService::class);
 	}//end setUp()
 
 	/**
@@ -102,29 +102,29 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return ConnectionProbeService
 	 */
 	private function makeService(): ConnectionProbeService {
-		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
 		$appConfig->method('getValueString')->willReturn('');
-		$time = $this->createMock(ITimeFactory::class);
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable('2026-09-14T12:00:00+00:00'));
-		$resolver = new ConnectionStatusResolver($appConfig, $time);
+		$resolver = new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time);
 
-		$appManager = $this->createMock(\OCP\App\IAppManager::class);
+		$appManager = $this->createMock(originalClassName: \OCP\App\IAppManager::class);
 		$appManager->method('isEnabledForAnyone')->willReturn(true);
 		$registry = new ConnectionRegistryService(
-			$appManager,
-			new \OCA\Integriq\Service\ConnectionDeclarationValidator(),
-			$resolver,
-			$this->store,
-			$this->createMock(LoggerInterface::class)
+			appManager: $appManager,
+			validator: new \OCA\Integriq\Service\ConnectionDeclarationValidator(),
+			resolver: $resolver,
+			store: $this->store,
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
 		);
 
 		return new ConnectionProbeService(
-			$this->store,
-			$registry,
-			$resolver,
-			$this->sourceTest,
-			$this->catalog,
-			$this->createMock(LoggerInterface::class)
+			store: $this->store,
+			registry: $registry,
+			resolver: $resolver,
+			sourceTest: $this->sourceTest,
+			catalog: $this->catalog,
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
 		);
 	}//end makeService()
 
@@ -164,17 +164,17 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testOpenBreakerIsNotCalled(): void {
-		$this->addSource('s-1', ['circuitBreakerState' => 'open', 'circuitBreakerFailureCount' => 5]);
+		$this->addSource(uuid: 's-1', data: ['circuitBreakerState' => 'open', 'circuitBreakerFailureCount' => 5]);
 		$this->sourceTest->expects($this->never())->method('run');
 
 		$row = $this->makeService()->probe(['uuid' => 'c-1', 'data' => ['app' => 'dossiq', 'key' => 'pdok', 'source' => 's-1']]);
 
 		$this->assertSame(
-			['status' => 'error', 'message' => 'The circuit breaker is open after 5 failures.', 'at' => '2026-09-14T12:00:00+00:00'],
-			$row['data']['lastProbe']
+			expected: ['status' => 'error', 'message' => 'The circuit breaker is open after 5 failures.', 'at' => '2026-09-14T12:00:00+00:00'],
+			actual: $row['data']['lastProbe']
 		);
-		$this->assertSame('error', $row['data']['status']);
-		$this->assertSame('2026-09-14T12:00:00+00:00', $row['data']['checkedAt']);
+		$this->assertSame(expected: 'error', actual: $row['data']['status']);
+		$this->assertSame(expected: '2026-09-14T12:00:00+00:00', actual: $row['data']['checkedAt']);
 	}//end testOpenBreakerIsNotCalled()
 
 	/**
@@ -183,14 +183,14 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testFailingSourceNamesTheCode(): void {
-		$this->addSource('s-1', ['circuitBreakerState' => 'closed']);
+		$this->addSource(uuid: 's-1', data: ['circuitBreakerState' => 'closed']);
 		$this->sourceTest->expects($this->once())->method('run')
-			->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 503, 'Service Unavailable'));
+			->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 503, message: 'Service Unavailable'));
 
 		$row = $this->makeService()->probe(['uuid' => 'c-1', 'data' => ['app' => 'dossiq', 'key' => 'pdok', 'source' => 's-1']]);
 
-		$this->assertSame('error', $row['data']['lastProbe']['status']);
-		$this->assertSame('The source answered with HTTP 503 Service Unavailable.', $row['data']['lastProbe']['message']);
+		$this->assertSame(expected: 'error', actual: $row['data']['lastProbe']['status']);
+		$this->assertSame(expected: 'The source answered with HTTP 503 Service Unavailable.', actual: $row['data']['lastProbe']['message']);
 	}//end testFailingSourceNamesTheCode()
 
 	/**
@@ -199,14 +199,14 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testPassingSourceIsConfigured(): void {
-		$this->addSource('s-1');
-		$this->sourceTest->method('run')->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 200, 'OK'));
+		$this->addSource(uuid: 's-1');
+		$this->sourceTest->method('run')->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 200, message: 'OK'));
 
 		$row = $this->makeService()->probe(['uuid' => 'c-1', 'data' => ['app' => 'dossiq', 'key' => 'pdok', 'source' => 's-1']]);
 
-		$this->assertSame('ok', $row['data']['lastProbe']['status']);
-		$this->assertSame('configured', $row['data']['status']);
-		$this->assertSame('The source answered with HTTP 200.', $row['data']['statusMessage']);
+		$this->assertSame(expected: 'ok', actual: $row['data']['lastProbe']['status']);
+		$this->assertSame(expected: 'configured', actual: $row['data']['status']);
+		$this->assertSame(expected: 'The source answered with HTTP 200.', actual: $row['data']['statusMessage']);
 	}//end testPassingSourceIsConfigured()
 
 	/**
@@ -215,15 +215,15 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testFailedCallAndMissingSourceAreErrors(): void {
-		$this->addSource('s-1');
-		$this->sourceTest->method('run')->willReturn($this->testOutcome(SourceTestService::OUTCOME_FAILED, null));
+		$this->addSource(uuid: 's-1');
+		$this->sourceTest->method('run')->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_FAILED, code: null));
 		$service = $this->makeService();
 
 		$failed = $service->probe(['uuid' => 'c-1', 'data' => ['app' => 'dossiq', 'source' => 's-1']]);
-		$this->assertSame('The call failed: boom', $failed['data']['lastProbe']['message']);
+		$this->assertSame(expected: 'The call failed: boom', actual: $failed['data']['lastProbe']['message']);
 
 		$missing = $service->probe(['uuid' => 'c-2', 'data' => ['app' => 'dossiq', 'source' => 'gone']]);
-		$this->assertSame('The linked source no longer exists.', $missing['data']['lastProbe']['message']);
+		$this->assertSame(expected: 'The linked source no longer exists.', actual: $missing['data']['lastProbe']['message']);
 	}//end testFailedCallAndMissingSourceAreErrors()
 
 	/**
@@ -234,7 +234,7 @@ class ConnectionProbeServiceTest extends TestCase {
 	public function testProbeCapAndOrder(): void {
 		$rows = [];
 		for ($index = 0; $index < 30; $index++) {
-			$this->addSource('s-' . $index);
+			$this->addSource(uuid: 's-' . $index);
 			$rows[] = [
 				'uuid' => 'c-' . $index,
 				'data' => [
@@ -250,17 +250,17 @@ class ConnectionProbeServiceTest extends TestCase {
 		$rows[5]['data']['lastProbe'] = null;
 		$rows[] = ['uuid' => 'unlinked', 'data' => ['app' => 'dossiq', 'key' => 'none']];
 		$this->store->method('findRows')->willReturn($rows);
-		$this->sourceTest->expects($this->exactly(25))->method('run')
-			->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 200));
+		$this->sourceTest->expects($this->exactly(count: 25))->method('run')
+			->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 200));
 
 		$probed = $this->makeService()->probeDue();
 
-		$this->assertSame(25, $probed);
+		$this->assertSame(expected: 25, actual: $probed);
 		$order = array_map(static fn (array $save): ?string => $save[0], $this->saves);
-		$this->assertSame('c-5', $order[0]);
-		$this->assertSame('c-29', $order[1]);
-		$this->assertNotContains('c-0', $order);
-		$this->assertNotContains('unlinked', $order);
+		$this->assertSame(expected: 'c-5', actual: $order[0]);
+		$this->assertSame(expected: 'c-29', actual: $order[1]);
+		$this->assertNotContains(needle: 'c-0', haystack: $order);
+		$this->assertNotContains(needle: 'unlinked', haystack: $order);
 	}//end testProbeCapAndOrder()
 
 	/**
@@ -269,15 +269,15 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testLinkSourceProbesStraightAway(): void {
-		$this->addSource('s-kvk');
+		$this->addSource(uuid: 's-kvk');
 		$this->store->method('findRow')->willReturn(['uuid' => 'c-kvk', 'data' => ['app' => 'dossiq', 'key' => 'kvk']]);
-		$this->sourceTest->expects($this->once())->method('run')->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 200));
+		$this->sourceTest->expects($this->once())->method('run')->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 200));
 
 		$row = $this->makeService()->linkSource('c-kvk', 's-kvk');
 
-		$this->assertSame('s-kvk', $row['data']['source']);
-		$this->assertSame('ok', $row['data']['lastProbe']['status']);
-		$this->assertSame('c-kvk', $this->saves[0][0]);
+		$this->assertSame(expected: 's-kvk', actual: $row['data']['source']);
+		$this->assertSame(expected: 'ok', actual: $row['data']['lastProbe']['status']);
+		$this->assertSame(expected: 'c-kvk', actual: $this->saves[0][0]);
 	}//end testLinkSourceProbesStraightAway()
 
 	/**
@@ -291,12 +291,12 @@ class ConnectionProbeServiceTest extends TestCase {
 
 		try {
 			$this->makeService()->linkSource('c-kvk', 's-new');
-			$this->fail('A linked connection must be refused.');
+			$this->fail(message: 'A linked connection must be refused.');
 		} catch (ConnectionLinkException $e) {
-			$this->assertSame(ConnectionLinkException::ALREADY_LINKED, $e->getReason());
+			$this->assertSame(expected: ConnectionLinkException::ALREADY_LINKED, actual: $e->getReason());
 		}
 
-		$this->assertSame([], $this->saves);
+		$this->assertSame(expected: [], actual: $this->saves);
 	}//end testAlreadyLinkedIsRefused()
 
 	/**
@@ -306,16 +306,26 @@ class ConnectionProbeServiceTest extends TestCase {
 	 */
 	public function testUnknownConnectionOrSourceIsRefused(): void {
 		$this->store->method('findRow')->willReturnCallback(
-			static fn (string $uuid): ?array => ($uuid === 'c-1') ? ['uuid' => 'c-1', 'data' => ['app' => 'dossiq']] : null
+			static function (string $uuid): ?array {
+				if ($uuid !== 'c-1') {
+					return null;
+				}
+
+				return ['uuid' => 'c-1', 'data' => ['app' => 'dossiq']];
+			}
 		);
 		$service = $this->makeService();
 
-		foreach ([['missing', 's-1', ConnectionLinkException::CONNECTION_NOT_FOUND], ['c-1', 'nope', ConnectionLinkException::SOURCE_NOT_FOUND]] as [$connection, $source, $reason]) {
+		$cases = [
+			['missing', 's-1', ConnectionLinkException::CONNECTION_NOT_FOUND],
+			['c-1', 'nope', ConnectionLinkException::SOURCE_NOT_FOUND],
+		];
+		foreach ($cases as [$connection, $source, $reason]) {
 			try {
 				$service->linkSource($connection, $source);
-				$this->fail('Expected a refusal for ' . $reason);
+				$this->fail(message: 'Expected a refusal for ' . $reason);
 			} catch (ConnectionLinkException $e) {
-				$this->assertSame($reason, $e->getReason());
+				$this->assertSame(expected: $reason, actual: $e->getReason());
 			}
 		}
 	}//end testUnknownConnectionOrSourceIsRefused()
@@ -326,17 +336,17 @@ class ConnectionProbeServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testLinkTemplateReusesExistingSource(): void {
-		$existing = $this->addSource('s-brp', ['slug' => 'brp-haalcentraal']);
+		$existing = $this->addSource(uuid: 's-brp', data: ['slug' => 'brp-haalcentraal']);
 		$this->store->method('findRow')->willReturn(
 			['uuid' => 'c-brp', 'data' => ['app' => 'dossiq', 'key' => 'brp', 'declaration' => ['sourceTemplate' => 'brp-haalcentraal']]]
 		);
 		$this->store->method('findSourceBySlug')->willReturn($existing);
 		$this->store->expects($this->never())->method('createSource');
-		$this->sourceTest->method('run')->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 200));
+		$this->sourceTest->method('run')->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 200));
 
 		$row = $this->makeService()->linkTemplate('c-brp');
 
-		$this->assertSame('s-brp', $row['data']['source']);
+		$this->assertSame(expected: 's-brp', actual: $row['data']['source']);
 	}//end testLinkTemplateReusesExistingSource()
 
 	/**
@@ -355,11 +365,11 @@ class ConnectionProbeServiceTest extends TestCase {
 		$this->store->expects($this->once())->method('createSource')
 			->with(['name' => 'BRP', 'slug' => 'brp-haalcentraal', 'isEnabled' => true])
 			->willReturnCallback(fn (): ObjectEntity => $this->sources['s-new'] = $created);
-		$this->sourceTest->method('run')->willReturn($this->testOutcome(SourceTestService::OUTCOME_RESPONSE, 200));
+		$this->sourceTest->method('run')->willReturn($this->testOutcome(outcome: SourceTestService::OUTCOME_RESPONSE, code: 200));
 
 		$row = $this->makeService()->linkTemplate('c-brp');
 
-		$this->assertSame('s-new', $row['data']['source']);
+		$this->assertSame(expected: 's-new', actual: $row['data']['source']);
 	}//end testLinkTemplateCreatesFromSeed()
 
 	/**
@@ -369,7 +379,14 @@ class ConnectionProbeServiceTest extends TestCase {
 	 */
 	public function testLinkTemplateRefusals(): void {
 		$this->store->method('findRow')->willReturnCallback(
-			static fn (string $uuid): array => ['uuid' => $uuid, 'data' => ['app' => 'dossiq', 'declaration' => ($uuid === 'with') ? ['sourceTemplate' => 'ghost'] : []]]
+			static function (string $uuid): array {
+				$declaration = [];
+				if ($uuid === 'with') {
+					$declaration = ['sourceTemplate' => 'ghost'];
+				}
+
+				return ['uuid' => $uuid, 'data' => ['app' => 'dossiq', 'declaration' => $declaration]];
+			}
 		);
 		$this->store->method('findSourceBySlug')->willReturn(null);
 		$this->catalog->method('findSeedSourcePayload')->willReturn(null);
@@ -378,9 +395,9 @@ class ConnectionProbeServiceTest extends TestCase {
 		foreach (['without' => ConnectionLinkException::NO_TEMPLATE, 'with' => ConnectionLinkException::TEMPLATE_NOT_FOUND] as $uuid => $reason) {
 			try {
 				$service->linkTemplate($uuid);
-				$this->fail('Expected ' . $reason);
+				$this->fail(message: 'Expected ' . $reason);
 			} catch (ConnectionLinkException $e) {
-				$this->assertSame($reason, $e->getReason());
+				$this->assertSame(expected: $reason, actual: $e->getReason());
 			}
 		}
 	}//end testLinkTemplateRefusals()

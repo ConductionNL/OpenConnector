@@ -133,11 +133,11 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 	#[DataProvider('fixtures')]
 	public function testValidatorAndSchemaAgree(mixed $data, bool $expected): void {
 		$errors = (new ConnectionDeclarationValidator())->validate($data);
-		$this->assertSame($expected, $errors === [], 'Validator: ' . implode('; ', $errors));
+		$this->assertSame(expected: $expected, actual: $errors === [], message: 'Validator: ' . implode('; ', $errors));
 
 		$schema = json_decode((string)file_get_contents(__DIR__ . '/../../../lib/Settings/connections.schema.json'));
 		$result = (new OpisValidator())->validate(json_decode((string)json_encode($data)), $schema);
-		$this->assertSame($expected, $result->isValid(), 'JSON Schema disagrees with the validator');
+		$this->assertSame(expected: $expected, actual: $result->isValid(), message: 'JSON Schema disagrees with the validator');
 	}//end testValidatorAndSchemaAgree()
 
 	/**
@@ -151,7 +151,7 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 
 		$errors = (new ConnectionDeclarationValidator())->validate($data);
 
-		$this->assertSame(['/connections/1/title: is required'], $errors);
+		$this->assertSame(expected: ['/connections/1/title: is required'], actual: $errors);
 	}//end testErrorNamesTheFailingPath()
 
 	/**
@@ -165,6 +165,6 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 
 		$errors = (new ConnectionDeclarationValidator())->validate($data);
 
-		$this->assertSame(['/connections/2/key: duplicates key "zgw"'], $errors);
+		$this->assertSame(expected: ['/connections/2/key: duplicates key "zgw"'], actual: $errors);
 	}//end testDuplicateKeyIsRefused()
 }//end class

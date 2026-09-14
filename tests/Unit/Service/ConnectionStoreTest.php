@@ -50,14 +50,14 @@ class ConnectionStoreTest extends TestCase {
 	 * @return void
 	 */
 	public function testFindRowsFiltersByApp(): void {
-		$objects = $this->getMockBuilder(OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['findAll'])->getMock();
+		$objects = $this->getMockBuilder(className: OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['findAll'])->getMock();
 		$objects->expects($this->once())->method('findAll')
 			->with(['filters' => ['register' => 'integriq', 'schema' => 'connection', 'app' => 'dossiq'], 'limit' => 1000])
-			->willReturn(['results' => [$this->entity('a', ['app' => 'dossiq']), $this->entity('b', ['app' => 'shillinq'])]]);
+			->willReturn(['results' => [$this->entity(uuid: 'a', data: ['app' => 'dossiq']), $this->entity(uuid: 'b', data: ['app' => 'shillinq'])]]);
 
-		$rows = (new ConnectionStore($objects))->findRows('dossiq');
+		$rows = (new ConnectionStore(objectService: $objects))->findRows('dossiq');
 
-		$this->assertSame([['uuid' => 'a', 'data' => ['app' => 'dossiq']]], $rows);
+		$this->assertSame(expected: [['uuid' => 'a', 'data' => ['app' => 'dossiq']]], actual: $rows);
 	}//end testFindRowsFiltersByApp()
 
 	/**
@@ -66,17 +66,17 @@ class ConnectionStoreTest extends TestCase {
 	 * @return void
 	 */
 	public function testSaveDropsNullsAndUnknownKeys(): void {
-		$objects = $this->getMockBuilder(OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['saveObject'])->getMock();
+		$objects = $this->getMockBuilder(className: OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['saveObject'])->getMock();
 		$objects->expects($this->once())->method('saveObject')
 			->with(['app' => 'dossiq', 'key' => 'zgw', 'status' => 'unconfigured'], 'integriq', 'connection', 'u-1')
-			->willReturn($this->entity('u-1', []));
+			->willReturn($this->entity(uuid: 'u-1', data: []));
 
-		$uuid = (new ConnectionStore($objects))->save(
+		$uuid = (new ConnectionStore(objectService: $objects))->save(
 			['@self' => ['id' => 1], 'app' => 'dossiq', 'key' => 'zgw', 'status' => 'unconfigured', 'checkedAt' => null, 'source' => null],
 			'u-1'
 		);
 
-		$this->assertSame('u-1', $uuid);
+		$this->assertSame(expected: 'u-1', actual: $uuid);
 	}//end testSaveDropsNullsAndUnknownKeys()
 
 	/**
@@ -85,11 +85,11 @@ class ConnectionStoreTest extends TestCase {
 	 * @return void
 	 */
 	public function testPayloadIsKeyOrderInsensitive(): void {
-		$store = new ConnectionStore($this->createMock(OrObjectService::class));
+		$store = new ConnectionStore(objectService: $this->createMock(originalClassName: OrObjectService::class));
 
 		$this->assertSame(
-			$store->payload(['declaration' => ['title' => 'A', 'key' => 'a'], 'app' => 'x']),
-			$store->payload(['app' => 'x', 'declaration' => ['key' => 'a', 'title' => 'A']])
+			expected: $store->payload(['declaration' => ['title' => 'A', 'key' => 'a'], 'app' => 'x']),
+			actual: $store->payload(['app' => 'x', 'declaration' => ['key' => 'a', 'title' => 'A']])
 		);
 	}//end testPayloadIsKeyOrderInsensitive()
 
@@ -99,11 +99,11 @@ class ConnectionStoreTest extends TestCase {
 	 * @return void
 	 */
 	public function testMissingObjectIsNull(): void {
-		$objects = $this->getMockBuilder(OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['find'])->getMock();
+		$objects = $this->getMockBuilder(className: OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['find'])->getMock();
 		$objects->method('find')->willThrowException(new DoesNotExistException('gone'));
-		$store = new ConnectionStore($objects);
+		$store = new ConnectionStore(objectService: $objects);
 
-		$this->assertNull($store->findRow('x'));
-		$this->assertNull($store->findSource('y'));
+		$this->assertNull(actual: $store->findRow('x'));
+		$this->assertNull(actual: $store->findSource('y'));
 	}//end testMissingObjectIsNull()
 }//end class

@@ -61,16 +61,17 @@ class SourceTestServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testResponseOutcome(): void {
-		$callService = $this->getMockBuilder(CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
+		$callService = $this->getMockBuilder(className: CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
 		$callService->expects($this->once())->method('call')
 			->with($this->anything(), '', 'GET', [], false, true, false, false, false, null, null, false)
-			->willReturn($this->callLog(['response' => ['statusCode' => 503, 'statusMessage' => 'Service Unavailable']]));
+			->willReturn($this->callLog(data: ['response' => ['statusCode' => 503, 'statusMessage' => 'Service Unavailable']]));
 
-		$outcome = (new SourceTestService($callService, $this->createMock(LoggerInterface::class)))->run($this->source());
+		$service = new SourceTestService(callService: $callService, logger: $this->createMock(originalClassName: LoggerInterface::class));
+		$outcome = $service->run($this->source());
 
-		$this->assertSame(SourceTestService::OUTCOME_RESPONSE, $outcome['outcome']);
-		$this->assertSame(503, $outcome['statusCode']);
-		$this->assertSame('Service Unavailable', $outcome['statusMessage']);
+		$this->assertSame(expected: SourceTestService::OUTCOME_RESPONSE, actual: $outcome['outcome']);
+		$this->assertSame(expected: 503, actual: $outcome['statusCode']);
+		$this->assertSame(expected: 'Service Unavailable', actual: $outcome['statusMessage']);
 	}//end testResponseOutcome()
 
 	/**
@@ -79,13 +80,14 @@ class SourceTestServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testNoResponseOutcome(): void {
-		$callService = $this->getMockBuilder(CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
-		$callService->method('call')->willReturn($this->callLog(['statusCode' => 409, 'statusMessage' => 'Source is disabled']));
+		$callService = $this->getMockBuilder(className: CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
+		$callService->method('call')->willReturn($this->callLog(data: ['statusCode' => 409, 'statusMessage' => 'Source is disabled']));
 
-		$outcome = (new SourceTestService($callService, $this->createMock(LoggerInterface::class)))->run($this->source());
+		$service = new SourceTestService(callService: $callService, logger: $this->createMock(originalClassName: LoggerInterface::class));
+		$outcome = $service->run($this->source());
 
-		$this->assertSame(SourceTestService::OUTCOME_NO_RESPONSE, $outcome['outcome']);
-		$this->assertSame(409, $outcome['statusCode']);
+		$this->assertSame(expected: SourceTestService::OUTCOME_NO_RESPONSE, actual: $outcome['outcome']);
+		$this->assertSame(expected: 409, actual: $outcome['statusCode']);
 	}//end testNoResponseOutcome()
 
 	/**
@@ -94,15 +96,15 @@ class SourceTestServiceTest extends TestCase {
 	 * @return void
 	 */
 	public function testFailedOutcome(): void {
-		$callService = $this->getMockBuilder(CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
+		$callService = $this->getMockBuilder(className: CallService::class)->disableOriginalConstructor()->onlyMethods(['call'])->getMock();
 		$callService->method('call')->willThrowException(new \RuntimeException('connection refused'));
-		$logger = $this->createMock(LoggerInterface::class);
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
 		$logger->expects($this->once())->method('error');
 
-		$outcome = (new SourceTestService($callService, $logger))->run($this->source());
+		$outcome = (new SourceTestService(callService: $callService, logger: $logger))->run($this->source());
 
-		$this->assertSame(SourceTestService::OUTCOME_FAILED, $outcome['outcome']);
-		$this->assertSame('connection refused', $outcome['error']);
-		$this->assertNull($outcome['statusCode']);
+		$this->assertSame(expected: SourceTestService::OUTCOME_FAILED, actual: $outcome['outcome']);
+		$this->assertSame(expected: 'connection refused', actual: $outcome['error']);
+		$this->assertNull(actual: $outcome['statusCode']);
 	}//end testFailedOutcome()
 }//end class

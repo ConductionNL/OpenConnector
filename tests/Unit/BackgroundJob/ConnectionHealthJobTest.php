@@ -51,9 +51,15 @@ class ConnectionHealthJobTest extends TestCase {
 	 * @return ContainerInterface
 	 */
 	private function container(ConnectionRegistryService $registry, ConnectionProbeService $probe): ContainerInterface {
-		$container = $this->createMock(ContainerInterface::class);
+		$container = $this->createMock(originalClassName: ContainerInterface::class);
 		$container->method('get')->willReturnCallback(
-			static fn (string $id): object => ($id === ConnectionProbeService::class) ? $probe : $registry
+			static function (string $id) use ($registry, $probe): object {
+				if ($id === ConnectionProbeService::class) {
+					return $probe;
+				}
+
+				return $registry;
+			}
 		);
 
 		return $container;
@@ -65,10 +71,14 @@ class ConnectionHealthJobTest extends TestCase {
 	 * @return void
 	 */
 	public function testRunsHourly(): void {
-		$job = new ConnectionHealthJob($this->createMock(ITimeFactory::class), $this->createMock(ContainerInterface::class), $this->createMock(LoggerInterface::class));
+		$job = new ConnectionHealthJob(
+			time: $this->createMock(originalClassName: ITimeFactory::class),
+			container: $this->createMock(originalClassName: ContainerInterface::class),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
 
 		$interval = new \ReflectionProperty(\OCP\BackgroundJob\TimedJob::class, 'interval');
-		$this->assertSame(3600, $interval->getValue($job));
+		$this->assertSame(expected: 3600, actual: $interval->getValue($job));
 	}//end testRunsHourly()
 
 	/**
@@ -77,16 +87,22 @@ class ConnectionHealthJobTest extends TestCase {
 	 * @return void
 	 */
 	public function testRunsAllPhasesWithTheCap(): void {
-		$registry = $this->getMockBuilder(ConnectionRegistryService::class)->disableOriginalConstructor()
+		$registry = $this->getMockBuilder(className: ConnectionRegistryService::class)->disableOriginalConstructor()
 			->onlyMethods(['syncChangedDeclarations', 'refresh'])->getMock();
 		$registry->expects($this->once())->method('syncChangedDeclarations')->willReturn([]);
 		$registry->expects($this->once())->method('refresh')->willReturn(0);
 
-		$probe = $this->getMockBuilder(ConnectionProbeService::class)->disableOriginalConstructor()
+		$probe = $this->getMockBuilder(className: ConnectionProbeService::class)->disableOriginalConstructor()
 			->onlyMethods(['probeDue'])->getMock();
 		$probe->expects($this->once())->method('probeDue')->with(25)->willReturn(0);
 
-		$this->runJob(new ConnectionHealthJob($this->createMock(ITimeFactory::class), $this->container($registry, $probe), $this->createMock(LoggerInterface::class)));
+		$this->runJob(
+			job: new ConnectionHealthJob(
+				time: $this->createMock(originalClassName: ITimeFactory::class),
+				container: $this->container(registry: $registry, probe: $probe),
+				logger: $this->createMock(originalClassName: LoggerInterface::class)
+			)
+		);
 	}//end testRunsAllPhasesWithTheCap()
 
 	/**
@@ -95,18 +111,24 @@ class ConnectionHealthJobTest extends TestCase {
 	 * @return void
 	 */
 	public function testFailingPhaseDoesNotStopTheNext(): void {
-		$registry = $this->getMockBuilder(ConnectionRegistryService::class)->disableOriginalConstructor()
+		$registry = $this->getMockBuilder(className: ConnectionRegistryService::class)->disableOriginalConstructor()
 			->onlyMethods(['syncChangedDeclarations', 'refresh'])->getMock();
 		$registry->method('syncChangedDeclarations')->willThrowException(new \RuntimeException('file system gone'));
 		$registry->method('refresh')->willThrowException(new \RuntimeException('database gone'));
 
-		$probe = $this->getMockBuilder(ConnectionProbeService::class)->disableOriginalConstructor()
+		$probe = $this->getMockBuilder(className: ConnectionProbeService::class)->disableOriginalConstructor()
 			->onlyMethods(['probeDue'])->getMock();
 		$probe->expects($this->once())->method('probeDue')->willReturn(3);
 
-		$logger = $this->createMock(LoggerInterface::class);
-		$logger->expects($this->exactly(2))->method('error');
+		$logger = $this->createMock(originalClassName: LoggerInterface::class);
+		$logger->expects($this->exactly(count: 2))->method('error');
 
-		$this->runJob(new ConnectionHealthJob($this->createMock(ITimeFactory::class), $this->container($registry, $probe), $logger));
+		$this->runJob(
+			job: new ConnectionHealthJob(
+				time: $this->createMock(originalClassName: ITimeFactory::class),
+				container: $this->container(registry: $registry, probe: $probe),
+				logger: $logger
+			)
+		);
 	}//end testFailingPhaseDoesNotStopTheNext()
 }//end class
