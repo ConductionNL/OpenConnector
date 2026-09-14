@@ -212,8 +212,10 @@ class ConnectionHealthJobTest extends TestCase {
 	 */
 	private function realServices(ConnectionStore $store, SourceTestService $sourceTest): array {
 		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
-		$appConfig->method('getValueString')->willReturnCallback(
-			static fn (string $app, string $key): string => $key === 'register' ? 'dossiq' : ''
+		$appConfig->method('getValueString')->willReturnMap(
+			[
+				['dossiq', 'register', '', true, 'dossiq'],
+			]
 		);
 		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable('2026-09-14T12:00:00+00:00'));

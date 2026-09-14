@@ -446,16 +446,25 @@ class ConnectionStatusResolverTest extends TestCase {
 	/**
 	 * Without the new fields a declaration resolves exactly as before, and the explicit defaults change nothing.
 	 *
-	 * Before the amendment rule 3 applied only when the trimmed value was empty.
+	 * Before the amendment rule 3 applied only when the trimmed value was empty,
+	 * so only the empty and blank values expect simulated here.
 	 *
 	 * @return void
 	 */
 	public function testDefaultsKeepTheOldMeaning(): void {
 		$legacy = ['configKey' => 'berichtenbox_adapter', 'simulatedMessage' => 'A mock answers.'];
 		$explicit = $legacy + ['simulatedValues' => ['']];
-		$oldRule = static fn (string $value): string => trim($value) === '' ? 'simulated' : 'unconfigured';
+		$oldStatus = [
+			'' => 'simulated',
+			'   ' => 'simulated',
+			'OCA\\Dossiq\\Real' => 'unconfigured',
+			'null' => 'unconfigured',
+			'none' => 'unconfigured',
+			'NULL' => 'unconfigured',
+		];
 
-		foreach (['', '   ', 'OCA\\Dossiq\\Real', 'null', 'none', 'NULL'] as $value) {
+		foreach ($oldStatus as $value => $expected) {
+			$value = (string)$value;
 			$resolver = $this->makeResolver(config: ['dossiq.berichtenbox_adapter' => $value]);
 			$withoutFields = $resolver->resolve(['app' => 'dossiq', 'declaration' => ['adapter' => $legacy]], true);
 			$withDefaults = $resolver->resolve(
@@ -463,7 +472,7 @@ class ConnectionStatusResolverTest extends TestCase {
 				true
 			);
 
-			$this->assertSame(expected: $oldRule($value), actual: $withoutFields['status'], message: 'value "' . $value . '"');
+			$this->assertSame(expected: $expected, actual: $withoutFields['status'], message: 'value "' . $value . '"');
 			$this->assertSame(expected: $withoutFields, actual: $withDefaults, message: 'value "' . $value . '"');
 		}
 	}//end testDefaultsKeepTheOldMeaning()
