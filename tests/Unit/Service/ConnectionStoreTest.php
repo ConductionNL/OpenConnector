@@ -45,14 +45,14 @@ class ConnectionStoreTest extends TestCase {
 	}//end entity()
 
 	/**
-	 * findRows filters on the connection schema and re-checks the app.
+	 * findRows filters on the app_connection schema and re-checks the app.
 	 *
 	 * @return void
 	 */
 	public function testFindRowsFiltersByApp(): void {
 		$objects = $this->getMockBuilder(className: OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['findAll'])->getMock();
 		$objects->expects($this->once())->method('findAll')
-			->with(['filters' => ['register' => 'integriq', 'schema' => 'connection', 'app' => 'dossiq'], 'limit' => 1000])
+			->with(['filters' => ['register' => 'integriq', 'schema' => 'app_connection', 'app' => 'dossiq'], 'limit' => 1000])
 			->willReturn(['results' => [$this->entity(uuid: 'a', data: ['app' => 'dossiq']), $this->entity(uuid: 'b', data: ['app' => 'shillinq'])]]);
 
 		$rows = (new ConnectionStore(objectService: $objects))->findRows('dossiq');
@@ -68,7 +68,7 @@ class ConnectionStoreTest extends TestCase {
 	public function testSaveDropsNullsAndUnknownKeys(): void {
 		$objects = $this->getMockBuilder(className: OrObjectService::class)->disableOriginalConstructor()->onlyMethods(['saveObject'])->getMock();
 		$objects->expects($this->once())->method('saveObject')
-			->with(['app' => 'dossiq', 'key' => 'zgw', 'status' => 'unconfigured'], 'integriq', 'connection', 'u-1')
+			->with(['app' => 'dossiq', 'key' => 'zgw', 'status' => 'unconfigured'], 'integriq', 'app_connection', 'u-1')
 			->willReturn($this->entity(uuid: 'u-1', data: []));
 
 		$uuid = (new ConnectionStore(objectService: $objects))->save(

@@ -7,7 +7,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 | Umbrella | Integriq file |
 |---|---|
 | D2 declaration file | `lib/Settings/connections.schema.json`, `lib/Service/ConnectionDeclarationValidator.php` |
-| D3 schema | `lib/Settings/register.d/connection-schema.json` |
+| D3, D11 schema | `lib/Settings/register.d/app-connection-schema.json` (slug `app_connection`) |
 | D4 resolver | `lib/Service/ConnectionStatusResolver.php` |
 | D5 sync | `lib/Service/ConnectionRegistryService.php`, `lib/Repair/SyncConnectionDeclarations.php`, `lib/EventListener/ConnectionAppLifecycleListener.php` |
 | D6 events | `lib/Event/ConnectionStatusReportedEvent.php`, `lib/Event/ConnectionRefreshRequestedEvent.php` and their listeners |
@@ -35,7 +35,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 **Rows are matched by app and key, not by slug.** The sync reads an app's rows with an `app` filter and matches `key` in PHP. The slug is still written as `connection-{app}-{key}`, but lookups do not depend on how OpenRegister indexes a property called `slug`.
 
-**Writes as the system.** Every read and write of `connection` rows runs inside `SystemOperationContext::run()`. A report can arrive from a non-admin request in another app, and the schema is admin-only.
+**Writes as the system.** Every read and write of `app_connection` rows runs inside `SystemOperationContext::run()`. A report can arrive from a non-admin request in another app, and the schema is admin-only.
 
 **Link and probe in one request.** The dialog posts to `POST /api/connections/{id}/link`. The endpoint is admin-only. It links an existing source, or creates one from the connection's `sourceTemplate` by reusing a source with that slug or the seed payload the catalog uses. It then probes, resolves and returns the row and the probe. A connection that already has a source is refused with 409, because the dialog only offers connections without one.
 

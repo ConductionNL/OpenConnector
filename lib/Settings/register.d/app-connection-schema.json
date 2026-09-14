@@ -1,17 +1,17 @@
 {
-  "$comment": "connection-registry (ADR-037 register fragment). Adds the connection schema: one row per outside connection an app declares in its lib/Settings/connections.json. Rows are written by ConnectionRegistryService (sync, resolver, reports, health job, link-a-source), never by hand, which is why the overview page hides the built-in create and edit actions. Access is admin-only for every verb, following 99-source-lockdown.json: a row links a source uuid, and the page is an admin page in every app that adopts it. Contract: hydra openspec/changes/connection-registry/design.md, section D3.",
+  "$comment": "connection-registry (ADR-037 register fragment). Adds the app_connection schema (hydra umbrella D11: stackiq already owns the global slug `connection`): one row per outside connection an app declares in its lib/Settings/connections.json. Rows are written by ConnectionRegistryService (sync, resolver, reports, health job, link-a-source), never by hand, which is why the overview page hides the built-in create and edit actions. Access is admin-only for every verb, following 99-source-lockdown.json: a row links a source uuid, and the page is an admin page in every app that adopts it. Contract: hydra openspec/changes/connection-registry/design.md, section D3.",
   "components": {
     "registers": {
       "integriq": {
         "schemas": [
-          "connection"
+          "app_connection"
         ]
       }
     },
     "schemas": {
-      "connection": {
-        "slug": "connection",
-        "title": "Connection",
+      "app_connection": {
+        "slug": "app_connection",
+        "title": "App connection",
         "icon": "TransitConnectionVariant",
         "version": "1.0.0",
         "summary": "An outside connection an app declares, with its current status",

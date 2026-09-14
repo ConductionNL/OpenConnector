@@ -220,7 +220,7 @@ export default {
 			this.loading = true
 			try {
 				const [connections, sources] = await Promise.all([
-					axios.get(generateUrl('/apps/openregister/api/objects/integriq/connection'), { params: { _limit: 500 } }),
+					axios.get(generateUrl('/apps/openregister/api/objects/integriq/app_connection'), { params: { _limit: 500 } }),
 					axios.get(generateUrl('/apps/openregister/api/objects/integriq/source'), { params: { _limit: 500 } }),
 				])
 				this.connections = (connections.data?.results || [])

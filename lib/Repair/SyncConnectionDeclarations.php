@@ -3,9 +3,9 @@
 /**
  * Integriq SyncConnectionDeclarations Repair Step.
  *
- * Reads every enabled app's `lib/Settings/connections.json` into `connection`
+ * Reads every enabled app's `lib/Settings/connections.json` into `app_connection`
  * rows on integriq's install and upgrade (umbrella design D5). Runs after
- * InitializeRegister, so the `connection` schema exists.
+ * InitializeRegister, so the `app_connection` schema exists.
  *
  * @category Repair
  * @package  OCA\Integriq\Repair

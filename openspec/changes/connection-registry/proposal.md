@@ -21,7 +21,7 @@ Dossiq has the only Integrations page in the fleet that says when a mock adapter
 
 ## What changes in integriq
 
-1. A `connection` schema in the `integriq` register, admin-only for every verb.
+1. An `app_connection` schema in the `integriq` register, admin-only for every verb. Not `connection`: stackiq owns that slug, and slugs are global on a shared OpenRegister (umbrella D11).
 2. `lib/Settings/connections.schema.json`, the JSON Schema an app's `lib/Settings/connections.json` must pass.
 3. `ConnectionRegistryService::sync()`, which turns each enabled app's declaration file into rows. It runs from a repair step, on `AppEnableEvent`, and from the hourly health job when an app's version moved.
 4. `ConnectionStatusResolver`, which works out `status`, `statusMessage` and `checkedAt` by the D4 rules, in order.
@@ -38,4 +38,4 @@ Dossiq has the only Integrations page in the fleet that says when a mock adapter
 
 ## Rollback
 
-Revert this change. The `connection` objects stay behind and nothing reads them. They hold no credentials, only a source uuid.
+Revert this change. The `app_connection` objects stay behind and nothing reads them. They hold no credentials, only a source uuid.

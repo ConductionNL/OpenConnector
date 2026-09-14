@@ -3,10 +3,10 @@
 /**
  * Integriq ConnectionStore.
  *
- * The only class that reads and writes `connection` rows and the sources they
+ * The only class that reads and writes `app_connection` rows and the sources they
  * link, through OpenRegister. Every call runs as a system operation: a report
  * can arrive from a non-admin request in another app, repair steps and cron
- * run without a user, and the `connection` and `source` schemas are admin-only.
+ * run without a user, and the `app_connection` and `source` schemas are admin-only.
  *
  * @category Service
  * @package  OCA\Integriq\Service
@@ -48,11 +48,11 @@ class ConnectionStore {
 	public const REGISTER = 'integriq';
 
 	/**
-	 * The connection schema slug.
+	 * The connection schema slug. Not `connection`: stackiq owns that global slug (umbrella D11).
 	 *
 	 * @var string
 	 */
-	public const SCHEMA = 'connection';
+	public const SCHEMA = 'app_connection';
 
 	/**
 	 * The properties a row carries (umbrella design D3). Anything else in a

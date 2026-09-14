@@ -215,7 +215,7 @@
 			<step>OCA\Integriq\Repair\MaterializeCatalogItems</step>
 			<!-- connection-registry D5: every enabled app's
 			     lib/Settings/connections.json becomes connection rows. After
-			     InitializeRegister, so the connection schema exists. Idempotent
+			     InitializeRegister, so the app_connection schema exists. Idempotent
 			     and never throws. -->
 			<step>OCA\Integriq\Repair\SyncConnectionDeclarations</step>
 			<!-- WRITTEN BUT NEVER REGISTERED until now, which meant it never
@@ -380,7 +380,7 @@
 			<step>OCA\Integriq\Repair\MaterializeCatalogItems</step>
 			<!-- connection-registry D5: every enabled app's
 			     lib/Settings/connections.json becomes connection rows. After
-			     InitializeRegister, so the connection schema exists. Idempotent
+			     InitializeRegister, so the app_connection schema exists. Idempotent
 			     and never throws. -->
 			<step>OCA\Integriq\Repair\SyncConnectionDeclarations</step>
 			<!-- The three inline-secret steps are deliberately NOT here. A first

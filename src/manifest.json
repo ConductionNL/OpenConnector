@@ -833,7 +833,7 @@
       "permission": "admin",
       "config": {
         "register": "integriq",
-        "schema": "connection",
+        "schema": "app_connection",
         "defaultSort": {
           "field": "order",
           "direction": "asc"

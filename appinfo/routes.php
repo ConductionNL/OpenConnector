@@ -406,7 +406,7 @@ return [
 
 		// Connection registry (connection-registry D9): link a source to a
 		// declared connection and probe it at once. Listing goes through OR's
-		// generic /api/objects/integriq/connection (ADR-022).
+		// generic /api/objects/integriq/app_connection (ADR-022).
 		['name' => 'connections#link', 'url' => '/api/connections/{id}/link', 'verb' => 'POST'],
 
 		// Configuration import/export UI endpoints (connector-catalog-ui) — a

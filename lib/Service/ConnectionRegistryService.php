@@ -3,7 +3,7 @@
 /**
  * Integriq ConnectionRegistryService.
  *
- * Turns every enabled app's `lib/Settings/connections.json` into `connection`
+ * Turns every enabled app's `lib/Settings/connections.json` into `app_connection`
  * rows, resolves their status, and takes the reports and refresh requests apps
  * send. The contract is the hydra umbrella design, sections D2, D4, D5 and D6.
  *

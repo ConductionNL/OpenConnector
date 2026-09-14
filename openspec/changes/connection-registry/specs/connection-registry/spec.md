@@ -7,7 +7,7 @@
 
 ### Requirement: The sync turns declaration files into connection rows (REQ-CONN-001)
 
-Integriq SHALL read `lib/Settings/connections.json` of every enabled app through `IAppManager::getAppPath`. It MUST validate the file against `lib/Settings/connections.schema.json` and MUST refuse a file whose `app` differs from the id of the app it was read from. A valid file SHALL become one `connection` row per entry, with slug `connection-{app}-{key}`.
+Integriq SHALL read `lib/Settings/connections.json` of every enabled app through `IAppManager::getAppPath`. It MUST validate the file against `lib/Settings/connections.schema.json` and MUST refuse a file whose `app` differs from the id of the app it was read from. A valid file SHALL become one `app_connection` row per entry, with slug `connection-{app}-{key}`.
 
 @e2e exclude The sync is a backend step with no browser surface. ConnectionRegistryServiceTest and ConnectionDeclarationValidatorTest prove every scenario here.
 
@@ -15,7 +15,7 @@ Integriq SHALL read `lib/Settings/connections.json` of every enabled app through
 
 - GIVEN an enabled app `dossiq` ships a valid `connections.json` with two entries
 - WHEN the sync runs
-- THEN two `connection` rows exist with `app` equal to `dossiq`
+- THEN two `app_connection` rows exist with `app` equal to `dossiq`
 - AND each row's slug is `connection-dossiq-{key}`
 
 #### Scenario: an invalid file is skipped whole
@@ -144,7 +144,7 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 
 ### Requirement: Integriq shows all connections on one admin page (REQ-CONN-006)
 
-Integriq SHALL render an admin-only `index` page at `/connections` over `integriq/connection` under the Connections menu group, with `app` as a column and as the folder sidebar field. The page MUST NOT offer the built-in add, edit, copy or import actions.
+Integriq SHALL render an admin-only `index` page at `/connections` over `integriq/app_connection` under the Connections menu group, with `app` as a column and as the folder sidebar field. The page MUST NOT offer the built-in add, edit, copy or import actions.
 
 #### Scenario: the overview lists connection rows with their app
 

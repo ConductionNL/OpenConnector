@@ -11174,25 +11174,24 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "connection",
-          "slug": "connection-voorbeeld-zgw"
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-configured"
         },
-        "slug": "connection-voorbeeld-zgw",
-        "app": "voorbeeld",
-        "key": "zgw",
-        "title": "ZGW APIs",
-        "description": "Demo data, safe to delete. A connection whose required settings are filled.",
+        "slug": "connection-integriq-demo-configured",
+        "app": "integriq",
+        "key": "demo-configured",
+        "title": "Demo: configured connection",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
         "order": 10,
-        "settingsUrl": "/settings/admin/voorbeeld#section-zgw",
         "declaration": {
-          "key": "zgw",
-          "title": "ZGW APIs",
+          "key": "demo-configured",
+          "title": "Demo: configured connection",
           "order": 10,
           "requiredConfig": [
-            "register"
+            "demo_register"
           ]
         },
-        "declaredVersion": "1.0.0",
+        "declaredVersion": "demo",
         "status": "configured",
         "statusMessage": "Required settings are filled.",
         "checkedAt": "2026-09-14T09:00:00+00:00"
@@ -11200,47 +11199,47 @@
       {
         "@self": {
           "register": "integriq",
-          "schema": "connection",
-          "slug": "connection-voorbeeld-berichtenbox"
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-simulated"
         },
-        "slug": "connection-voorbeeld-berichtenbox",
-        "app": "voorbeeld",
-        "key": "berichtenbox",
-        "title": "Berichtenbox",
-        "description": "Demo data, safe to delete. A connection a mock adapter answers for.",
+        "slug": "connection-integriq-demo-simulated",
+        "app": "integriq",
+        "key": "demo-simulated",
+        "title": "Demo: simulated connection",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
         "order": 20,
         "declaration": {
-          "key": "berichtenbox",
-          "title": "Berichtenbox",
+          "key": "demo-simulated",
+          "title": "Demo: simulated connection",
           "order": 20,
           "adapter": {
-            "configKey": "berichtenbox_adapter"
+            "configKey": "demo_adapter"
           }
         },
-        "declaredVersion": "1.0.0",
+        "declaredVersion": "demo",
         "status": "simulated",
-        "statusMessage": "A mock adapter answers here. Set berichtenbox_adapter to a real adapter.",
+        "statusMessage": "A mock adapter answers here. Set demo_adapter to a real adapter.",
         "checkedAt": "2026-09-14T09:00:00+00:00"
       },
       {
         "@self": {
           "register": "integriq",
-          "schema": "connection",
-          "slug": "connection-voorbeeld-kvk"
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-unavailable"
         },
-        "slug": "connection-voorbeeld-kvk",
-        "app": "voorbeeld",
-        "key": "kvk",
-        "title": "KvK",
-        "description": "Demo data, safe to delete. A connection that is declared and not built yet.",
+        "slug": "connection-integriq-demo-unavailable",
+        "app": "integriq",
+        "key": "demo-unavailable",
+        "title": "Demo: connection not built yet",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
         "order": 30,
         "declaration": {
-          "key": "kvk",
-          "title": "KvK",
+          "key": "demo-unavailable",
+          "title": "Demo: connection not built yet",
           "order": 30,
           "available": false
         },
-        "declaredVersion": "1.0.0",
+        "declaredVersion": "demo",
         "status": "unavailable",
         "statusMessage": "Declared, not built yet.",
         "checkedAt": "2026-09-14T09:00:00+00:00"

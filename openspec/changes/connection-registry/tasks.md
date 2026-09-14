@@ -5,7 +5,7 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 ## 1. Contract files
 
 - [x] 1.1 `lib/Settings/connections.schema.json`, the JSON Schema for `connections.json` (D2).
-- [x] 1.2 `lib/Settings/register.d/connection-schema.json`, admin-only `connection` schema (D3).
+- [x] 1.2 `lib/Settings/register.d/app-connection-schema.json`, admin-only `app_connection` schema (D3, D11).
 
 ## 2. Backend
 
