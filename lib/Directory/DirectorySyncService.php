@@ -361,7 +361,7 @@ class DirectorySyncService {
 			connectionId: $connectionId,
 			reason: self::GUARD_RATIO_EXCEEDED,
 			message: $this->l10n->t(
-				'This run would remove %1$s of %2$s memberships, over the limit of %3$s set for this connection. Nothing was removed. Confirm the removals to continue.',
+				'This run would remove %1$s of %2$s memberships, over the %3$s limit for this connection. Nothing was removed. Confirm the removals to continue.',
 				[(string)count($plan['removals']), (string)$total, $this->formatRatio(ratio: $threshold)]
 			),
 			ratio: $ratio,

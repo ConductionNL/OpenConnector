@@ -124,6 +124,15 @@ export default {
 	},
 
 	watch: {
+		/**
+		 * Start a run when the modal opens, on a summary from no earlier run.
+		 *
+		 * The mode decides which run it is: "preview" asks for a dry run, which
+		 * writes nothing and reports both sides.
+		 *
+		 * @param {boolean} isOpen Whether the modal has just been opened.
+		 * @spec openspec/changes/directory-and-group-sync/specs/directory-sync/spec.md#requirement-a-run-can-be-previewed-and-a-large-removal-is-guarded-req-ds-005
+		 */
 		open(isOpen) {
 			if (isOpen) {
 				this.record = null
