@@ -67,6 +67,20 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 	}//end validFile()
 
 	/**
+	 * The valid file with the berichtenbox adapter replaced.
+	 *
+	 * @param array<string,mixed> $adapter The adapter object.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function withAdapter(array $adapter): array {
+		$file = self::validFile();
+		$file['connections'][1]['adapter'] = $adapter;
+
+		return $file;
+	}//end withAdapter()
+
+	/**
 	 * Fixtures: name => [data, expected valid].
 	 *
 	 * @return array<string,array{0:mixed,1:bool}>
@@ -104,6 +118,32 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 		$badAvailable = $valid;
 		$badAvailable['connections'][2]['available'] = 'no';
 
+		$amended = $valid;
+		$amended['connections'][1]['adapter'] = [
+			'configKey' => 'llm',
+			'jsonPath' => 'chat.provider',
+			'simulatedValues' => ['', 'none', 'null'],
+		];
+		$amended['connections'][0]['reportedOnly'] = true;
+
+		$badJsonPath = $valid;
+		$badJsonPath['connections'][1]['adapter']['jsonPath'] = 'chat..provider';
+
+		$leadingDotPath = $valid;
+		$leadingDotPath['connections'][1]['adapter']['jsonPath'] = '.provider';
+
+		$emptyJsonPath = $valid;
+		$emptyJsonPath['connections'][1]['adapter']['jsonPath'] = '';
+
+		$simulatedNotList = $valid;
+		$simulatedNotList['connections'][1]['adapter']['simulatedValues'] = 'none';
+
+		$simulatedNotStrings = $valid;
+		$simulatedNotStrings['connections'][1]['adapter']['simulatedValues'] = ['none', 0];
+
+		$badReportedOnly = $valid;
+		$badReportedOnly['connections'][0]['reportedOnly'] = 'yes';
+
 		return [
 			'valid file' => [$valid, true],
 			'empty connections' => [['app' => 'dossiq', 'connections' => []], true],
@@ -119,6 +159,14 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 			'available not boolean' => [$badAvailable, false],
 			'unconfiguredMessage not a string' => [$badUnconfigured, false],
 			'list instead of object' => [[1, 2], false],
+			'jsonPath, simulatedValues and reportedOnly' => [$amended, true],
+			'empty simulatedValues list' => [self::withAdapter(adapter: ['configKey' => 'x', 'simulatedValues' => []]), true],
+			'jsonPath with an empty segment' => [$badJsonPath, false],
+			'jsonPath with a leading dot' => [$leadingDotPath, false],
+			'empty jsonPath' => [$emptyJsonPath, false],
+			'simulatedValues not a list' => [$simulatedNotList, false],
+			'simulatedValues holding a number' => [$simulatedNotStrings, false],
+			'reportedOnly not boolean' => [$badReportedOnly, false],
 		];
 	}//end fixtures()
 

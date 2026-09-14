@@ -316,4 +316,264 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$this->assertSame(expected: 'configured', actual: $outcome['status']);
 	}//end testTypedConfigValueCountsAsFilled()
+
+	/**
+	 * A provider name in `simulatedValues` selects simulated, case-insensitively after trimming.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-provider-name-selects-simulated
+	 */
+	public function testProviderNameSelectsSimulated(): void {
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => ['adapter' => ['configKey' => 'email_transport_type', 'simulatedValues' => ['', 'null']]],
+		];
+
+		foreach (['null', '  NULL ', ''] as $value) {
+			$outcome = $this->makeResolver(config: ['pipelinq.email_transport_type' => $value])->resolve($row, true);
+			$this->assertSame(expected: 'simulated', actual: $outcome['status'], message: 'value "' . $value . '"');
+			$this->assertSame(expected: 3, actual: $outcome['rule']);
+		}
+
+		$real = $this->makeResolver(config: ['pipelinq.email_transport_type' => 'smtp'])->resolve($row, true);
+		$this->assertSame(expected: 'unconfigured', actual: $real['status']);
+	}//end testProviderNameSelectsSimulated()
+
+	/**
+	 * A JSON path reads inside a settings blob, so a real provider there keeps rule 3 off.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-json-path-reads-inside-a-settings-blob
+	 */
+	public function testJsonPathReadsInsideASettingsBlob(): void {
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => ['adapter' => ['configKey' => 'llm', 'jsonPath' => 'provider', 'simulatedValues' => ['', 'none']]],
+		];
+
+		$real = $this->makeResolver(config: ['pipelinq.llm' => '{"provider": "openai"}'])->resolve($row, true);
+		$this->assertNotSame(expected: 3, actual: $real['rule']);
+		$this->assertSame(expected: 'unconfigured', actual: $real['status']);
+
+		$mock = $this->makeResolver(config: ['pipelinq.llm' => '{"provider": "None"}'])->resolve($row, true);
+		$this->assertSame(expected: 'simulated', actual: $mock['status']);
+	}//end testJsonPathReadsInsideASettingsBlob()
+
+	/**
+	 * JSON path edge cases: [stored value, path, expected adapter value is simulated under the default list].
+	 *
+	 * @return array<string,array{0:string,1:string,2:bool}>
+	 */
+	public static function jsonPathCases(): array {
+		return [
+			'nested path with a value' => ['{"chat": {"provider": "openai"}}', 'chat.provider', false],
+			'missing leaf' => ['{"chat": {}}', 'chat.provider', true],
+			'missing branch' => ['{"other": 1}', 'chat.provider', true],
+			'path through a scalar' => ['{"chat": "openai"}', 'chat.provider', true],
+			'invalid JSON' => ['{provider: openai', 'provider', true],
+			'empty value' => ['', 'provider', true],
+			'a plain string, not JSON' => ['openai', 'provider', true],
+			'object at the path' => ['{"provider": {"name": "openai"}}', 'provider', true],
+			'list at the path' => ['{"provider": ["openai"]}', 'provider', true],
+			'null at the path' => ['{"provider": null}', 'provider', true],
+			'whitespace string at the path' => ['{"provider": "   "}', 'provider', true],
+			'number at the path' => ['{"provider": 0}', 'provider', false],
+			'false at the path' => ['{"provider": false}', 'provider', false],
+		];
+	}//end jsonPathCases()
+
+	/**
+	 * A missing path, invalid JSON or a non-scalar value reads as the empty string.
+	 *
+	 * @param string $stored The stored config value.
+	 * @param string $path The declared JSON path.
+	 * @param bool $simulated Whether rule 3 applies under the default `[""]`.
+	 *
+	 * @return void
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('jsonPathCases')]
+	public function testJsonPathEdgeCases(string $stored, string $path, bool $simulated): void {
+		$row = ['app' => 'pipelinq', 'declaration' => ['adapter' => ['configKey' => 'llm', 'jsonPath' => $path]]];
+
+		$outcome = $this->makeResolver(config: ['pipelinq.llm' => $stored])->resolve($row, true);
+
+		$this->assertSame(expected: $simulated, actual: $outcome['rule'] === 3);
+	}//end testJsonPathEdgeCases()
+
+	/**
+	 * Booleans and numbers at the path read as their JSON text, so a list can name them.
+	 *
+	 * @return void
+	 */
+	public function testJsonPathScalarsReadAsText(): void {
+		$declaration = ['adapter' => ['configKey' => 'geo', 'jsonPath' => 'enabled', 'simulatedValues' => ['false', '0']]];
+
+		$false = $this->makeResolver(config: ['traffic.geo' => '{"enabled": false}'])->resolve(['app' => 'traffic', 'declaration' => $declaration], true);
+		$this->assertSame(expected: 'simulated', actual: $false['status']);
+
+		$zero = $this->makeResolver(config: ['traffic.geo' => '{"enabled": 0}'])->resolve(['app' => 'traffic', 'declaration' => $declaration], true);
+		$this->assertSame(expected: 'simulated', actual: $zero['status']);
+
+		$true = $this->makeResolver(config: ['traffic.geo' => '{"enabled": true}'])->resolve(['app' => 'traffic', 'declaration' => $declaration], true);
+		$this->assertSame(expected: 'unconfigured', actual: $true['status']);
+	}//end testJsonPathScalarsReadAsText()
+
+	/**
+	 * A JSON path also reads a value Nextcloud stores under the array type.
+	 *
+	 * @return void
+	 */
+	public function testJsonPathReadsAnArrayTypedValue(): void {
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
+		$appConfig->method('getValueString')->willThrowException(
+			new \OCP\Exceptions\AppConfigTypeConflictException('conflict with value type from database')
+		);
+		$appConfig->method('getValueArray')->willReturn(['provider' => 'none']);
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
+		$time->method('now')->willReturn(new DateTimeImmutable(self::NOW));
+
+		$resolver = new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time);
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => ['adapter' => ['configKey' => 'llm', 'jsonPath' => 'provider', 'simulatedValues' => ['none']]],
+		];
+
+		$this->assertSame(expected: 'simulated', actual: $resolver->resolve($row, true)['status']);
+	}//end testJsonPathReadsAnArrayTypedValue()
+
+	/**
+	 * Without the new fields a declaration resolves exactly as before, and the explicit defaults change nothing.
+	 *
+	 * Before the amendment rule 3 applied only when the trimmed value was empty.
+	 *
+	 * @return void
+	 */
+	public function testDefaultsKeepTheOldMeaning(): void {
+		$legacy = ['configKey' => 'berichtenbox_adapter', 'simulatedMessage' => 'A mock answers.'];
+		$explicit = $legacy + ['simulatedValues' => ['']];
+		$oldRule = static fn (string $value): string => trim($value) === '' ? 'simulated' : 'unconfigured';
+
+		foreach (['', '   ', 'OCA\\Dossiq\\Real', 'null', 'none', 'NULL'] as $value) {
+			$resolver = $this->makeResolver(config: ['dossiq.berichtenbox_adapter' => $value]);
+			$withoutFields = $resolver->resolve(['app' => 'dossiq', 'declaration' => ['adapter' => $legacy]], true);
+			$withDefaults = $resolver->resolve(
+				['app' => 'dossiq', 'declaration' => ['adapter' => $explicit, 'reportedOnly' => false]],
+				true
+			);
+
+			$this->assertSame(expected: $oldRule($value), actual: $withoutFields['status'], message: 'value "' . $value . '"');
+			$this->assertSame(expected: $withoutFields, actual: $withDefaults, message: 'value "' . $value . '"');
+		}
+	}//end testDefaultsKeepTheOldMeaning()
+
+	/**
+	 * A reported-only row ignores filled settings and an empty adapter key.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-reported-only-row-ignores-filled-settings
+	 */
+	public function testReportedOnlyRowIgnoresFilledSettings(): void {
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => [
+				'reportedOnly' => true,
+				'requiredConfig' => ['cti_register'],
+				'adapter' => ['configKey' => 'cti_adapter'],
+			],
+		];
+
+		$outcome = $this->makeResolver(config: ['pipelinq.cti_register' => 'pipelinq'])->resolve($row, true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
+	}//end testReportedOnlyRowIgnoresFilledSettings()
+
+	/**
+	 * A reported-only row still takes the app's report.
+	 *
+	 * @return void
+	 */
+	public function testReportedOnlyRowShowsTheReport(): void {
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => ['reportedOnly' => true, 'requiredConfig' => ['cti_register']],
+			'lastReport' => ['status' => 'configured', 'message' => 'Platform chosen: Voys.', 'at' => '2026-09-14T10:00:00+00:00'],
+		];
+
+		$outcome = $this->makeResolver(config: ['pipelinq.cti_register' => 'pipelinq'])->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Platform chosen: Voys.', actual: $outcome['statusMessage']);
+	}//end testReportedOnlyRowShowsTheReport()
+
+	/**
+	 * Rule 4a: a simulated report stands against a newer passing probe, with the report's time.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-simulated-report-stands-against-a-newer-probe
+	 */
+	public function testSimulatedReportStandsAgainstANewerProbe(): void {
+		$row = [
+			'app' => 'shillinq',
+			'declaration' => [],
+			'lastReport' => ['status' => 'simulated', 'message' => 'A Log adapter answers.', 'at' => '2026-09-14T10:00:00+00:00'],
+			'lastProbe' => ['status' => 'ok', 'message' => 'HTTP 200', 'at' => '2026-09-14T11:00:00+00:00'],
+		];
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'simulated', actual: $outcome['status']);
+		$this->assertSame(expected: '2026-09-14T10:00:00+00:00', actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 'A Log adapter answers.', actual: $outcome['statusMessage']);
+	}//end testSimulatedReportStandsAgainstANewerProbe()
+
+	/**
+	 * A report may carry limited, and rule 4b shows it.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-app-reports-a-connection-that-works-in-part
+	 */
+	public function testLimitedReportIsShown(): void {
+		$row = [
+			'app' => 'pipelinq',
+			'declaration' => [],
+			'lastReport' => [
+				'status' => 'limited',
+				'message' => 'Preview API: posting works, reading replies does not.',
+				'at' => '2026-09-14T10:00:00+00:00',
+			],
+		];
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'limited', actual: $outcome['status']);
+		$this->assertSame(expected: 'Preview API: posting works, reading replies does not.', actual: $outcome['statusMessage']);
+		$this->assertContains(needle: 'limited', haystack: ConnectionStatusResolver::STATUSES);
+	}//end testLimitedReportIsShown()
+
+	/**
+	 * No declaration produces limited: every rule that reads the declaration answers another status.
+	 *
+	 * @return void
+	 */
+	public function testNoDeclarationProducesLimited(): void {
+		$declarations = [
+			['available' => false],
+			['adapter' => ['configKey' => 'x', 'simulatedValues' => ['limited']]],
+			['requiredConfig' => ['limited']],
+			['reportedOnly' => true],
+			[],
+		];
+
+		foreach ($declarations as $declaration) {
+			$outcome = $this->makeResolver(config: ['dossiq.x' => 'limited', 'dossiq.limited' => 'limited'])
+				->resolve(['app' => 'dossiq', 'declaration' => $declaration], true);
+			$this->assertNotSame(expected: 'limited', actual: $outcome['status']);
+		}
+	}//end testNoDeclarationProducesLimited()
 }//end class
