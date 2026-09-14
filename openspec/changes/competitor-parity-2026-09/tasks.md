@@ -27,8 +27,8 @@
 - [ ] 6.5 Hand dossiq its wave 3 halves: the send history and the `lastTold` projection, the retirement of the hardcoded `StufRetryJob` schedule, `case.intakeChannel` written from the delivering channel, the WKPB flag and the registry binding declaration, and draft replies.
 - [ ] 7.1 Record cluster 60 as still closed, with the reason: D12 moved the account to Nextcloud Mail and the cluster needs a re-read. `outbound-communication-log` adds the sender identity as a field when it lands.
 - [ ] 7.2 Keep the recorded-and-not-built table current, so a candidate with a reason is never rediscovered as a gap.
-- [ ] 8.1 Build `outbound-sender-identity-and-deliverability` (discovery cluster 61, called 60 in the build plan; decisions D12 and D21). Archive it on merge and tick it here.
-- [ ] 8.2 Retire task 4.4: the cluster 60 re-read against D12 is done and its answer is in the wave 4 section.
+- [ ] 8.1 Build `outbound-sender-identity-and-deliverability` (discovery cluster 61, decisions D12 and D21). Archive it on merge and tick it here.
+- [ ] 8.2 Retire task 4.4: the re-read against D12 is done and its answer is in the wave 4 section. The cluster is 61, not 60, in both sources.
 - [ ] 8.3 Hand dossiq its wave 4 half: the sender identity declared per team on the case type, replacing the single `EmailSettings.php` address.
 - [ ] 8.4 Confirm with the Nextcloud Mail boundary that an identity only references an account and holds no credential.
 
