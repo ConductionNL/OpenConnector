@@ -132,10 +132,10 @@ lanes do not invent two:
 
 ### Later waves
 
-Seven further integriq clusters waited after wave 1. Six of them open in
-wave 3 below. Cluster 60, outbound sender identity, stays closed: D12 moved
-the mail account to Nextcloud Mail, so the cluster needs a re-read before it
-is written.
+Seven further integriq clusters waited after wave 1. Five of them open in
+wave 3 below: 23, 27, 33, 45 and 56. Two stay closed. Cluster 28, mail
+accounts, is closed under D12. Cluster 60, outbound sender identity, needs a
+re-read first, because D12 moved the account it rests on to Nextcloud Mail.
 
 ## Discovery wave 3
 
@@ -145,10 +145,10 @@ the cases. hermiq takes the assistant. **integriq takes the statutory
 gateways.** buildiq takes the layout per case type. openregister takes
 tenancy. All L, and none of them blocks a tender answer."
 
-Six changes open here. Five carry one of integriq's eight clusters. The
-sixth and seventh carry work the ownership rule gives integriq inside a
-cluster another app owns, and each names that cluster and its owner in its
-own proposal.
+Seven changes open here. Five carry one of integriq's eight clusters. The
+other two carry work the ownership rule gives integriq inside a cluster
+another app owns, and each names that cluster and its owner in its own
+proposal.
 
 | change | cluster | candidates | size | decision | dossiq consumer |
 |---|---|---|---|---|---|
