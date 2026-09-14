@@ -585,4 +585,176 @@ class ConnectionStatusResolverTest extends TestCase {
 			$this->assertNotSame(expected: 'limited', actual: $outcome['status']);
 		}
 	}//end testNoDeclarationProducesLimited()
+
+	/**
+	 * A zrc row with a filled required setting, a 10:00 error report and a 10:05 refresh.
+	 *
+	 * @param array<string,mixed> $overrides Row fields to replace.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function refreshedRow(array $overrides = []): array {
+		return array_merge(
+			[
+				'app' => 'zaakafhandelapp',
+				'key' => 'zrc',
+				'declaration' => ['requiredConfig' => ['zrc_url']],
+				'lastReport' => ['status' => 'error', 'message' => 'Connection refused', 'at' => '2026-09-14T10:00:00+00:00'],
+				'refreshedAt' => '2026-09-14T10:05:00+00:00',
+			],
+			$overrides
+		);
+	}//end refreshedRow()
+
+	/**
+	 * A report older than the refresh no longer counts, so the row falls back to rule 5.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
+	 */
+	public function testRefreshRetiresAnOlderReport(): void {
+		$outcome = $this->makeResolver(config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'])
+			->resolve($this->refreshedRow(), true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Required settings are filled.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: 5, actual: $outcome['rule']);
+	}//end testRefreshRetiresAnOlderReport()
+
+	/**
+	 * Without filled settings a retired report leaves rule 6, not the old error.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
+	 */
+	public function testRefreshRetiresAnOlderReportDownToRuleSix(): void {
+		$outcome = $this->makeResolver()->resolve($this->refreshedRow(), true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertNull(actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
+	}//end testRefreshRetiresAnOlderReportDownToRuleSix()
+
+	/**
+	 * A report newer than the refresh counts again, with its own time.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-report-after-the-refresh-counts-again
+	 */
+	public function testReportAfterTheRefreshCountsAgain(): void {
+		$row = $this->refreshedRow(
+			overrides: ['lastReport' => ['status' => 'error', 'message' => 'Connection refused', 'at' => '2026-09-14T10:07:00+00:00']]
+		);
+
+		$outcome = $this->makeResolver(config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'])->resolve($row, true);
+
+		$this->assertSame(expected: 'error', actual: $outcome['status']);
+		$this->assertSame(expected: '2026-09-14T10:07:00+00:00', actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 4, actual: $outcome['rule']);
+	}//end testReportAfterTheRefreshCountsAgain()
+
+	/**
+	 * A report at the very time of the refresh is not older, so it counts.
+	 *
+	 * @return void
+	 */
+	public function testReportAtTheRefreshTimeCounts(): void {
+		$row = $this->refreshedRow(
+			overrides: ['lastReport' => ['status' => 'error', 'message' => 'Connection refused', 'at' => '2026-09-14T10:05:00+00:00']]
+		);
+
+		$outcome = $this->makeResolver(config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'])->resolve($row, true);
+
+		$this->assertSame(expected: 'error', actual: $outcome['status']);
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $outcome['checkedAt']);
+	}//end testReportAtTheRefreshTimeCounts()
+
+	/**
+	 * Equal times compare as instants, so another offset for the same moment still counts.
+	 *
+	 * @return void
+	 */
+	public function testEqualInstantInAnotherOffsetCounts(): void {
+		$row = $this->refreshedRow(
+			overrides: ['lastProbe' => ['status' => 'error', 'message' => 'HTTP 503', 'at' => '2026-09-14T12:05:00+02:00']]
+		);
+
+		$outcome = $this->makeResolver(config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'])->resolve($row, true);
+
+		$this->assertSame(expected: 'error', actual: $outcome['status']);
+		$this->assertSame(expected: 'HTTP 503', actual: $outcome['statusMessage']);
+	}//end testEqualInstantInAnotherOffsetCounts()
+
+	/**
+	 * A probe newer than the refresh counts while the older report stays retired.
+	 *
+	 * @return void
+	 */
+	public function testProbeNewerThanTheRefreshCounts(): void {
+		$row = $this->refreshedRow(
+			overrides: ['lastProbe' => ['status' => 'ok', 'message' => 'Source answered', 'at' => '2026-09-14T10:10:00+00:00']]
+		);
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Source answered', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: '2026-09-14T10:10:00+00:00', actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 4, actual: $outcome['rule']);
+	}//end testProbeNewerThanTheRefreshCounts()
+
+	/**
+	 * A probe older than the refresh is retired too, not only a report.
+	 *
+	 * @return void
+	 */
+	public function testProbeOlderThanTheRefreshIsRetired(): void {
+		$row = $this->refreshedRow(
+			overrides: [
+				'lastReport' => null,
+				'lastProbe' => ['status' => 'error', 'message' => 'HTTP 503', 'at' => '2026-09-14T09:00:00+00:00'],
+			]
+		);
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
+	}//end testProbeOlderThanTheRefreshIsRetired()
+
+	/**
+	 * Rule 4a retires with the refresh as well: an older simulated report gives way to a newer probe.
+	 *
+	 * @return void
+	 */
+	public function testRefreshRetiresAnOlderSimulatedReport(): void {
+		$row = $this->refreshedRow(
+			overrides: [
+				'lastReport' => ['status' => 'simulated', 'message' => 'A mock answers.', 'at' => '2026-09-14T10:00:00+00:00'],
+				'lastProbe' => ['status' => 'ok', 'message' => 'Source answered', 'at' => '2026-09-14T10:10:00+00:00'],
+			]
+		);
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Source answered', actual: $outcome['statusMessage']);
+	}//end testRefreshRetiresAnOlderSimulatedReport()
+
+	/**
+	 * A row without refreshedAt, or with an unreadable one, retires nothing.
+	 *
+	 * @return void
+	 */
+	public function testMissingOrUnreadableRefreshRetiresNothing(): void {
+		foreach ([null, '', 'not a date'] as $refreshedAt) {
+			$outcome = $this->makeResolver()->resolve($this->refreshedRow(overrides: ['refreshedAt' => $refreshedAt]), true);
+
+			$this->assertSame(expected: 'error', actual: $outcome['status']);
+			$this->assertSame(expected: '2026-09-14T10:00:00+00:00', actual: $outcome['checkedAt']);
+		}
+	}//end testMissingOrUnreadableRefreshRetiresNothing()
 }//end class

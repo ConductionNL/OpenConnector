@@ -121,6 +121,7 @@ class ConnectionRegistryServiceTest extends TestCase {
 	 * @param LoggerInterface|null $logger A logger double, or null for a silent one.
 	 * @param string[] $disabled App ids that are installed but disabled.
 	 * @param array<string,string> $config App config values as "app.key" => value.
+	 * @param string $now The fixed clock value.
 	 *
 	 * @return ConnectionRegistryService
 	 */
@@ -128,7 +129,8 @@ class ConnectionRegistryServiceTest extends TestCase {
 		array $appPaths,
 		?LoggerInterface $logger = null,
 		array $disabled = [],
-		array $config = []
+		array $config = [],
+		string $now = '2026-09-14T12:00:00+00:00'
 	): ConnectionRegistryService {
 		$appManager = $this->createMock(originalClassName: IAppManager::class);
 		$appManager->method('getEnabledApps')->willReturn(array_keys($appPaths));
@@ -151,7 +153,7 @@ class ConnectionRegistryServiceTest extends TestCase {
 			static fn (string $app, string $key): string => $config[$app . '.' . $key] ?? ''
 		);
 		$time = $this->createMock(originalClassName: ITimeFactory::class);
-		$time->method('now')->willReturn(new DateTimeImmutable('2026-09-14T12:00:00+00:00'));
+		$time->method('now')->willReturn(new DateTimeImmutable($now));
 
 		return new ConnectionRegistryService(
 			appManager: $appManager,
@@ -520,4 +522,160 @@ class ConnectionRegistryServiceTest extends TestCase {
 		$this->assertSame(expected: 'configured', actual: $this->rows['r1']['status']);
 		$this->assertSame(expected: 'Required settings are filled.', actual: $this->rows['r1']['statusMessage']);
 	}//end testRefreshPicksUpAKeySetWithOcc()
+
+	/**
+	 * A stored zaakafhandelapp row that reports an error from 10:00.
+	 *
+	 * @param string $key The connection key.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function zrcRow(string $key = 'zrc'): array {
+		return [
+			'app' => 'zaakafhandelapp',
+			'key' => $key,
+			'title' => strtoupper($key),
+			'declaration' => ['key' => $key, 'title' => strtoupper($key), 'requiredConfig' => [$key . '_url']],
+			'lastReport' => ['status' => 'error', 'message' => 'Connection refused', 'at' => '2026-09-14T10:00:00+00:00'],
+			'status' => 'error',
+			'statusMessage' => 'Connection refused',
+			'checkedAt' => '2026-09-14T10:00:00+00:00',
+		];
+	}//end zrcRow()
+
+	/**
+	 * A save that sends a refresh stamps refreshedAt and retires the older error, which stays on the row.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
+	 */
+	public function testSaveRetiresAnOlderError(): void {
+		$this->rows['r1'] = $this->zrcRow();
+
+		$service = $this->makeService(
+			appPaths: [],
+			logger: null,
+			disabled: [],
+			config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'],
+			now: '2026-09-14T10:05:00+00:00'
+		);
+
+		$this->assertSame(expected: 1, actual: $service->refreshRequested('zaakafhandelapp', 'zrc'));
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $this->rows['r1']['refreshedAt']);
+		$this->assertSame(expected: 'configured', actual: $this->rows['r1']['status']);
+		$this->assertSame(expected: 'Required settings are filled.', actual: $this->rows['r1']['statusMessage']);
+		$this->assertSame(
+			expected: ['status' => 'error', 'message' => 'Connection refused', 'at' => '2026-09-14T10:00:00+00:00'],
+			actual: $this->rows['r1']['lastReport']
+		);
+	}//end testSaveRetiresAnOlderError()
+
+	/**
+	 * After the refresh, a new report counts again with its own time.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-report-after-the-refresh-counts-again
+	 */
+	public function testReportAfterTheRefreshCountsAgain(): void {
+		$this->rows['r1'] = array_merge(
+			$this->zrcRow(),
+			[
+				'refreshedAt' => '2026-09-14T10:05:00+00:00',
+				'status' => 'configured',
+				'statusMessage' => 'Required settings are filled.',
+				'checkedAt' => '2026-09-14T10:05:00+00:00',
+			]
+		);
+
+		$service = $this->makeService(
+			appPaths: [],
+			logger: null,
+			disabled: [],
+			config: ['zaakafhandelapp.zrc_url' => 'https://zrc.example.nl'],
+			now: '2026-09-14T10:07:00+00:00'
+		);
+
+		$this->assertTrue(condition: $service->report('zaakafhandelapp', 'zrc', 'error', 'Connection refused'));
+		$this->assertSame(expected: 'error', actual: $this->rows['r1']['status']);
+		$this->assertSame(expected: '2026-09-14T10:07:00+00:00', actual: $this->rows['r1']['checkedAt']);
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $this->rows['r1']['refreshedAt']);
+	}//end testReportAfterTheRefreshCountsAgain()
+
+	/**
+	 * A refresh without a key stamps every row of that app and no row of another app.
+	 *
+	 * @return void
+	 */
+	public function testRefreshWithoutKeyStampsEveryRowOfTheApp(): void {
+		$this->rows['r1'] = $this->zrcRow(key: 'zrc');
+		$this->rows['r2'] = $this->zrcRow(key: 'drc');
+		$this->rows['r3'] = array_merge($this->zrcRow(key: 'zgw'), ['app' => 'dossiq']);
+
+		$service = $this->makeService(appPaths: [], logger: null, disabled: [], config: [], now: '2026-09-14T10:05:00+00:00');
+
+		$this->assertSame(expected: 2, actual: $service->refreshRequested('zaakafhandelapp'));
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $this->rows['r1']['refreshedAt']);
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $this->rows['r2']['refreshedAt']);
+		$this->assertSame(expected: 'unconfigured', actual: $this->rows['r2']['status']);
+		$this->assertArrayNotHasKey(key: 'refreshedAt', array: $this->rows['r3']);
+		$this->assertSame(expected: 'error', actual: $this->rows['r3']['status']);
+	}//end testRefreshWithoutKeyStampsEveryRowOfTheApp()
+
+	/**
+	 * A refresh with a key leaves the app's other rows alone.
+	 *
+	 * @return void
+	 */
+	public function testRefreshWithKeyStampsOnlyThatRow(): void {
+		$this->rows['r1'] = $this->zrcRow(key: 'zrc');
+		$this->rows['r2'] = $this->zrcRow(key: 'drc');
+
+		$service = $this->makeService(appPaths: [], logger: null, disabled: [], config: [], now: '2026-09-14T10:05:00+00:00');
+
+		$this->assertSame(expected: 1, actual: $service->refreshRequested('zaakafhandelapp', 'zrc'));
+		$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $this->rows['r1']['refreshedAt']);
+		$this->assertArrayNotHasKey(key: 'refreshedAt', array: $this->rows['r2']);
+		$this->assertSame(expected: 'error', actual: $this->rows['r2']['status']);
+	}//end testRefreshWithKeyStampsOnlyThatRow()
+
+	/**
+	 * A sync, a report and the plain resolve keep the stored refreshedAt; only a refresh request writes it.
+	 *
+	 * @return void
+	 */
+	public function testSyncReportAndPlainRefreshLeaveRefreshedAtAlone(): void {
+		$service = $this->makeService(appPaths: ['dossiq' => $this->appDir(declaration: $this->dossiqDeclaration())]);
+		$service->sync();
+		foreach (array_keys($this->rows) as $uuid) {
+			$this->rows[$uuid]['refreshedAt'] = '2026-09-14T10:05:00+00:00';
+			$this->rows[$uuid]['declaredVersion'] = '1.1.0';
+		}
+
+		$this->saves = [];
+		$service->sync();
+		$this->assertCount(expectedCount: 2, haystack: $this->saves);
+
+		$this->assertTrue(condition: $service->report('dossiq', 'brp', 'error', 'HTTP 503'));
+		foreach (array_keys($this->rows) as $uuid) {
+			$this->rows[$uuid]['status'] = 'stale';
+		}
+
+		$this->assertSame(expected: 2, actual: $service->refresh());
+
+		$this->assertCount(expectedCount: 5, haystack: $this->saves);
+		foreach ($this->saves as $save) {
+			$this->assertSame(expected: '2026-09-14T10:05:00+00:00', actual: $save[1]['refreshedAt']);
+		}
+	}//end testSyncReportAndPlainRefreshLeaveRefreshedAtAlone()
+
+	/**
+	 * refreshedAt is a stored row property, so a change to it alone is written.
+	 *
+	 * @return void
+	 */
+	public function testRefreshedAtIsAStoredProperty(): void {
+		$this->assertContains(needle: 'refreshedAt', haystack: ConnectionStore::PROPERTIES);
+	}//end testRefreshedAtIsAStoredProperty()
 }//end class

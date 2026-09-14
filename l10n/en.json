@@ -1122,7 +1122,9 @@
         "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.": "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.",
         "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false.": "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false.",
         "Whether the connection works, works in part or not at all, as integriq last worked it out.": "Whether the connection works, works in part or not at all, as integriq last worked it out.",
-        "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "The last status the app reported: status, message and time. A report of simulated stands against any probe."
+        "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "The last status the app reported: status, message and time. A report of simulated stands against any probe.",
+        "Last refresh": "Last refresh",
+        "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.": "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count."
     },
     "plurals": {}
 }

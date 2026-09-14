@@ -62,7 +62,9 @@ Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first ru
 
 The adapter value SHALL be the config value at `adapter.configKey`, or, when `adapter.jsonPath` is set, the scalar at that dot path inside the JSON object the key holds. A missing path, invalid JSON or a non-scalar value MUST read as the empty string. `adapter.simulatedValues` SHALL be compared case-insensitively after trimming and SHALL default to `[""]`, so a declaration without it keeps its meaning. A row whose declaration carries `reportedOnly: true` MUST skip the adapter rule and the required settings rule. A `lastReport` with status `simulated` SHALL win over any probe, with `checkedAt` set to the report's `at`. No rule SHALL produce `limited` from a declaration.
 
-@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases and the unchanged defaults.
+Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not older than the row's `refreshedAt`. An `at` equal to `refreshedAt` MUST count. A row without `refreshedAt` retires nothing.
+
+@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases, the unchanged defaults and every observation a refresh retires.
 
 #### Scenario: a disabled app shows unavailable
 
@@ -137,7 +139,7 @@ The adapter value SHALL be the config value at `adapter.configKey`, or, when `ad
 
 ### Requirement: Apps report and refresh through two typed events (REQ-CONN-004)
 
-Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. A report MAY carry any of the six statuses `configured`, `limited`, `unconfigured`, `simulated`, `unavailable` and `error`. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. Neither listener SHALL throw into the sender.
+Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. A report MAY carry any of the six statuses `configured`, `limited`, `unconfigured`, `simulated`, `unavailable` and `error`. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. The refresh listener SHALL write `refreshedAt` as the current time on the requested row, or on every row of the app when the key is null, and then resolve those rows. No other path SHALL write `refreshedAt`: a sync, a report, a probe and the hourly resolve MUST keep the stored value. A refresh MUST NOT delete `lastReport` or `lastProbe`. Neither listener SHALL throw into the sender.
 
 @e2e exclude An in-process event exchange with no browser surface. ConnectionEventListenersTest and ConnectionRegistryServiceTest prove it.
 
@@ -163,7 +165,7 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 
 `ConnectionHealthJob` SHALL run every 3600 seconds and probe at most 25 rows with a `source`, oldest `lastProbe.at` first. A source whose `circuitBreakerState` is `open` SHALL be recorded as `error` without a call. Otherwise the job SHALL make the call `SourcesController::test` makes, with `persistLog` false. The job SHALL also sync every app whose version differs from its rows' `declaredVersion`. After the probes, the job SHALL resolve every row, linked or not. That step MUST make no outbound call and has no cap.
 
-@e2e exclude A cron job with no browser surface. ConnectionHealthJobTest and ConnectionRegistryServiceTest prove the cap, the order, the breaker rule and the resolve of unlinked rows.
+@e2e exclude A cron job and an in-process event with no browser surface. ConnectionHealthJobTest, ConnectionRegistryServiceTest and ConnectionStatusResolverTest prove the cap, the order, the breaker rule, the resolve of unlinked rows and the observations a refresh retires.
 
 #### Scenario: an open breaker is not called
 
@@ -171,6 +173,21 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 - WHEN the health job runs
 - THEN no outbound call is made for that source
 - AND the row's `lastProbe` is `error` with "The circuit breaker is open after 5 failures."
+
+#### Scenario: a save retires an older error
+
+- GIVEN the zrc row's last report says `error` at 10:00
+- AND its required settings are filled
+- WHEN zaakafhandelapp sends `ConnectionRefreshRequestedEvent('zaakafhandelapp', 'zrc')` at 10:05
+- THEN the row's `refreshedAt` is 10:05
+- AND its status is `configured` with "Required settings are filled."
+- AND its `lastReport` still holds the 10:00 error
+
+#### Scenario: a report after the refresh counts again
+
+- GIVEN the zrc row was refreshed at 10:05
+- WHEN zaakafhandelapp reports `error` at 10:07
+- THEN the row's status is `error` and `checkedAt` is 10:07
 
 #### Scenario: a key set with occ shows within the hour
 

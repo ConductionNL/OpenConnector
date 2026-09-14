@@ -44,7 +44,7 @@ class ConnectionEventListenersTest extends TestCase {
 	private function registry(): ConnectionRegistryService {
 		return $this->getMockBuilder(className: ConnectionRegistryService::class)
 			->disableOriginalConstructor()
-			->onlyMethods(['report', 'refresh', 'sync'])
+			->onlyMethods(['report', 'refresh', 'refreshRequested', 'sync'])
 			->getMock();
 	}//end registry()
 
@@ -148,13 +148,16 @@ class ConnectionEventListenersTest extends TestCase {
 	}//end testOtherEventsAreIgnored()
 
 	/**
-	 * A refresh request with the key reaches the registry with that key.
+	 * A refresh request with the key reaches the stamping path with that key, not the plain resolve.
 	 *
 	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
 	 */
 	public function testRefreshCarriesTheKey(): void {
 		$registry = $this->registry();
-		$registry->expects($this->once())->method('refresh')->with('dossiq', 'berichtenbox')->willReturn(1);
+		$registry->expects($this->once())->method('refreshRequested')->with('dossiq', 'berichtenbox')->willReturn(1);
+		$registry->expects($this->never())->method('refresh');
 
 		$listener = new ConnectionRefreshRequestedListener(
 			container: $this->container(registry: $registry),
@@ -162,6 +165,22 @@ class ConnectionEventListenersTest extends TestCase {
 		);
 		$listener->handle(new ConnectionRefreshRequestedEvent(app: 'dossiq', key: 'berichtenbox'));
 	}//end testRefreshCarriesTheKey()
+
+	/**
+	 * A refresh request without a key reaches the stamping path with a null key.
+	 *
+	 * @return void
+	 */
+	public function testRefreshWithoutKeyCarriesNull(): void {
+		$registry = $this->registry();
+		$registry->expects($this->once())->method('refreshRequested')->with('dossiq', null)->willReturn(2);
+
+		$listener = new ConnectionRefreshRequestedListener(
+			container: $this->container(registry: $registry),
+			logger: $this->createMock(originalClassName: LoggerInterface::class)
+		);
+		$listener->handle(new ConnectionRefreshRequestedEvent(app: 'dossiq'));
+	}//end testRefreshWithoutKeyCarriesNull()
 
 	/**
 	 * Enabling an app syncs that app; enabling integriq syncs every app.

@@ -38,3 +38,10 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 - [x] 5.4 `limited` in the `app_connection` enum (schema 1.1.0), the report allow-list, the `connectionStatus` formatter and the English and Dutch catalogues.
 - [x] 5.5 `ConnectionHealthJob` resolves every row after the probes, with no outbound call and no cap.
 - [x] 5.6 PHPUnit for each new D4 behaviour, the JSON path edge cases, the defaults, a `limited` report and the job's resolve of unlinked rows. Rule 4a's order is mutation-checked.
+
+## 6. A refresh retires older observations (umbrella D6, D12 item 5)
+
+- [x] 6.1 `refreshedAt` in the `app_connection` schema (1.2.0) and in `ConnectionStore::PROPERTIES`, with English and Dutch strings.
+- [x] 6.2 `ConnectionRegistryService::refreshRequested()` stamps `refreshedAt` on the requested row, or every row of the app for a null key, then resolves. The refresh listener calls it.
+- [x] 6.3 Rules 4a and 4b skip a report or probe older than `refreshedAt`. An equal time counts.
+- [x] 6.4 PHPUnit for both spec scenarios, equal times, a null key, a probe newer than the refresh, and a sync, report and plain resolve that keep `refreshedAt`. The older-than comparison is mutation-checked.
