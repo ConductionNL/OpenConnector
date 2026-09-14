@@ -71,3 +71,68 @@ Two of the three rows close only when another app does its part.
   implementing it. Re-point the row at `webhook-signing`.
 - Row 12.3 lists openregister as owner. Re-point it at integriq, citing
   ADR-091 §6.
+
+## Discovery wave 1
+
+A second source of record sits beside the gap register: the round 4
+discovery sweep, `procest/_round4/discovery/` in
+ConductionNL/market-intelligence, written 2026-09-14. Thirty-six systems
+read, 631 consolidated candidates, 70 capability clusters in
+`build-plan.md`, 22 decisions in `decisions.md`. Ruben answered all 22 on
+2026-09-14 and lifted the build hold.
+
+The ownership rule moves 57 of the 631 candidates to integriq, in eight
+clusters. This section indexes what integriq opens in wave 1.
+
+| change | cluster | candidates | size | decision | dossiq consumer |
+|---|---|---|---|---|---|
+| `registry-backed-field-source` | 26 "Fields read live from a registry, not copied", and depth-study CT-5 | C-integrations-9 (matrix hole), C-intake-10, C-parties-and-contacts-15, C-parties-and-contacts-4, C-integrations-11, C-integrations-43 | L | D2 | dossiq declares a source on a `propertyDefinition`, in its CT-1 change `casetype-field-vocabulary`, and stops being limited to one fixed address slot and one fixed person slot |
+
+### The mail account is Nextcloud Mail's, so integriq opens nothing for it
+
+`build-plan.md` puts cluster 28, "Mail accounts, OAuth2 and alias
+domains", on integriq in wave 1, and `decisions.md` D12 recommended that
+integriq hold the account, the token and the alias domains.
+
+Ruben answered D12 differently: **Nextcloud Mail owns the mail account**,
+because the OAuth 2.0 flow is already Nextcloud Mail's. Integriq opens no
+mail-account change. The work moves to dossiq, whose intake pipeline reads
+the account Nextcloud Mail already holds, and which keeps the filter
+pipeline and the sender-authentication half. dossiq's wave 1 change is
+`inbound-mail-filters`, cluster 25.
+
+Cluster 60, "Outbound sender identity and deliverability", stays integriq's
+and stays in a later wave. It now builds on a Nextcloud Mail account rather
+than on an integriq one, which is a re-read that cluster needs before it is
+written.
+
+### What openregister owes this wave, and by what name
+
+`registry-backed-field-source` needs one key on a schema property, and the
+key is openregister's under D2. This umbrella asks for it by name so two
+lanes do not invent two:
+
+- **`x-openregister-property-source`**, `{ provider, config, mode }`, on a
+  schema property, to be specified in openregister, wave 1.
+- It is not `x-openregister-object-source`, which openregister's open
+  change `object-source-providers` already uses to serve a whole schema's
+  objects from a provider.
+
+### Two decisions that change how the clusters are read
+
+- **D6 was answered relevance-led.** Every `must` candidate enters the
+  corpus as a row, whatever its passer count. A `must` cluster is not
+  skipped for having one passer. In integriq's wave 1 that admits
+  C-intake-10, a `must` with one documented passer and no driven one.
+- **D17 was answered for a broad market.** The 20 candidates the lanes
+  rated `not` are not disqualified: the product serves MKB as well as
+  municipalities, so a `not` for a gemeente can be a `could` for an MKB
+  buyer. None of the 20 falls in integriq's wave 1 cluster, so nothing in
+  this section changes on that count.
+
+### Later waves
+
+Seven further integriq clusters wait: 23 the outbound communication log,
+27 delivery, retry and replay, 33 directory synchronisation, 45 intake
+channels beyond mail, 56 the statutory gateways, and 60 outbound sender
+identity. Each is added to the table above in the PR that opens it.
