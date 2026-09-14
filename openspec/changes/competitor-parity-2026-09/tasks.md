@@ -27,3 +27,8 @@
 - [ ] 6.5 Hand dossiq its wave 3 halves: the send history and the `lastTold` projection, the retirement of the hardcoded `StufRetryJob` schedule, `case.intakeChannel` written from the delivering channel, the WKPB flag and the registry binding declaration, and draft replies.
 - [ ] 7.1 Record cluster 60 as still closed, with the reason: D12 moved the account to Nextcloud Mail and the cluster needs a re-read. `outbound-communication-log` adds the sender identity as a field when it lands.
 - [ ] 7.2 Keep the recorded-and-not-built table current, so a candidate with a reason is never rediscovered as a gap.
+- [ ] 8.1 Build `records-owned-by-an-external-source` (pending proposal row 5.19). Archive it on merge and tick it here.
+- [ ] 8.2 Build `one-off-and-suppressed-recipients` (pending proposal row 6.23, depends on 5.2). Archive it on merge and tick it here.
+- [ ] 8.3 Mark rows 6.24 and 6.27 as covered by `outbound-communication-log`, REQ-OCL-006 and REQ-OCL-001 with REQ-OCL-005, rather than opening a change for them.
+- [ ] 8.4 Ask whoever implements REQ-OCL-006 to decide whether "last reached" means the transport handover or the confirmed delivery of REQ-OCL-005, and to record the answer in the spec.
+- [ ] 8.5 Hand dossiq its pending-proposal halves: the ownership and disappearance declaration on `register.d/25-brp-kvk.json` with the party rendering, and the send screen that adds or suppresses a recipient with a reason.
