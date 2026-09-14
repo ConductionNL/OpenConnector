@@ -278,6 +278,14 @@
           "order": 20
         },
         {
+          "id": "DirectorySync",
+          "label": "Directory sync",
+          "icon": "AccountGroupOutline",
+          "route": "DirectorySync",
+          "order": 25,
+          "permission": "admin"
+        },
+        {
           "id": "NotificatiesAbonnementen",
           "label": "Subscriptions",
           "icon": "BellRingOutline",
@@ -4009,6 +4017,18 @@
         },
         "documentationUrl": "https://integriq.conduction.nl",
         "_configurationUiNote": "REQ-006/007/008 Configuration import/export UI actions live here as header actions (ExportConfigurationDialog / ImportPreviewDialog) rather than on a bespoke Configurations index page: OR Configuration groups are a NATIVE OR table (lib/Db/Configuration.php) served by /apps/openregister/api/configurations, not an object register/schema, so a type:index page cannot back them — and a type:custom page is exactly what this change avoids (custom-widget-ratchet)."
+      }
+    },
+    {
+      "id": "DirectorySync",
+      "route": "/directory-sync",
+      "type": "custom",
+      "component": "DirectorySyncPage",
+      "title": "Directory synchronisation",
+      "_note": "One screen for the directory connections, the groups each mapping fills, and what every run changed. A custom page rather than an index page because the three things an administrator needs are a mapping, a preview and a run record, and none of them is a row in a register schema. See openspec/changes/directory-and-group-sync.",
+      "config": {
+        "register": "integriq",
+        "documentationUrl": "https://integriq.conduction.nl"
       }
     },
     {

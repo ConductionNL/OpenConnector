@@ -46,6 +46,7 @@ import SynchronizationEditorModal from './modals/v2/SynchronizationEditorModal.v
 import ApiProductDetail from './views/ApiProducts/ApiProductDetail.vue'
 import ApprovalDetail from './views/Approvals/ApprovalDetail.vue'
 import ApprovalsIndex from './views/Approvals/ApprovalsIndex.vue'
+import DirectorySyncPage from './views/Directory/DirectorySyncPage.vue'
 import EventDeliveriesPage from './views/EventDelivery/EventDeliveriesPage.vue'
 import TraceDetailPage from './views/ExecutionTrace/TraceDetailPage.vue'
 import FlowDetailSidebar from './views/Flow/FlowDetailSidebar.vue'
@@ -226,6 +227,7 @@ export default {
 	// components above — the queues stay separate underneath because they are
 	// different schemas behind different admin-only endpoints.
 	DeadLettersPage,
+	DirectorySyncPage,
 
 	// Source detail circuit-breaker badge (declarative body section on
 	// SourceDetail via config.bodyWidgets): shows breaker state + failure
@@ -287,6 +289,7 @@ export const registry = {
 	ApprovalsIndex: { kind: 'page', component: ApprovalsIndex },
 	SyncDeadLetterPage: { kind: 'page', component: SyncDeadLetterPage },
 	DeadLettersPage: { kind: 'page', component: DeadLettersPage },
+	DirectorySyncPage: { kind: 'page', component: DirectorySyncPage },
 	FlowDetailSidebar: { kind: 'page', component: FlowDetailSidebar },
 	ApprovalDetail: { kind: 'page', component: ApprovalDetail },
 	TraceDetailPage: { kind: 'page', component: TraceDetailPage },
