@@ -1029,7 +1029,6 @@ OC.L10N.register(
         "Incident war-room": "Incidentoverleg",
         "Absolute path into the Nextcloud instance. Omit it when no settings section exists.": "Absoluut pad binnen de Nextcloud-omgeving. Laat het weg als er geen instellingensectie is.",
         "App": "App",
-        "App-config key naming the adapter class. Empty in the app's config means a mock answers.": "App-configuratiesleutel met de adapterklasse. Leeg in de configuratie van de app betekent dat een mock antwoordt.",
         "App-config keys of the declaring app. All non-empty means the settings are saved.": "App-configuratiesleutels van de declarerende app. Zijn ze allemaal gevuld, dan zijn de instellingen opgeslagen.",
         "Configured": "Geconfigureerd",
         "Connection declarations": "Koppelingsdeclaraties",
@@ -1059,14 +1058,12 @@ OC.L10N.register(
         "The connection key from the declaration file.": "De koppelingssleutel uit het declaratiebestand.",
         "The entry as the app declared it.": "Het item zoals de app het declareerde.",
         "The integriq source this connection is checked against.": "De Integriq-bron waartegen deze koppeling wordt getest.",
-        "The last status the app reported: status, message and time.": "De laatste status die de app meldde: status, melding en tijd.",
         "The last test of the linked source: status, message and time.": "De laatste test van de gekoppelde bron: status, melding en tijd.",
         "The name of the connection.": "De naam van de koppeling.",
         "Unique within the file and frozen once shipped. A row is keyed by app and key.": "Uniek binnen het bestand en vast zodra het is uitgeleverd. Een rij wordt herkend aan app en sleutel.",
         "What the connection is for.": "Waar de koppeling voor is.",
         "When the fact behind the status was observed.": "Wanneer het feit achter de status is waargenomen.",
         "Where an admin configures this connection.": "Waar een beheerder deze koppeling instelt.",
-        "Whether the connection works, as integriq last worked it out.": "Of de koppeling werkt, zoals Integriq het laatst heeft vastgesteld.",
         "Why the connection has this status.": "Waarom de koppeling deze status heeft.",
         "Why the connection is not usable.": "Waarom de koppeling niet bruikbaar is.",
         "false means declared and not usable yet. Default true.": "false betekent gedeclareerd en nog niet bruikbaar. Standaard true.",
@@ -1093,7 +1090,14 @@ OC.L10N.register(
         "This connection declares no source template.": "Deze koppeling declareert geen bronsjabloon.",
         "The source template for this connection was not found.": "Het bronsjabloon voor deze koppeling is niet gevonden.",
         "Shown while nothing is known about the connection yet. Default: Not checked yet.": "Getoond zolang er nog niets over de koppeling bekend is. Standaard: Not checked yet.",
-        "App connection": "App-koppeling"
+        "App connection": "App-koppeling",
+        "Limited": "Beperkt",
+        "App-config key that selects the adapter: a class name, a provider name or a JSON settings blob.": "App-configuratiesleutel die de adapter kiest: een klassenaam, een providernaam of JSON-instellingen.",
+        "Dot path into the value when configKey holds a JSON object, such as chat.provider. A missing path reads as empty.": "Pad met punten in de waarde als configKey een JSON-object bevat, zoals chat.provider. Een ontbrekend pad telt als leeg.",
+        "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.": "De waarden die betekenen dat een mock-adapter antwoordt. Hoofdletters en spaties aan de randen tellen niet mee. Standaard: één lege tekst.",
+        "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false.": "true betekent dat alleen de app kan zien wat er antwoordt. Integriq slaat dan de regels voor adapter en instellingen over. Standaard false.",
+        "Whether the connection works, works in part or not at all, as integriq last worked it out.": "Of de koppeling werkt, deels werkt of niet werkt, zoals Integriq het laatst heeft vastgesteld.",
+        "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "De laatste status die de app meldde: status, melding en tijd. Een melding van simulated gaat voor elke test."
     },
     "nplurals=2; plural=(n != 1);"
 )

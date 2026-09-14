@@ -1,6 +1,6 @@
 # Design: connection-registry (integriq)
 
-The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`. Its sections D1 to D10 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
+The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`, amended by hydra#673. Its sections D1 to D12 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
 
 ## Where each decision lands
 
@@ -40,3 +40,15 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 **Link and probe in one request.** The dialog posts to `POST /api/connections/{id}/link`. The endpoint is admin-only. It links an existing source, or creates one from the connection's `sourceTemplate` by reusing a source with that slug or the seed payload the catalog uses. It then probes, resolves and returns the row and the probe. A connection that already has a source is refused with 409, because the dialog only offers connections without one.
 
 **Overview page.** Route `/connections`, so an adopting app's "Add integration" can link to `/apps/integriq/connections?app=<id>&link=1`. Placed under the existing Connections group as "App connections", beside Sources, so the menu gains no top-level entry (ADR-097). The built-in add, edit, copy, delete and import actions are off: a row nothing declared has nothing to check, and a hand edit would be overwritten by the next resolve. `?app=<id>&link=1` opens the dialog, pre-filtered, from `ModalHost`, which already sits outside the routed view.
+
+## Amendments from umbrella D12 (hydra#673)
+
+**What the resolver reads as the adapter value.** Without `adapter.jsonPath` it is the trimmed config value, as before. With it, the resolver decodes the value as JSON and walks the dot path. Missing segments, invalid JSON, `null`, objects and lists all read as the empty string. A boolean reads as `true` or `false` and a number as its digits, so a declaration can list them in `simulatedValues`. A value Nextcloud stores under the array type is read with `getValueArray`, because `getValueString` refuses it.
+
+**A declared `simulatedValues` that is not a list.** The validator refuses the file, so the resolver only meets one in a row written before the file changed. It then uses the default `[""]`.
+
+**Rule numbers in the outcome.** Rules 4a and 4b both report rule 4. Status and `checkedAt` tell them apart, and nothing reads the number but the tests.
+
+**Where `limited` lives.** `ConnectionStatusResolver::STATUSES` is the one list the report path checks, so adding `limited` there is the listener's allow-list too. The schema moves to 1.1.0 and the app version moves, so the register import picks up the new enum value on upgrade.
+
+**The order of the health job.** Sync, probes, then the resolve of every row. The resolve used to run before the probes. Running it last means a probe written this hour and a key set with `occ` both show in the same run.

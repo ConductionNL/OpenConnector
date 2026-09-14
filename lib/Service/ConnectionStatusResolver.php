@@ -6,19 +6,29 @@
  * Works out a connection row's `status`, `statusMessage` and `checkedAt` by the
  * rules of the hydra umbrella design D4, first match wins:
  *
- *   1. the declaring app is disabled                 -> unavailable, now
- *   2. the declaration says `available: false`       -> unavailable, sync time
- *   3. `adapter.configKey` is empty in the app config -> simulated, sync time
- *   4. a `lastProbe` or `lastReport` exists          -> the newer one, its time
- *   5. every `requiredConfig` key is filled          -> configured, now
- *   6. otherwise                                     -> unconfigured, empty
+ *   1.  the declaring app is disabled                  -> unavailable, now
+ *   2.  the declaration says `available: false`        -> unavailable, sync time
+ *   3.  not `reportedOnly`, and the adapter value is
+ *       one of `adapter.simulatedValues`               -> simulated, sync time
+ *   4a. `lastReport.status` is `simulated`             -> simulated, its time
+ *   4b. a `lastProbe` or `lastReport` exists           -> the newer one, its time
+ *   5.  not `reportedOnly`, and every `requiredConfig`
+ *       key is filled                                  -> configured, now
+ *   6.  otherwise                                      -> unconfigured, empty
  *
  * Rule 6 uses the declared `unconfiguredMessage` when there is one, and rule
  * 5 says "Required settings are filled." rather than "saved": a register
  * import can fill the keys too (umbrella amendment from dossiq#2715).
  *
  * Rule 3 sits above rule 4 on purpose. A mock adapter never calls the source,
- * so a green probe says nothing about what the app actually sends.
+ * so a green probe says nothing about what the app actually sends. Rule 4a
+ * applies the same reasoning to the app's own report (umbrella D12).
+ *
+ * The adapter value is the app config value at `adapter.configKey`, or, with
+ * `adapter.jsonPath`, the scalar at that dot path inside the JSON object the
+ * key holds. `adapter.simulatedValues` defaults to `[""]`, so a declaration
+ * without it keeps its old meaning: an empty key means a mock answers.
+ * No declaration produces `limited`; only a report can.
  *
  * @category Service
  * @package  OCA\Integriq\Service
@@ -53,11 +63,18 @@ use OCP\IAppConfig;
 class ConnectionStatusResolver {
 
 	/**
-	 * The five stored status values.
+	 * The six stored status values.
 	 *
 	 * @var string[]
 	 */
-	public const STATUSES = ['configured', 'unconfigured', 'simulated', 'unavailable', 'error'];
+	public const STATUSES = ['configured', 'limited', 'unconfigured', 'simulated', 'unavailable', 'error'];
+
+	/**
+	 * The adapter values that mean a mock answers, when a declaration names none.
+	 *
+	 * @var string[]
+	 */
+	public const DEFAULT_SIMULATED_VALUES = [''];
 
 	/**
 	 * Constructor.
@@ -97,6 +114,7 @@ class ConnectionStatusResolver {
 		return $this->ruleAppDisabled(row: $row, appEnabled: $appEnabled, now: $now)
 			?? $this->ruleDeclaredUnavailable(row: $row, declaration: $declaration, now: $now)
 			?? $this->ruleSimulated(row: $row, declaration: $declaration, now: $now)
+			?? $this->ruleReportedSimulated(row: $row)
 			?? $this->ruleObserved(row: $row)
 			?? $this->ruleSettingsSaved(row: $row, declaration: $declaration, now: $now)
 			?? $this->outcome(
@@ -154,7 +172,9 @@ class ConnectionStatusResolver {
 	}//end ruleDeclaredUnavailable()
 
 	/**
-	 * Rule 3: the adapter key is empty, so a mock answers.
+	 * Rule 3: the adapter value is one of the simulated values, so a mock answers.
+	 *
+	 * Skipped for a `reportedOnly` row: only the app can tell what answers there.
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param array<string,mixed> $declaration The declaration entry.
@@ -164,12 +184,17 @@ class ConnectionStatusResolver {
 	 */
 	private function ruleSimulated(array $row, array $declaration, string $now): ?array {
 		$adapter = $declaration['adapter'] ?? null;
-		if (is_array($adapter) === false) {
+		if (is_array($adapter) === false || $this->isReportedOnly(declaration: $declaration) === true) {
 			return null;
 		}
 
 		$configKey = (string)($adapter['configKey'] ?? '');
-		if ($configKey === '' || $this->readConfig(app: (string)($row['app'] ?? ''), key: $configKey) !== '') {
+		if ($configKey === '') {
+			return null;
+		}
+
+		$value = $this->adapterValue(app: (string)($row['app'] ?? ''), configKey: $configKey, jsonPath: $adapter['jsonPath'] ?? null);
+		if ($this->isSimulatedValue(value: $value, simulatedValues: $adapter['simulatedValues'] ?? null) === false) {
 			return null;
 		}
 
@@ -187,7 +212,32 @@ class ConnectionStatusResolver {
 	}//end ruleSimulated()
 
 	/**
-	 * Rule 4: the newer of the last probe and the last report.
+	 * Rule 4a: the app reported that a mock answers.
+	 *
+	 * The report stands against any probe, newer ones included: a green test
+	 * on the source says nothing about what a mock adapter sends. The outcome
+	 * carries rule number 4, like rule 4b.
+	 *
+	 * @param array<string,mixed> $row The stored row data.
+	 *
+	 * @return array{status:string,statusMessage:string,checkedAt:?string,rule:int}|null
+	 */
+	private function ruleReportedSimulated(array $row): ?array {
+		$report = $this->readObservation(value: $row['lastReport'] ?? null, isProbe: false);
+		if ($report === null || $report['status'] !== 'simulated') {
+			return null;
+		}
+
+		return $this->outcome(
+			status: 'simulated',
+			message: $report['message'],
+			checkedAt: $report['at'],
+			rule: 4
+		);
+	}//end ruleReportedSimulated()
+
+	/**
+	 * Rule 4b: the newer of the last probe and the last report.
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 *
@@ -210,6 +260,9 @@ class ConnectionStatusResolver {
 	/**
 	 * Rule 5: every required settings key holds a value.
 	 *
+	 * Skipped for a `reportedOnly` row: filled settings say nothing about a
+	 * platform chosen elsewhere.
+	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param array<string,mixed> $declaration The declaration entry.
 	 * @param string $now The current time.
@@ -218,7 +271,7 @@ class ConnectionStatusResolver {
 	 */
 	private function ruleSettingsSaved(array $row, array $declaration, string $now): ?array {
 		$required = $declaration['requiredConfig'] ?? [];
-		if (is_array($required) === false || $required === []) {
+		if (is_array($required) === false || $required === [] || $this->isReportedOnly(declaration: $declaration) === true) {
 			return null;
 		}
 
@@ -269,7 +322,7 @@ class ConnectionStatusResolver {
 	 * Read one stored observation.
 	 *
 	 * @param mixed $value The stored `{status, message, at}` object.
-	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the five statuses).
+	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the six statuses).
 	 *
 	 * @return array{status:string,message:string,at:?string,time:int}|null
 	 */
@@ -362,6 +415,135 @@ class ConnectionStatusResolver {
 			return 'typed';
 		}
 	}//end readConfig()
+
+	/**
+	 * Whether the declaration says only the app can judge this connection.
+	 *
+	 * @param array<string,mixed> $declaration The declaration entry.
+	 *
+	 * @return bool
+	 */
+	private function isReportedOnly(array $declaration): bool {
+		return ($declaration['reportedOnly'] ?? false) === true;
+	}//end isReportedOnly()
+
+	/**
+	 * The value that selects the adapter.
+	 *
+	 * Without a JSON path it is the trimmed config value. With one, it is the
+	 * scalar at that dot path inside the JSON object the key holds. A missing
+	 * path, invalid JSON or a non-scalar value reads as the empty string.
+	 *
+	 * @param string $app The declaring app id.
+	 * @param string $configKey The config key.
+	 * @param mixed $jsonPath The declared dot path, if any.
+	 *
+	 * @return string
+	 */
+	private function adapterValue(string $app, string $configKey, mixed $jsonPath): string {
+		if (is_string($jsonPath) === false || $jsonPath === '') {
+			return $this->readConfig(app: $app, key: $configKey);
+		}
+
+		return $this->scalarAtPath(tree: $this->readConfigObject(app: $app, key: $configKey), path: $jsonPath);
+	}//end adapterValue()
+
+	/**
+	 * Read a config value holding a JSON object, decoded.
+	 *
+	 * A value Nextcloud stores as an array type makes getValueString() throw;
+	 * getValueArray() reads that one.
+	 *
+	 * @param string $app The declaring app id.
+	 * @param string $key The config key.
+	 *
+	 * @return mixed The decoded value, or null when it is absent or not JSON.
+	 */
+	private function readConfigObject(string $app, string $key): mixed {
+		if ($app === '') {
+			return null;
+		}
+
+		try {
+			return json_decode($this->appConfig->getValueString($app, $key, '', true), true);
+		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
+			return $this->readConfigArray(app: $app, key: $key);
+		}
+	}//end readConfigObject()
+
+	/**
+	 * Read a config value stored under the array type.
+	 *
+	 * @param string $app The declaring app id.
+	 * @param string $key The config key.
+	 *
+	 * @return array<mixed>|null The value, or null when it is stored under another type.
+	 */
+	private function readConfigArray(string $app, string $key): ?array {
+		try {
+			return $this->appConfig->getValueArray($app, $key, [], true);
+		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
+			return null;
+		}
+	}//end readConfigArray()
+
+	/**
+	 * The scalar at a dot path, as a trimmed string.
+	 *
+	 * @param mixed $tree The decoded JSON.
+	 * @param string $path The dot path, such as `chat.provider`.
+	 *
+	 * @return string The value, or '' when the path is missing or the value is not a scalar.
+	 */
+	private function scalarAtPath(mixed $tree, string $path): string {
+		foreach (explode('.', $path) as $segment) {
+			if (is_array($tree) === false || array_key_exists($segment, $tree) === false) {
+				return '';
+			}
+
+			$tree = $tree[$segment];
+		}
+
+		if ($tree === true) {
+			return 'true';
+		}
+
+		if ($tree === false) {
+			return 'false';
+		}
+
+		if (is_string($tree) === true || is_int($tree) === true || is_float($tree) === true) {
+			return trim((string)$tree);
+		}
+
+		return '';
+	}//end scalarAtPath()
+
+	/**
+	 * Whether an adapter value is one of the values that mean a mock answers.
+	 *
+	 * Compared case-insensitively after trimming. A declaration without a
+	 * valid list uses the default `[""]`.
+	 *
+	 * @param string $value The adapter value.
+	 * @param mixed $simulatedValues The declared list, if any.
+	 *
+	 * @return bool
+	 */
+	private function isSimulatedValue(string $value, mixed $simulatedValues): bool {
+		if (is_array($simulatedValues) === false) {
+			$simulatedValues = self::DEFAULT_SIMULATED_VALUES;
+		}
+
+		$needle = mb_strtolower(trim($value));
+		foreach ($simulatedValues as $candidate) {
+			if (is_string($candidate) === true && mb_strtolower(trim($candidate)) === $needle) {
+				return true;
+			}
+		}
+
+		return false;
+	}//end isSimulatedValue()
 
 	/**
 	 * Keep the stored `checkedAt` when status and message did not change.
