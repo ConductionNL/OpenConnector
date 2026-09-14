@@ -90,6 +90,11 @@
 		<job>OCA\Integriq\BackgroundJob\ApprovalTimeoutSweepJob</job>
 		<job>OCA\Integriq\BackgroundJob\IwmoIjwRetryJob</job>
 		<job>OCA\Integriq\BackgroundJob\StufZknRetryJob</job>
+		<!-- directory-and-group-sync: hourly. A membership that ended in the
+		     directory has to end here without anyone acting, which is the whole
+		     difference between synchronising membership and authenticating
+		     against a directory. -->
+		<job>OCA\Integriq\BackgroundJob\DirectorySyncJob</job>
 		<!-- connection-registry D7: hourly. Syncs declarations whose app
 		     version moved, resolves every connection row, and probes at most
 		     25 linked sources, oldest first. -->
