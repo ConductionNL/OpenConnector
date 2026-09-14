@@ -1,6 +1,6 @@
 # Design: connection-registry (integriq)
 
-The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`, amended by hydra#673 and hydra#674. Its sections D1 to D12 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
+The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`, amended by hydra#673, hydra#674 and the hydra `requiredConfig` amendment on branch `feat/connection-required-config-reads-values`. Its sections D1 to D12 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
 
 ## Where each decision lands
 
@@ -62,3 +62,15 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 **What stays on the row.** A retired `lastReport` or `lastProbe` is not cleared. The resolver skips it, and the row keeps it for reading.
 
 **Schema.** `refreshedAt` joins `app_connection` as a date-time property, and the schema moves to 1.2.0. `ConnectionStore::PROPERTIES` lists it, so a write keeps it. The app version moves, so the register import picks up the new property on upgrade.
+
+## Amendment: what counts as a filled setting (umbrella D2, D4, D12 items 6 and 7)
+
+**One reader for both amendments.** `ConnectionConfigReader::allFilled()` resolves each `requiredConfig` entry. A string is read as the whole key, dots included. An object walks its `jsonPath` with the same path walk and the same array-type fallback that `adapter.jsonPath` uses. The resolver only passes the entries on, so it stays under the complexity limit.
+
+**How emptiness is checked.** Every scalar is turned into text the way the adapter path already does: `true` and `false` as words, numbers as digits, `null` as the empty string. That text is trimmed, lowercased and compared with `EMPTY_VALUES`, which is `""`, `false` and `0`. So one list decides for a stored string, a JSON value and a typed value alike. An object or a list at the key or the path counts as filled, because the umbrella lists only scalars as empty. `"no"`, `"off"` and `"00"` count as filled too.
+
+**A value stored under another type.** Stackiq stores `federation_enabled` with `setValueBool`, and `getValueString` refuses such a key. The reader then asks `getValueType` and reads the value with `getValueBool`, `getValueInt`, `getValueFloat` or `getValueArray`. A boolean `false` therefore reads as empty. Before this amendment such a key always counted as filled. A type the reader cannot name, or a key `getValueType` does not know, still counts as filled, as before.
+
+**An invalid entry.** The validator refuses a file with one, so the resolver only meets it in a row written before the file changed. Such an entry reads as empty, as a non-string entry did before.
+
+**What stays the same.** The adapter value is still read as before, including a typed key. The `app_connection` schema stores `declaration` as an untyped object, so it does not move.

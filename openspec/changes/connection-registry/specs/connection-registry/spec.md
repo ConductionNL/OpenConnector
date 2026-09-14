@@ -58,13 +58,15 @@ The sync SHALL upsert by app and key. It SHALL delete a row whose key left the d
 
 ### Requirement: The resolver applies the D4 rules in order (REQ-CONN-003)
 
-Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, an adapter value in `adapter.simulatedValues`, a simulated report, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`.
+Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, an adapter value in `adapter.simulatedValues`, a simulated report, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`, and a value stored under another type through the getter for that type.
 
 The adapter value SHALL be the config value at `adapter.configKey`, or, when `adapter.jsonPath` is set, the scalar at that dot path inside the JSON object the key holds. A missing path, invalid JSON or a non-scalar value MUST read as the empty string. `adapter.simulatedValues` SHALL be compared case-insensitively after trimming and SHALL default to `[""]`, so a declaration without it keeps its meaning. A row whose declaration carries `reportedOnly: true` MUST skip the adapter rule and the required settings rule. A `lastReport` with status `simulated` SHALL win over any probe, with `checkedAt` set to the report's `at`. No rule SHALL produce `limited` from a declaration.
 
+A `requiredConfig` entry SHALL be an app-config key, read as the whole key even when it contains dots, or `{configKey, jsonPath}`, read through the same path walk as `adapter.jsonPath`. A value MUST count as empty when, after trimming, it is `""`, `false` or `0` (case-insensitive), when it is a JSON or stored `false`, `0` or `null`, or when the path is missing. Every other value SHALL count as filled.
+
 Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not older than the row's `refreshedAt`. An `at` equal to `refreshedAt` MUST count. A row without `refreshedAt` retires nothing.
 
-@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases, the unchanged defaults and every observation a refresh retires.
+@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases, the unchanged defaults, every observation a refresh retires and each value that counts as empty for `requiredConfig`.
 
 #### Scenario: a disabled app shows unavailable
 
@@ -136,6 +138,29 @@ Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not
 - AND the row has no probe and no report
 - WHEN the resolver runs
 - THEN the status is `configured` with "Required settings are filled."
+
+#### Scenario: a switch stored as false is not filled
+
+- GIVEN the federation declaration requires `federation_enabled`
+- AND stackiq's app config holds `false` for it
+- AND the row has no probe and no report
+- WHEN the resolver runs
+- THEN the status is `unconfigured`
+
+#### Scenario: a required value inside a JSON setting
+
+- GIVEN the eol-feed declaration requires `{"configKey": "eolSync", "jsonPath": "enabled"}`
+- AND the app config `eolSync` holds `{"enabled": true, "interval": 24}`
+- AND the row has no probe and no report
+- WHEN the resolver runs
+- THEN the status is `configured` with "Required settings are filled."
+
+#### Scenario: a dotted key is read as one key
+
+- GIVEN the brp declaration requires `integration.brp.mode`
+- AND the app config holds `live` under the key `integration.brp.mode`
+- WHEN the resolver runs
+- THEN that entry counts as filled
 
 ### Requirement: Apps report and refresh through two typed events (REQ-CONN-004)
 
