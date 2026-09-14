@@ -42,8 +42,13 @@ use OCA\Integriq\Adapters\Pdok\PdokWmsClientMock;
 use OCA\Integriq\Capabilities;
 use OCA\Integriq\Controller\HealthController;
 use OCA\Integriq\Controller\MetricsController;
+use OCA\Integriq\Event\ConnectionRefreshRequestedEvent;
+use OCA\Integriq\Event\ConnectionStatusReportedEvent;
 use OCA\Integriq\Event\DeliveryRequestedEvent;
 use OCA\Integriq\EventListener\CloudEventListener;
+use OCA\Integriq\EventListener\ConnectionAppLifecycleListener;
+use OCA\Integriq\EventListener\ConnectionRefreshRequestedListener;
+use OCA\Integriq\EventListener\ConnectionStatusReportedListener;
 use OCA\Integriq\EventListener\DeliveryRequestedListener;
 use OCA\Integriq\EventListener\EndpointCacheInvalidationListener;
 use OCA\Integriq\EventListener\NextcloudCalendarEventListener;
@@ -89,6 +94,8 @@ use OCA\OpenRegister\Service\Integration\IntegrationRegistry;
 use OCA\Tables\Event\RowAddedEvent;
 use OCA\Tables\Event\RowDeletedEvent;
 use OCA\Tables\Event\RowUpdatedEvent;
+use OCP\App\Events\AppDisableEvent;
+use OCP\App\Events\AppEnableEvent;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -207,6 +214,15 @@ class Application extends App implements IBootstrap {
 		// same CloudEvents pipeline (subscription routing, retry, dead-letter,
 		// replay) and writes the synchronous result slot back on the event.
 		$dispatcher->addServiceListener(eventName: DeliveryRequestedEvent::class, className: DeliveryRequestedListener::class);
+		// Connection registry (connection-registry D5/D6): apps report a
+		// connection status or ask for a fresh resolve with two typed events,
+		// and enabling or disabling an app syncs or resolves its declared
+		// connections. Every listener resolves its service lazily and never
+		// throws into the sender.
+		$context->registerEventListener(ConnectionStatusReportedEvent::class, ConnectionStatusReportedListener::class);
+		$context->registerEventListener(ConnectionRefreshRequestedEvent::class, ConnectionRefreshRequestedListener::class);
+		$context->registerEventListener(AppEnableEvent::class, ConnectionAppLifecycleListener::class);
+		$context->registerEventListener(AppDisableEvent::class, ConnectionAppLifecycleListener::class);
 		// Nextcloud-core-event triggers (nextcloud-event-hub). Each family
 		// normalizes its NC event into the SAME `event` CloudEvents envelope
 		// shape the OR-object pipeline above already uses, then hands off to

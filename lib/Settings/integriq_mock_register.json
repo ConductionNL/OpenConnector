@@ -11170,6 +11170,79 @@
             "to": "end"
           }
         ]
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-configured"
+        },
+        "slug": "connection-integriq-demo-configured",
+        "app": "integriq",
+        "key": "demo-configured",
+        "title": "Demo: configured connection",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
+        "order": 10,
+        "declaration": {
+          "key": "demo-configured",
+          "title": "Demo: configured connection",
+          "order": 10,
+          "requiredConfig": [
+            "demo_register"
+          ]
+        },
+        "declaredVersion": "demo",
+        "status": "configured",
+        "statusMessage": "Required settings are filled.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-simulated"
+        },
+        "slug": "connection-integriq-demo-simulated",
+        "app": "integriq",
+        "key": "demo-simulated",
+        "title": "Demo: simulated connection",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
+        "order": 20,
+        "declaration": {
+          "key": "demo-simulated",
+          "title": "Demo: simulated connection",
+          "order": 20,
+          "adapter": {
+            "configKey": "demo_adapter"
+          }
+        },
+        "declaredVersion": "demo",
+        "status": "simulated",
+        "statusMessage": "A mock adapter answers here. Set demo_adapter to a real adapter.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "app_connection",
+          "slug": "connection-integriq-demo-unavailable"
+        },
+        "slug": "connection-integriq-demo-unavailable",
+        "app": "integriq",
+        "key": "demo-unavailable",
+        "title": "Demo: connection not built yet",
+        "description": "Demo data from Integriq itself. Integriq declares no connections, so the next declaration sync removes this row.",
+        "order": 30,
+        "declaration": {
+          "key": "demo-unavailable",
+          "title": "Demo: connection not built yet",
+          "order": 30,
+          "available": false
+        },
+        "declaredVersion": "demo",
+        "status": "unavailable",
+        "statusMessage": "Declared, not built yet.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
       }
     ]
   }

@@ -263,6 +263,14 @@
           "order": 10
         },
         {
+          "id": "AppConnections",
+          "label": "App connections",
+          "icon": "PowerPlugOutline",
+          "route": "AppConnections",
+          "order": 15,
+          "permission": "admin"
+        },
+        {
           "id": "Synchronizations",
           "label": "Synchronizations",
           "icon": "CloudSyncOutline",
@@ -816,6 +824,85 @@
         ],
         "documentationUrl": "https://integriq.conduction.nl"
       }
+    },
+    {
+      "id": "AppConnections",
+      "route": "/connections",
+      "type": "index",
+      "title": "App connections",
+      "permission": "admin",
+      "config": {
+        "register": "integriq",
+        "schema": "app_connection",
+        "defaultSort": {
+          "field": "order",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "key": "app",
+            "label": "App"
+          },
+          {
+            "key": "title",
+            "label": "Connection"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "formatter": "connectionStatus"
+          },
+          {
+            "key": "statusMessage",
+            "label": "Status message",
+            "sortable": false
+          },
+          {
+            "key": "checkedAt",
+            "label": "Last checked"
+          },
+          {
+            "key": "settingsUrl",
+            "label": "Settings",
+            "sortable": false,
+            "formatter": "connectionSettingsLabel",
+            "widget": "link",
+            "widgetProps": {
+              "href": "{settingsUrl}"
+            }
+          }
+        ],
+        "folderSidebar": {
+          "source": "field",
+          "field": "app",
+          "allLabel": "All apps"
+        },
+        "sidebar": {
+          "enabled": true,
+          "showMetadata": true
+        },
+        "showViewAction": false,
+        "actionToggles": {
+          "showAdd": false,
+          "showFormDialog": false,
+          "showEditAction": false,
+          "showCopyAction": false,
+          "showDeleteAction": false,
+          "showMassImport": false,
+          "showMassCopy": false,
+          "showMassDelete": false
+        },
+        "headerActions": [
+          {
+            "id": "add-integration",
+            "label": "Add integration",
+            "icon": "LinkVariant",
+            "handler": "openLinkSourceHandler"
+          }
+        ],
+        "documentationUrl": "https://integriq.conduction.nl"
+      },
+      "_note": "connection-registry (hydra umbrella design D8): every app's declared connections in one admin-only list. Rows are written by the declaration sync, the status resolver, app reports and the hourly health job, so the built-in add, edit, copy, delete and import actions are off: a row nothing declared has nothing to check, and a hand edit would be overwritten by the next resolve. Add integration links a source to a declared connection through LinkSourceDialog; ?app=<id>&link=1 opens the same dialog pre-filtered (ModalHost watches the query)."
     },
     {
       "id": "Sources",

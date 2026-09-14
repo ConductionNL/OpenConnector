@@ -49,3 +49,5 @@ export const EVENT_OPEN_CONFIGURATION_IMPORT = 'open-configuration-import'
 export const EVENT_OPEN_CONFIGURATION_EXPORT = 'open-configuration-export'
 // environments-and-promotion: promote-configuration flow modal.
 export const EVENT_OPEN_PROMOTION = 'open-promotion'
+// connection-registry D9: link a source to a declared connection. Payload is `{ app }`.
+export const EVENT_OPEN_LINK_SOURCE = 'open-link-source'
