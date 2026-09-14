@@ -110,7 +110,11 @@ class SourceTestService {
 		if (is_array($result) === false || isset($result['response']) === false) {
 			// An early-exit CallLog (disabled source, exhausted rate limit)
 			// carries its code and message at the top level, not in `response`.
-			return $this->outcome(outcome: self::OUTCOME_NO_RESPONSE, result: (is_array($result) === true) ? $result : null, error: '');
+			if (is_array($result) === false) {
+				$result = null;
+			}
+
+			return $this->outcome(outcome: self::OUTCOME_NO_RESPONSE, result: $result, error: '');
 		}
 
 		return $this->outcome(outcome: self::OUTCOME_RESPONSE, result: $result, error: '');
@@ -129,10 +133,15 @@ class SourceTestService {
 		$statusCode = $result['response']['statusCode'] ?? $result['statusCode'] ?? null;
 		$statusMessage = $result['response']['statusMessage'] ?? $result['statusMessage'] ?? '';
 
+		$code = null;
+		if (is_numeric($statusCode) === true) {
+			$code = (int)$statusCode;
+		}
+
 		return [
 			'outcome' => $outcome,
 			'result' => $result,
-			'statusCode' => is_numeric($statusCode) === true ? (int)$statusCode : null,
+			'statusCode' => $code,
 			'statusMessage' => (string)$statusMessage,
 			'error' => $error,
 		];

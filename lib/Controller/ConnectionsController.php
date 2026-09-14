@@ -80,7 +80,7 @@ class ConnectionsController extends Controller {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-linking-a-source-probes-it-straight-away
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-connection-that-already-has-a-source-is-refused
 	 */
-	#[AuthorizedAdminSetting(settings: IntegriqAdmin::class)]
+	#[AuthorizedAdminSetting(IntegriqAdmin::class)]
 	public function link(string $id): JSONResponse {
 		$sourceId = trim((string)$this->request->getParam('source', ''));
 		$fromTemplate = filter_var($this->request->getParam('fromTemplate', false), FILTER_VALIDATE_BOOLEAN);
@@ -93,9 +93,7 @@ class ConnectionsController extends Controller {
 		}
 
 		try {
-			$row = ($sourceId !== '')
-				? $this->probeService->linkSource(connectionId: $id, sourceId: $sourceId)
-				: $this->probeService->linkTemplate(connectionId: $id);
+			$row = $this->linkRow(connectionId: $id, sourceId: $sourceId);
 		} catch (ConnectionLinkException $e) {
 			return $this->refusal(exception: $e);
 		} catch (\Throwable $e) {
@@ -116,6 +114,24 @@ class ConnectionsController extends Controller {
 			]
 		);
 	}//end link()
+
+	/**
+	 * Link an existing source when one is given, otherwise the template.
+	 *
+	 * @param string $connectionId The connection row uuid.
+	 * @param string $sourceId The source uuid, or '' for the template.
+	 *
+	 * @return array{uuid:string,data:array<string,mixed>}
+	 *
+	 * @throws ConnectionLinkException When the link is refused.
+	 */
+	private function linkRow(string $connectionId, string $sourceId): array {
+		if ($sourceId !== '') {
+			return $this->probeService->linkSource(connectionId: $connectionId, sourceId: $sourceId);
+		}
+
+		return $this->probeService->linkTemplate(connectionId: $connectionId);
+	}//end linkRow()
 
 	/**
 	 * Translate a refused link into a response.

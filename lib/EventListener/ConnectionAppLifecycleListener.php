@@ -74,7 +74,12 @@ class ConnectionAppLifecycleListener implements IEventListener {
 		if ($event instanceof AppEnableEvent) {
 			$appId = $event->getAppId();
 			$this->run(appId: $appId, operation: static function (ConnectionRegistryService $registry) use ($appId): void {
-				$registry->sync(app: ($appId === Application::APP_ID) ? null : $appId);
+				if ($appId === Application::APP_ID) {
+					$registry->sync();
+					return;
+				}
+
+				$registry->sync(app: $appId);
 			});
 			return;
 		}

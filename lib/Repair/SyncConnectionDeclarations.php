@@ -89,6 +89,11 @@ class SyncConnectionDeclarations implements IRepairStep {
 			return;
 		}
 
+		$skipped = 'none';
+		if ($summary['skipped'] !== []) {
+			$skipped = implode(', ', $summary['skipped']);
+		}
+
 		$output->info(
 			sprintf(
 				'Integriq: connection rows created %d, updated %d, deleted %d, unchanged %d; skipped files: %s',
@@ -96,7 +101,7 @@ class SyncConnectionDeclarations implements IRepairStep {
 				$summary['updated'],
 				$summary['deleted'],
 				$summary['unchanged'],
-				($summary['skipped'] === []) ? 'none' : implode(', ', $summary['skipped'])
+				$skipped
 			)
 		);
 	}//end run()

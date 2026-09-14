@@ -111,7 +111,7 @@ class ConnectionStore {
 		}
 
 		$result = $this->asSystem(
-			fn () => $this->objectService->findAll(config: ['filters' => $filters, 'limit' => self::READ_LIMIT])
+			operation: 			fn () => $this->objectService->findAll(config: ['filters' => $filters, 'limit' => self::READ_LIMIT])
 		);
 
 		$rows = [];
@@ -168,7 +168,7 @@ class ConnectionStore {
 		$payload = $this->payload(data: $data);
 
 		$saved = $this->asSystem(
-			fn () => $this->objectService->saveObject(
+			operation: 			fn () => $this->objectService->saveObject(
 				object: $payload,
 				register: self::REGISTER,
 				schema: self::SCHEMA,
@@ -190,7 +190,7 @@ class ConnectionStore {
 	 */
 	public function delete(string $uuid): void {
 		$this->asSystem(
-			fn () => $this->objectService->deleteObject(uuid: $uuid, register: self::REGISTER, schema: self::SCHEMA)
+			operation: 			fn () => $this->objectService->deleteObject(uuid: $uuid, register: self::REGISTER, schema: self::SCHEMA)
 		);
 	}//end delete()
 
@@ -218,7 +218,7 @@ class ConnectionStore {
 	 */
 	public function findSourceBySlug(string $slug): ?ObjectEntity {
 		$result = $this->asSystem(
-			fn () => $this->objectService->findAll(
+			operation: 			fn () => $this->objectService->findAll(
 				config: ['filters' => ['register' => self::REGISTER, 'schema' => 'source', 'slug' => $slug]]
 			)
 		);
@@ -243,7 +243,7 @@ class ConnectionStore {
 	 */
 	public function createSource(array $payload): ObjectEntity {
 		return $this->asSystem(
-			fn () => $this->objectService->saveObject(object: $payload, register: self::REGISTER, schema: 'source')
+			operation: 			fn () => $this->objectService->saveObject(object: $payload, register: self::REGISTER, schema: 'source')
 		);
 	}//end createSource()
 
@@ -301,7 +301,7 @@ class ConnectionStore {
 	private function findEntity(string $uuid, string $schema): ?ObjectEntity {
 		try {
 			return $this->asSystem(
-				fn () => $this->objectService->find(
+			operation: 				fn () => $this->objectService->find(
 					id: $uuid,
 					register: self::REGISTER,
 					schema: $schema,

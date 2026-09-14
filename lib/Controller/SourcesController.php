@@ -35,7 +35,6 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
-use Psr\Log\LoggerInterface;
 
 /**
  * Controller for source-test and call-log endpoints.
@@ -60,7 +59,6 @@ class SourcesController extends Controller {
 	 * @param IL10N $l The localization service.
 	 * @param IUserSession $userSession The user session.
 	 * @param ActionAuthService $actionAuth The action authorization service.
-	 * @param LoggerInterface $logger Logger for source-test failures.
 	 *
 	 * @return void
 	 */
@@ -71,7 +69,6 @@ class SourcesController extends Controller {
 		private readonly IL10N $l,
 		private readonly IUserSession $userSession,
 		private readonly ActionAuthService $actionAuth,
-		private readonly LoggerInterface $logger,
 	) {
 		parent::__construct(appName: $appName, request: $request);
 	}//end __construct()

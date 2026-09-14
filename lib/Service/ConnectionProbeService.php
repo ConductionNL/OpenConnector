@@ -146,7 +146,7 @@ class ConnectionProbeService {
 	public function linkSource(string $connectionId, string $sourceId): array {
 		$row = $this->unlinkedRow(connectionId: $connectionId);
 		if ($this->store->findSource(uuid: $sourceId) === null) {
-			throw new ConnectionLinkException(ConnectionLinkException::SOURCE_NOT_FOUND);
+			throw new ConnectionLinkException(reason: ConnectionLinkException::SOURCE_NOT_FOUND);
 		}
 
 		$row['data']['source'] = $sourceId;
@@ -172,7 +172,7 @@ class ConnectionProbeService {
 		$row = $this->unlinkedRow(connectionId: $connectionId);
 		$slug = (string)($row['data']['declaration']['sourceTemplate'] ?? '');
 		if ($slug === '') {
-			throw new ConnectionLinkException(ConnectionLinkException::NO_TEMPLATE);
+			throw new ConnectionLinkException(reason: ConnectionLinkException::NO_TEMPLATE);
 		}
 
 		$source = $this->store->findSourceBySlug(slug: $slug) ?? $this->createFromTemplate(slug: $slug);
@@ -193,7 +193,7 @@ class ConnectionProbeService {
 	private function createFromTemplate(string $slug): ObjectEntity {
 		$payload = $this->catalog->findSeedSourcePayload(slug: $slug);
 		if ($payload === null) {
-			throw new ConnectionLinkException(ConnectionLinkException::TEMPLATE_NOT_FOUND);
+			throw new ConnectionLinkException(reason: ConnectionLinkException::TEMPLATE_NOT_FOUND);
 		}
 
 		$payload['isEnabled'] = true;
@@ -212,11 +212,11 @@ class ConnectionProbeService {
 	private function unlinkedRow(string $connectionId): array {
 		$row = $this->store->findRow(uuid: $connectionId);
 		if ($row === null) {
-			throw new ConnectionLinkException(ConnectionLinkException::CONNECTION_NOT_FOUND);
+			throw new ConnectionLinkException(reason: ConnectionLinkException::CONNECTION_NOT_FOUND);
 		}
 
 		if ((string)($row['data']['source'] ?? '') !== '') {
-			throw new ConnectionLinkException(ConnectionLinkException::ALREADY_LINKED);
+			throw new ConnectionLinkException(reason: ConnectionLinkException::ALREADY_LINKED);
 		}
 
 		return $row;

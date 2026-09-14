@@ -395,7 +395,11 @@ class ConnectionRegistryService {
 		}
 
 		$data = $row['data'];
-		$declaration = is_array($data['declaration'] ?? null) === true ? $data['declaration'] : [];
+		$declaration = $data['declaration'] ?? [];
+		if (is_array($declaration) === false) {
+			$declaration = [];
+		}
+
 		$declaration['available'] = false;
 		$declaration['unavailableMessage'] = 'No longer declared by ' . $app . '.';
 		$data['declaration'] = $declaration;

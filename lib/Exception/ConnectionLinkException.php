@@ -80,7 +80,7 @@ class ConnectionLinkException extends RuntimeException {
 	public function __construct(
 		private readonly string $reason,
 	) {
-		parent::__construct('Connection link refused: ' . $reason);
+		parent::__construct(message: 'Connection link refused: ' . $reason);
 	}//end __construct()
 
 	/**
