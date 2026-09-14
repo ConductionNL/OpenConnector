@@ -168,12 +168,16 @@ The overview SHALL offer "Add integration", which opens `LinkSourceDialog`. The 
 
 #### Scenario: linking a source probes it straight away
 
+@e2e exclude Linking writes a source link and fires a live probe against an outside system, which the nightly instance cannot answer deterministically. ConnectionProbeServiceTest and ConnectionsControllerTest prove the link, the probe and the response.
+
 - GIVEN a declared connection without a source
 - WHEN an admin links an existing source through the link endpoint
 - THEN the row's `source` holds that source's uuid
 - AND the response carries the probe result
 
 #### Scenario: a connection that already has a source is refused
+
+@e2e exclude An API refusal with no page of its own. ConnectionProbeServiceTest and ConnectionsControllerTest assert the 409 and the unchanged row.
 
 - GIVEN a connection with a linked source
 - WHEN an admin posts a link for it
