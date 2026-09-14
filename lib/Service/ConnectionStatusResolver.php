@@ -24,10 +24,8 @@
  * so a green probe says nothing about what the app actually sends. Rule 4a
  * applies the same reasoning to the app's own report (umbrella D12).
  *
- * The adapter value is the app config value at `adapter.configKey`, or, with
- * `adapter.jsonPath`, the scalar at that dot path inside the JSON object the
- * key holds. `adapter.simulatedValues` defaults to `[""]`, so a declaration
- * without it keeps its old meaning: an empty key means a mock answers.
+ * Reading the declaring app's config, including `adapter.jsonPath` and
+ * `adapter.simulatedValues`, lives in {@see ConnectionConfigReader}.
  * No declaration produces `limited`; only a report can.
  *
  * @category Service
@@ -70,11 +68,11 @@ class ConnectionStatusResolver {
 	public const STATUSES = ['configured', 'limited', 'unconfigured', 'simulated', 'unavailable', 'error'];
 
 	/**
-	 * The adapter values that mean a mock answers, when a declaration names none.
+	 * Reads the declaring app's settings.
 	 *
-	 * @var string[]
+	 * @var ConnectionConfigReader
 	 */
-	public const DEFAULT_SIMULATED_VALUES = [''];
+	private readonly ConnectionConfigReader $config;
 
 	/**
 	 * Constructor.
@@ -83,9 +81,10 @@ class ConnectionStatusResolver {
 	 * @param ITimeFactory $timeFactory The clock.
 	 */
 	public function __construct(
-		private readonly IAppConfig $appConfig,
+		IAppConfig $appConfig,
 		private readonly ITimeFactory $timeFactory,
 	) {
+		$this->config = new ConnectionConfigReader(appConfig: $appConfig);
 	}//end __construct()
 
 	/**
@@ -189,12 +188,7 @@ class ConnectionStatusResolver {
 		}
 
 		$configKey = (string)($adapter['configKey'] ?? '');
-		if ($configKey === '') {
-			return null;
-		}
-
-		$value = $this->adapterValue(app: (string)($row['app'] ?? ''), configKey: $configKey, jsonPath: $adapter['jsonPath'] ?? null);
-		if ($this->isSimulatedValue(value: $value, simulatedValues: $adapter['simulatedValues'] ?? null) === false) {
+		if ($configKey === '' || $this->config->isSimulated(app: (string)($row['app'] ?? ''), adapter: $adapter) === false) {
 			return null;
 		}
 
@@ -275,7 +269,7 @@ class ConnectionStatusResolver {
 			return null;
 		}
 
-		if ($this->allFilled(app: (string)($row['app'] ?? ''), keys: $required) === false) {
+		if ($this->config->allFilled(app: (string)($row['app'] ?? ''), keys: $required) === false) {
 			return null;
 		}
 
@@ -374,49 +368,6 @@ class ConnectionStatusResolver {
 	}//end observationStatus()
 
 	/**
-	 * Whether every key holds a non-empty value in the app's config.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param array<int|string,mixed> $keys The required keys.
-	 *
-	 * @return bool
-	 */
-	private function allFilled(string $app, array $keys): bool {
-		foreach ($keys as $key) {
-			if (is_string($key) === false || $this->readConfig(app: $app, key: $key) === '') {
-				return false;
-			}
-		}
-
-		return true;
-	}//end allFilled()
-
-	/**
-	 * Read one value from another app's config.
-	 *
-	 * `lazy: true` makes Nextcloud return lazy and non-lazy values alike, so a
-	 * key the app stored as lazy is not mistaken for an empty one. A value
-	 * stored under another type makes getValueString() throw; such a key does
-	 * hold a value, so it counts as filled.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param string $key The config key.
-	 *
-	 * @return string The trimmed value, or '' when absent.
-	 */
-	private function readConfig(string $app, string $key): string {
-		if ($app === '' || $key === '') {
-			return '';
-		}
-
-		try {
-			return trim($this->appConfig->getValueString($app, $key, '', true));
-		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
-			return 'typed';
-		}
-	}//end readConfig()
-
-	/**
 	 * Whether the declaration says only the app can judge this connection.
 	 *
 	 * @param array<string,mixed> $declaration The declaration entry.
@@ -426,124 +377,6 @@ class ConnectionStatusResolver {
 	private function isReportedOnly(array $declaration): bool {
 		return ($declaration['reportedOnly'] ?? false) === true;
 	}//end isReportedOnly()
-
-	/**
-	 * The value that selects the adapter.
-	 *
-	 * Without a JSON path it is the trimmed config value. With one, it is the
-	 * scalar at that dot path inside the JSON object the key holds. A missing
-	 * path, invalid JSON or a non-scalar value reads as the empty string.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param string $configKey The config key.
-	 * @param mixed $jsonPath The declared dot path, if any.
-	 *
-	 * @return string
-	 */
-	private function adapterValue(string $app, string $configKey, mixed $jsonPath): string {
-		if (is_string($jsonPath) === false || $jsonPath === '') {
-			return $this->readConfig(app: $app, key: $configKey);
-		}
-
-		return $this->scalarAtPath(tree: $this->readConfigObject(app: $app, key: $configKey), path: $jsonPath);
-	}//end adapterValue()
-
-	/**
-	 * Read a config value holding a JSON object, decoded.
-	 *
-	 * A value Nextcloud stores as an array type makes getValueString() throw;
-	 * getValueArray() reads that one.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param string $key The config key.
-	 *
-	 * @return mixed The decoded value, or null when it is absent or not JSON.
-	 */
-	private function readConfigObject(string $app, string $key): mixed {
-		if ($app === '') {
-			return null;
-		}
-
-		try {
-			return json_decode($this->appConfig->getValueString($app, $key, '', true), true);
-		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
-			return $this->readConfigArray(app: $app, key: $key);
-		}
-	}//end readConfigObject()
-
-	/**
-	 * Read a config value stored under the array type.
-	 *
-	 * @param string $app The declaring app id.
-	 * @param string $key The config key.
-	 *
-	 * @return array<mixed>|null The value, or null when it is stored under another type.
-	 */
-	private function readConfigArray(string $app, string $key): ?array {
-		try {
-			return $this->appConfig->getValueArray($app, $key, [], true);
-		} catch (\OCP\Exceptions\AppConfigTypeConflictException $e) {
-			return null;
-		}
-	}//end readConfigArray()
-
-	/**
-	 * The scalar at a dot path, as a trimmed string.
-	 *
-	 * @param mixed $tree The decoded JSON.
-	 * @param string $path The dot path, such as `chat.provider`.
-	 *
-	 * @return string The value, or '' when the path is missing or the value is not a scalar.
-	 */
-	private function scalarAtPath(mixed $tree, string $path): string {
-		foreach (explode('.', $path) as $segment) {
-			if (is_array($tree) === false || array_key_exists($segment, $tree) === false) {
-				return '';
-			}
-
-			$tree = $tree[$segment];
-		}
-
-		if ($tree === true) {
-			return 'true';
-		}
-
-		if ($tree === false) {
-			return 'false';
-		}
-
-		if (is_string($tree) === true || is_int($tree) === true || is_float($tree) === true) {
-			return trim((string)$tree);
-		}
-
-		return '';
-	}//end scalarAtPath()
-
-	/**
-	 * Whether an adapter value is one of the values that mean a mock answers.
-	 *
-	 * Compared case-insensitively after trimming. A declaration without a
-	 * valid list uses the default `[""]`.
-	 *
-	 * @param string $value The adapter value.
-	 * @param mixed $simulatedValues The declared list, if any.
-	 *
-	 * @return bool
-	 */
-	private function isSimulatedValue(string $value, mixed $simulatedValues): bool {
-		if (is_array($simulatedValues) === false) {
-			$simulatedValues = self::DEFAULT_SIMULATED_VALUES;
-		}
-
-		$needle = mb_strtolower(trim($value));
-		foreach ($simulatedValues as $candidate) {
-			if (is_string($candidate) === true && mb_strtolower(trim($candidate)) === $needle) {
-				return true;
-			}
-		}
-
-		return false;
-	}//end isSimulatedValue()
 
 	/**
 	 * Keep the stored `checkedAt` when status and message did not change.

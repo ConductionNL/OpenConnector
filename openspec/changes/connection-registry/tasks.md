@@ -10,7 +10,7 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 ## 2. Backend
 
 - [x] 2.1 `ConnectionDeclarationValidator`, mirroring the JSON Schema, with a drift test against it.
-- [x] 2.2 `ConnectionStatusResolver`, the D4 rules in order.
+- [x] 2.2 `ConnectionStatusResolver`, the D4 rules in order, reading app config through `ConnectionConfigReader`.
 - [x] 2.3 `ConnectionRegistryService::sync()`, `report()`, `refresh()`, `probe()`, `link()` (D5, D6, D7, D9).
 - [x] 2.4 `ConnectionStatusReportedEvent` and `ConnectionRefreshRequestedEvent` exactly as D6, with listeners that never throw.
 - [x] 2.5 `SyncConnectionDeclarations` repair step on install and post-migration, and an app lifecycle listener for `AppEnableEvent` and `AppDisableEvent`.

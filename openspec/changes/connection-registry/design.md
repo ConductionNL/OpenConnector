@@ -43,7 +43,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 ## Amendments from umbrella D12 (hydra#673)
 
-**What the resolver reads as the adapter value.** Without `adapter.jsonPath` it is the trimmed config value, as before. With it, the resolver decodes the value as JSON and walks the dot path. Missing segments, invalid JSON, `null`, objects and lists all read as the empty string. A boolean reads as `true` or `false` and a number as its digits, so a declaration can list them in `simulatedValues`. A value Nextcloud stores under the array type is read with `getValueArray`, because `getValueString` refuses it.
+**What the resolver reads as the adapter value.** `ConnectionConfigReader` holds this, so the resolver keeps only the rule order. Without `adapter.jsonPath` it is the trimmed config value, as before. With it, the resolver decodes the value as JSON and walks the dot path. Missing segments, invalid JSON, `null`, objects and lists all read as the empty string. A boolean reads as `true` or `false` and a number as its digits, so a declaration can list them in `simulatedValues`. A value Nextcloud stores under the array type is read with `getValueArray`, because `getValueString` refuses it.
 
 **A declared `simulatedValues` that is not a list.** The validator refuses the file, so the resolver only meets one in a row written before the file changed. It then uses the default `[""]`.
 
