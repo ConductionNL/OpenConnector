@@ -482,9 +482,11 @@ class DirectorySyncService {
 
 			if ($add === true) {
 				$group->addUser($user);
-			} else {
-				$group->removeUser($user);
+
+				return true;
 			}
+
+			$group->removeUser($user);
 
 			return true;
 		} catch (Throwable $exception) {
