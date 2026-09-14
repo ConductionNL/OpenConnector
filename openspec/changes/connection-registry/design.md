@@ -1,6 +1,6 @@
 # Design: connection-registry (integriq)
 
-The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`, amended by hydra#673. Its sections D1 to D12 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
+The contract is the hydra umbrella design, `openspec/changes/connection-registry/design.md` on hydra branch `feat/connection-registry`, amended by hydra#673 and hydra#674. Its sections D1 to D12 are referenced by number here and are not copied. Where this file makes a choice the umbrella leaves open, it says so.
 
 ## Where each decision lands
 
@@ -52,3 +52,13 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 **Where `limited` lives.** `ConnectionStatusResolver::STATUSES` is the one list the report path checks, so adding `limited` there is the listener's allow-list too. The schema moves to 1.1.0 and the app version moves, so the register import picks up the new enum value on upgrade.
 
 **The order of the health job.** Sync, probes, then the resolve of every row. The resolve used to run before the probes. Running it last means a probe written this hour and a key set with `occ` both show in the same run.
+
+## Amendment: a refresh retires older observations (umbrella D6, D12 item 5, hydra#674)
+
+**Two refresh paths, one of them stamps.** `ConnectionRegistryService::refreshRequested()` is what the refresh listener calls. It writes `refreshedAt` and saves every requested row, even when the status stays the same. `refresh()` is the plain resolve that the hourly job and `AppDisableEvent` use. It never writes `refreshedAt`, so the job cannot retire an observation an hour after it was made.
+
+**How the comparison reads.** Both times are parsed to instants, so `12:05+02:00` equals `10:05Z`. An observation retires only when it is strictly older. An equal time counts, because `now()` has one-second precision and a report sent in the same second as the save may describe the new settings. An observation without `at` is older than any refresh. A `refreshedAt` that does not parse retires nothing.
+
+**What stays on the row.** A retired `lastReport` or `lastProbe` is not cleared. The resolver skips it, and the row keeps it for reading.
+
+**Schema.** `refreshedAt` joins `app_connection` as a date-time property, and the schema moves to 1.2.0. `ConnectionStore::PROPERTIES` lists it, so a write keeps it. The app version moves, so the register import picks up the new property on upgrade.
