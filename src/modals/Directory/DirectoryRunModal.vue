@@ -89,10 +89,12 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
 		source: {
 			type: Object,
 			default: null,
 		},
+
 		mode: {
 			type: String,
 			default: 'run',
@@ -158,7 +160,7 @@ export default {
 					},
 				)
 				this.record = response.data
-			} catch (error) {
+			} catch {
 				this.error = t('integriq', 'The run could not be started.')
 			} finally {
 				this.busy = false

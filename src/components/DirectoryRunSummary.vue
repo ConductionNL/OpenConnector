@@ -110,10 +110,6 @@ export default {
 			type: Object,
 			default: () => ({}),
 		},
-		created: {
-			type: String,
-			default: '',
-		},
 	},
 
 	computed: {

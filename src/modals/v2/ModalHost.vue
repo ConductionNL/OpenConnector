@@ -70,10 +70,10 @@
 
 <script>
 import CatalogItemDetailDialog from '../../dialogs/CatalogItemDetailDialog.vue'
-import DirectoryRunModal from '../Directory/DirectoryRunModal.vue'
 import ExportConfigurationDialog from '../../dialogs/ExportConfigurationDialog.vue'
 import ImportPreviewDialog from '../../dialogs/ImportPreviewDialog.vue'
 import LinkSourceDialog from '../../dialogs/LinkSourceDialog.vue'
+import DirectoryRunModal from '../Directory/DirectoryRunModal.vue'
 import PromotePreviewModal from '../PromotePreviewModal.vue'
 import SubscriptionSigningModal from '../Subscription/SubscriptionSigningModal.vue'
 import AddEndpointRuleModal from './AddEndpointRuleModal.vue'
@@ -248,7 +248,9 @@ export default {
 		},
 
 		/**
-		 * @param payload
+		 * Open the directory-run modal for one connection.
+		 *
+		 * @param {object} payload The modal-bus payload: source and mode.
 		 * @spec openspec/changes/directory-and-group-sync/specs/directory-sync/spec.md#requirement-a-run-can-be-previewed-and-a-large-removal-is-guarded-req-ds-005
 		 */
 		openDirectoryRun(payload) {

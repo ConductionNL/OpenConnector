@@ -118,6 +118,47 @@ class ScimControllerTest extends TestCase {
 	}//end testAnInvalidCredentialReadsNothing()
 
 	/**
+	 * Every SCIM route rejects an unauthenticated call before it reads.
+	 *
+	 * One test per route rather than one for the surface: a route that quietly
+	 * lost its gate would otherwise be covered by a test that never called it.
+	 *
+	 * @return void
+	 */
+	public function testEverySCIMRouteRejectsAnUnauthenticatedCall(): void {
+		$this->request->method('getHeader')->willReturn('');
+		$this->request->method('getParams')->willReturn([]);
+		$this->provisioningService->expects($this->never())->method('listUsers');
+		$this->provisioningService->expects($this->never())->method('getUser');
+		$this->provisioningService->expects($this->never())->method('upsertUser');
+		$this->provisioningService->expects($this->never())->method('deactivateUser');
+		$this->provisioningService->expects($this->never())->method('listGroups');
+		$this->provisioningService->expects($this->never())->method('setGroupMembers');
+
+		$controller = $this->controller();
+
+		$responses = [
+			'listUsers' => $controller->listUsers(),
+			'getUser' => $controller->getUser(id: 'admin'),
+			'createUser' => $controller->createUser(),
+			'updateUser' => $controller->updateUser(id: 'admin'),
+			'deleteUser' => $controller->deleteUser(id: 'admin'),
+			'listGroups' => $controller->listGroups(),
+			'updateGroup' => $controller->updateGroup(id: 'behandelaars'),
+		];
+
+		foreach ($responses as $route => $response) {
+			$this->assertSame(
+				Http::STATUS_UNAUTHORIZED,
+				$response->getStatus(),
+				$route . ' must reject an unauthenticated call'
+			);
+			$this->assertArrayNotHasKey('Resources', $response->getData());
+		}
+
+	}//end testEverySCIMRouteRejectsAnUnauthenticatedCall()
+
+	/**
 	 * A valid credential reads the users and answers a SCIM ListResponse.
 	 *
 	 * @return void

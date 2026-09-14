@@ -176,11 +176,7 @@ class DirectorySyncController extends Controller {
 			]
 		);
 
-		/**
-		 * The run records, narrowed to directory runs.
-		 *
-		 * @var array<int,array<string,mixed>> $rows
-		 */
+		// The run records, narrowed to directory runs below.
 		$rows = [];
 		foreach (($matches['results'] ?? $matches) as $match) {
 			if (($match instanceof ObjectEntity) === false) {
@@ -198,7 +194,7 @@ class DirectorySyncController extends Controller {
 			$rows[] = $object;
 		}
 
-		return new JSONResponse(['results' => array_values($rows), 'total' => count($rows)]);
+		return new JSONResponse(['results' => $rows, 'total' => count($rows)]);
 
 	}//end runs()
 

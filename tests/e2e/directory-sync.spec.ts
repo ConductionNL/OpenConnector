@@ -19,9 +19,11 @@
  * deliberately not restated here.
  */
 
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { appDialog } from './support/dialogs.ts'
+import type { APIRequestContext, Page } from '@playwright/test'
+
+import { expect, test } from '@playwright/test'
 import { APP_BASE } from './spec-coverage/_helpers.ts'
+import { appDialog } from './support/dialogs.ts'
 
 const OR_BASE = '/index.php/apps/openregister/api/objects/integriq'
 const API_BASE = '/index.php/apps/integriq/api'
