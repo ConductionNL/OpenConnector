@@ -23,7 +23,7 @@
 - 📋 Pas bedrijfsregels toe op endpoint-verkeer en houd een audit trail per object bij
 
     ]]></description>
-	<version>0.4.7-unstable.20260914120000</version>
+	<version>0.4.7-unstable.20260914160000</version>
 	<licence>EUPL-1.2</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>Integriq</namespace>
@@ -91,8 +91,8 @@
 		<job>OCA\Integriq\BackgroundJob\IwmoIjwRetryJob</job>
 		<job>OCA\Integriq\BackgroundJob\StufZknRetryJob</job>
 		<!-- connection-registry D7: hourly. Syncs declarations whose app
-		     version moved, resolves every connection row, and probes at most
-		     25 linked sources, oldest first. -->
+		     version moved, probes at most 25 linked sources, oldest first,
+		     then resolves every connection row without an outbound call. -->
 		<job>OCA\Integriq\BackgroundJob\ConnectionHealthJob</job>
 	</background-jobs>
 

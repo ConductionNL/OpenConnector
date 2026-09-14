@@ -65,6 +65,7 @@ class ConnectionDeclarationValidator {
 		'unavailableMessage' => [false, 'string'],
 		'unconfiguredMessage' => [false, 'string'],
 		'sourceTemplate' => [false, 'nonEmptyString'],
+		'reportedOnly' => [false, 'boolean'],
 	];
 
 	/**
@@ -74,6 +75,8 @@ class ConnectionDeclarationValidator {
 	 */
 	private const ADAPTER_FIELDS = [
 		'configKey' => [false, 'nonEmptyString'],
+		'jsonPath' => [false, 'dotPath'],
+		'simulatedValues' => [false, 'anyStringList'],
 		'simulatedMessage' => [false, 'string'],
 	];
 
@@ -92,6 +95,8 @@ class ConnectionDeclarationValidator {
 		'path' => 'must be an absolute path starting with /',
 		'list' => 'must be an array',
 		'stringList' => 'must be an array of non-empty strings',
+		'anyStringList' => 'must be an array of strings',
+		'dotPath' => 'must match ^[^.]+(\\.[^.]+)*$',
 		'object' => 'must be an object',
 	];
 
@@ -232,8 +237,8 @@ class ConnectionDeclarationValidator {
 	 * @return bool
 	 */
 	private function matchesPattern(string $type, mixed $value): bool {
-		if ($type === 'stringList') {
-			return $this->isStringList(value: $value);
+		if ($type === 'stringList' || $type === 'anyStringList') {
+			return $this->isStringList(value: $value, allowEmpty: $type === 'anyStringList');
 		}
 
 		if (is_string($value) === false) {
@@ -244,24 +249,26 @@ class ConnectionDeclarationValidator {
 			'appId' => preg_match('/^[a-z0-9_]+$/', $value) === 1,
 			'key' => preg_match('/^[a-z0-9]+(-[a-z0-9]+)*$/', $value) === 1,
 			'path' => str_starts_with($value, '/'),
+			'dotPath' => preg_match('/^[^.]+(\.[^.]+)*$/', $value) === 1,
 			default => false,
 		};
 	}//end matchesPattern()
 
 	/**
-	 * Whether a value is a list of non-empty strings.
+	 * Whether a value is a list of strings.
 	 *
 	 * @param mixed $value The value.
+	 * @param bool $allowEmpty Whether an empty string may be an item.
 	 *
 	 * @return bool
 	 */
-	private function isStringList(mixed $value): bool {
+	private function isStringList(mixed $value, bool $allowEmpty): bool {
 		if (is_array($value) === false || array_is_list($value) === false) {
 			return false;
 		}
 
 		foreach ($value as $item) {
-			if (is_string($item) === false || $item === '') {
+			if (is_string($item) === false || ($allowEmpty === false && $item === '')) {
 				return false;
 			}
 		}

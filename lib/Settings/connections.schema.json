@@ -69,7 +69,19 @@
             "configKey": {
               "type": "string",
               "minLength": 1,
-              "description": "App-config key naming the adapter class. Empty in the app's config means a mock answers."
+              "description": "App-config key that selects the adapter: a class name, a provider name or a JSON settings blob."
+            },
+            "jsonPath": {
+              "type": "string",
+              "pattern": "^[^.]+(\\.[^.]+)*$",
+              "description": "Dot path into the value when configKey holds a JSON object, such as chat.provider. A missing path reads as empty."
+            },
+            "simulatedValues": {
+              "type": "array",
+              "description": "The values that mean a mock adapter answers. Compared case-insensitively after trimming. Default: one empty string.",
+              "items": {
+                "type": "string"
+              }
             },
             "simulatedMessage": {
               "type": "string",
@@ -93,6 +105,10 @@
           "type": "string",
           "minLength": 1,
           "description": "Slug of an integriq source template, offered first when an admin links a source."
+        },
+        "reportedOnly": {
+          "type": "boolean",
+          "description": "true means only the app can tell what answers. Integriq then skips the adapter and settings rules. Default false."
         }
       }
     }

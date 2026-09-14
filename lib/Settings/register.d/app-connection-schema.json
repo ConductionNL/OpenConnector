@@ -1,5 +1,5 @@
 {
-  "$comment": "connection-registry (ADR-037 register fragment). Adds the app_connection schema (hydra umbrella D11: stackiq already owns the global slug `connection`): one row per outside connection an app declares in its lib/Settings/connections.json. Rows are written by ConnectionRegistryService (sync, resolver, reports, health job, link-a-source), never by hand, which is why the overview page hides the built-in create and edit actions. Access is admin-only for every verb, following 99-source-lockdown.json: a row links a source uuid, and the page is an admin page in every app that adopts it. Contract: hydra openspec/changes/connection-registry/design.md, section D3.",
+  "$comment": "connection-registry (ADR-037 register fragment). Adds the app_connection schema (hydra umbrella D11: stackiq already owns the global slug `connection`): one row per outside connection an app declares in its lib/Settings/connections.json. Rows are written by ConnectionRegistryService (sync, resolver, reports, health job, link-a-source), never by hand, which is why the overview page hides the built-in create and edit actions. Access is admin-only for every verb, following 99-source-lockdown.json: a row links a source uuid, and the page is an admin page in every app that adopts it. Contract: hydra openspec/changes/connection-registry/design.md, sections D3 and D12. Version 1.1.0 adds the limited status.",
   "components": {
     "registers": {
       "integriq": {
@@ -13,9 +13,9 @@
         "slug": "app_connection",
         "title": "App connection",
         "icon": "TransitConnectionVariant",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "summary": "An outside connection an app declares, with its current status",
-        "description": "One row per entry in an app's connections.json. The status says whether the connection is configured, simulated, unavailable, failing or not checked yet.",
+        "description": "One row per entry in an app's connections.json. The status says whether the connection is configured, works in part, is simulated, unavailable, failing or not checked yet.",
         "required": [
           "app",
           "key",
@@ -77,9 +77,10 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "Whether the connection works, as integriq last worked it out.",
+            "description": "Whether the connection works, works in part or not at all, as integriq last worked it out.",
             "enum": [
               "configured",
+              "limited",
               "unconfigured",
               "simulated",
               "unavailable",
@@ -87,6 +88,7 @@
             ],
             "x-enum-labels": {
               "configured": "Configured",
+              "limited": "Limited",
               "unconfigured": "Not configured",
               "simulated": "Simulated",
               "unavailable": "Not available",
@@ -120,7 +122,7 @@
           "lastReport": {
             "type": "object",
             "title": "Last report",
-            "description": "The last status the app reported: status, message and time."
+            "description": "The last status the app reported: status, message and time. A report of simulated stands against any probe."
           }
         }
       }

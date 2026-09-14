@@ -1,7 +1,7 @@
 # connection-registry Specification Delta (integriq)
 
 **Status**: proposed
-**Scope**: integriq. Implements the integriq side of the hydra umbrella change `connection-registry` (REQ-CONN-001 to REQ-CONN-007). The contract shapes live in the umbrella design, D1 to D9.
+**Scope**: integriq. Implements the integriq side of the hydra umbrella change `connection-registry` (REQ-CONN-001 to REQ-CONN-007). The contract shapes live in the umbrella design, D1 to D9, amended by D12.
 
 ## ADDED Requirements
 
@@ -58,9 +58,11 @@ The sync SHALL upsert by app and key. It SHALL delete a row whose key left the d
 
 ### Requirement: The resolver applies the D4 rules in order (REQ-CONN-003)
 
-Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, empty adapter key, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`.
+Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, an adapter value in `adapter.simulatedValues`, a simulated report, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`.
 
-@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row and both orderings.
+The adapter value SHALL be the config value at `adapter.configKey`, or, when `adapter.jsonPath` is set, the scalar at that dot path inside the JSON object the key holds. A missing path, invalid JSON or a non-scalar value MUST read as the empty string. `adapter.simulatedValues` SHALL be compared case-insensitively after trimming and SHALL default to `[""]`, so a declaration without it keeps its meaning. A row whose declaration carries `reportedOnly: true` MUST skip the adapter rule and the required settings rule. A `lastReport` with status `simulated` SHALL win over any probe, with `checkedAt` set to the report's `at`. No rule SHALL produce `limited` from a declaration.
+
+@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases and the unchanged defaults.
 
 #### Scenario: a disabled app shows unavailable
 
@@ -81,6 +83,35 @@ Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first ru
 - AND its adapter key is empty
 - WHEN the resolver runs
 - THEN the status is `simulated`
+
+#### Scenario: a provider name selects simulated
+
+- GIVEN the email declaration names `adapter.configKey` `email_transport_type` with `simulatedValues` `["", "null"]`
+- AND the app config holds `null`
+- WHEN the resolver runs
+- THEN the row's status is `simulated`
+
+#### Scenario: a JSON path reads inside a settings blob
+
+- GIVEN the llm declaration names `adapter.configKey` `llm` with `jsonPath` `provider` and `simulatedValues` `["", "none"]`
+- AND the app config `llm` holds `{"provider": "openai"}`
+- WHEN the resolver runs
+- THEN rule 3 does not apply to the row
+
+#### Scenario: a reported-only row ignores filled settings
+
+- GIVEN the cti declaration carries `reportedOnly: true` and `requiredConfig`
+- AND every required key is filled
+- AND the row has no report and no probe
+- WHEN the resolver runs
+- THEN the status is `unconfigured`
+
+#### Scenario: a simulated report stands against a newer probe
+
+- GIVEN a row's last report says `simulated` at 10:00
+- AND its last probe says `ok` at 11:00
+- WHEN the resolver runs
+- THEN the status is `simulated` and `checkedAt` is 10:00
 
 #### Scenario: the newer observation wins
 
@@ -106,7 +137,7 @@ Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first ru
 
 ### Requirement: Apps report and refresh through two typed events (REQ-CONN-004)
 
-Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. Neither listener SHALL throw into the sender.
+Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. A report MAY carry any of the six statuses `configured`, `limited`, `unconfigured`, `simulated`, `unavailable` and `error`. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. Neither listener SHALL throw into the sender.
 
 @e2e exclude An in-process event exchange with no browser surface. ConnectionEventListenersTest and ConnectionRegistryServiceTest prove it.
 
@@ -115,6 +146,11 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 - WHEN dossiq sends `ConnectionStatusReportedEvent('dossiq', 'mailbox', 'configured', 'Logged in')`
 - THEN the mailbox row's `lastReport` holds that status and message
 - AND the row has been resolved
+
+#### Scenario: an app reports a connection that works in part
+
+- WHEN pipelinq sends `ConnectionStatusReportedEvent('pipelinq', 'social-bluesky', 'limited', 'Preview API: posting works, reading replies does not.')`
+- THEN the row's status is `limited` with that message
 
 #### Scenario: an unknown key is refused without an exception
 
@@ -125,9 +161,9 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 
 ### Requirement: The health job probes linked sources every hour (REQ-CONN-005)
 
-`ConnectionHealthJob` SHALL run every 3600 seconds and probe at most 25 rows with a `source`, oldest `lastProbe.at` first. A source whose `circuitBreakerState` is `open` SHALL be recorded as `error` without a call. Otherwise the job SHALL make the call `SourcesController::test` makes, with `persistLog` false. The job SHALL also sync every app whose version differs from its rows' `declaredVersion`.
+`ConnectionHealthJob` SHALL run every 3600 seconds and probe at most 25 rows with a `source`, oldest `lastProbe.at` first. A source whose `circuitBreakerState` is `open` SHALL be recorded as `error` without a call. Otherwise the job SHALL make the call `SourcesController::test` makes, with `persistLog` false. The job SHALL also sync every app whose version differs from its rows' `declaredVersion`. After the probes, the job SHALL resolve every row, linked or not. That step MUST make no outbound call and has no cap.
 
-@e2e exclude A cron job with no browser surface. ConnectionHealthJobTest and ConnectionRegistryServiceTest prove the cap, the order and the breaker rule.
+@e2e exclude A cron job with no browser surface. ConnectionHealthJobTest and ConnectionRegistryServiceTest prove the cap, the order, the breaker rule and the resolve of unlinked rows.
 
 #### Scenario: an open breaker is not called
 
@@ -135,6 +171,13 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 - WHEN the health job runs
 - THEN no outbound call is made for that source
 - AND the row's `lastProbe` is `error` with "The circuit breaker is open after 5 failures."
+
+#### Scenario: a key set with occ shows within the hour
+
+- GIVEN a row has no source and reads `unconfigured`
+- AND an admin fills its required keys with `occ config:app:set`
+- WHEN the health job runs
+- THEN the row reads `configured` without any outbound request
 
 #### Scenario: at most 25 probes per run
 
