@@ -168,6 +168,38 @@ class ConnectionRegistryService {
 	}//end refresh()
 
 	/**
+	 * Take an app's refresh request: stamp `refreshedAt`, then resolve.
+	 *
+	 * Only this path writes `refreshedAt`. A sync, a report, a probe and a plain
+	 * {@see refresh()} keep the stored value. The stamp retires every report
+	 * and probe older than itself from D4 rules 4a and 4b, because the settings
+	 * they judged have changed. The observations stay on the row for reading.
+	 *
+	 * @param string $app The declaring app.
+	 * @param string|null $key One connection key of that app, or null for all of its rows.
+	 *
+	 * @return int The number of rows saved.
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
+	 */
+	public function refreshRequested(string $app, ?string $key = null): int {
+		$now = $this->resolver->now();
+		$saved = 0;
+		foreach ($this->store->findRows(app: $app) as $row) {
+			if ($key !== null && ($row['data']['key'] ?? null) !== $key) {
+				continue;
+			}
+
+			$data = $row['data'];
+			$data['refreshedAt'] = $now;
+			$this->store->save(data: $this->resolveRow(data: $data), uuid: $row['uuid']);
+			$saved++;
+		}
+
+		return $saved;
+	}//end refreshRequested()
+
+	/**
 	 * Record a status an app reported, then resolve the row.
 	 *
 	 * Refuses an unknown status or an app and key nothing declared, with a

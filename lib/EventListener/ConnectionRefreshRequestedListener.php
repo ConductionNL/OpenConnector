@@ -4,8 +4,9 @@
  * Integriq ConnectionRefreshRequested EventListener.
  *
  * Receives an app's {@see ConnectionRefreshRequestedEvent} after its settings
- * changed, and resolves that app's connection rows again. It never throws into
- * the sender, whose settings save must not fail because of a status.
+ * changed. It stamps `refreshedAt` on the affected rows, which retires older
+ * reports and probes, and resolves them again. It never throws into the
+ * sender, whose settings save must not fail because of a status.
  *
  * @category EventListener
  * @package  OCA\Integriq\EventListener
@@ -63,6 +64,7 @@ class ConnectionRefreshRequestedListener implements IEventListener {
 	 * @return void
 	 *
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#requirement-apps-report-and-refresh-through-two-typed-events-req-conn-004
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-save-retires-an-older-error
 	 */
 	public function handle(Event $event): void {
 		if (($event instanceof ConnectionRefreshRequestedEvent) === false) {
@@ -75,7 +77,7 @@ class ConnectionRefreshRequestedListener implements IEventListener {
 		}
 
 		try {
-			$this->container->get(ConnectionRegistryService::class)->refresh(app: $event->app, key: $event->key);
+			$this->container->get(ConnectionRegistryService::class)->refreshRequested(app: $event->app, key: $event->key);
 		} catch (\Throwable $e) {
 			$this->logger->error(
 				'Integriq could not refresh the connections of {declaringApp}: {reason}',

@@ -76,6 +76,7 @@ class ConnectionStore {
 		'source',
 		'lastProbe',
 		'lastReport',
+		'refreshedAt',
 	];
 
 	/**
