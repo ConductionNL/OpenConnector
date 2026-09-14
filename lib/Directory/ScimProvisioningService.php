@@ -299,9 +299,12 @@ class ScimProvisioningService {
 	private function setActive(IUser $user, bool $active): void {
 		$user->setEnabled($active);
 
-		$this->logger->info(
-			'[Scim] account ' . $user->getUID() . ' set to ' . ($active === true ? 'active' : 'inactive'),
-		);
+		$state = 'inactive';
+		if ($active === true) {
+			$state = 'active';
+		}
+
+		$this->logger->info('[Scim] account ' . $user->getUID() . ' set to ' . $state);
 
 	}//end setActive()
 

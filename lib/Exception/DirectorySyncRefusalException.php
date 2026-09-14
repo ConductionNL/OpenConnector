@@ -55,7 +55,7 @@ class DirectorySyncRefusalException extends Exception {
 		string $message,
 		private readonly array $context = [],
 	) {
-		parent::__construct($message);
+		parent::__construct(message: $message);
 
 	}//end __construct()
 

@@ -40,6 +40,7 @@ use OCA\Integriq\Exception\AuthenticationException;
 use OCA\Integriq\Service\AuthorizationService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AnonRateLimit;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\JSONResponse;
@@ -98,6 +99,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function listUsers(): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -124,6 +126,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function getUser(string $id): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -148,6 +151,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function createUser(): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -171,6 +175,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function updateUser(string $id): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -195,6 +200,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function deleteUser(string $id): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -218,6 +224,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function listGroups(): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {
@@ -244,6 +251,7 @@ class ScimController extends Controller {
 	 */
 	#[NoCSRFRequired]
 	#[PublicPage]
+	#[AnonRateLimit(limit: 600, period: 60)]
 	public function updateGroup(string $id): JSONResponse {
 		$rejected = $this->authorize();
 		if ($rejected !== null) {

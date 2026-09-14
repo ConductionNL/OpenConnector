@@ -144,7 +144,7 @@ class GroupMappingResolver {
 			if ($createMissing === false) {
 				throw new DirectorySyncRefusalException(
 					message: $this->l10n->t(
-						'The mapping points at the Nextcloud group "%1$s", which does not exist, and creating missing groups is turned off for this connection. Nothing was changed.',
+						'The mapping points at the Nextcloud group "%1$s", which does not exist. Creating missing groups is off for this connection, so nothing was changed.',
 						[$groupId]
 					),
 					context: ['reason' => 'unknown-target-group', 'group' => $groupId]

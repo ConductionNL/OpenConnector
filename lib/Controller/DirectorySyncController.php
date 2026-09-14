@@ -176,13 +176,18 @@ class DirectorySyncController extends Controller {
 			]
 		);
 
+		/**
+		 * The run records, narrowed to directory runs.
+		 *
+		 * @var array<int,array<string,mixed>> $rows
+		 */
 		$rows = [];
 		foreach (($matches['results'] ?? $matches) as $match) {
 			if (($match instanceof ObjectEntity) === false) {
 				continue;
 			}
 
-			$object = $match->getObject();
+			$object = (array)$match->getObject();
 			// Only directory runs: the run log is shared with every other
 			// synchronization, and a screen that mixed them would be reporting
 			// about something adjacent to what it claims.
@@ -193,7 +198,7 @@ class DirectorySyncController extends Controller {
 			$rows[] = $object;
 		}
 
-		return new JSONResponse(['results' => $rows, 'total' => count($rows)]);
+		return new JSONResponse(['results' => array_values($rows), 'total' => count($rows)]);
 
 	}//end runs()
 
