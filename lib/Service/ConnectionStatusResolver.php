@@ -13,6 +13,10 @@
  *   5. every `requiredConfig` key is filled          -> configured, now
  *   6. otherwise                                     -> unconfigured, empty
  *
+ * Rule 6 uses the declared `unconfiguredMessage` when there is one, and rule
+ * 5 says "Required settings are filled." rather than "saved": a register
+ * import can fill the keys too (umbrella amendment from dossiq#2715).
+ *
  * Rule 3 sits above rule 4 on purpose. A mock adapter never calls the source,
  * so a green probe says nothing about what the app actually sends.
  *
@@ -95,7 +99,12 @@ class ConnectionStatusResolver {
 			?? $this->ruleSimulated(row: $row, declaration: $declaration, now: $now)
 			?? $this->ruleObserved(row: $row)
 			?? $this->ruleSettingsSaved(row: $row, declaration: $declaration, now: $now)
-			?? $this->outcome(status: 'unconfigured', message: 'Not checked yet.', checkedAt: null, rule: 6);
+			?? $this->outcome(
+				status: 'unconfigured',
+				message: $this->nonEmptyString(value: $declaration['unconfiguredMessage'] ?? null, fallback: 'Not checked yet.'),
+				checkedAt: null,
+				rule: 6
+			);
 	}//end resolve()
 
 	/**
@@ -217,7 +226,7 @@ class ConnectionStatusResolver {
 			return null;
 		}
 
-		$message = 'Saved in the admin settings.';
+		$message = 'Required settings are filled.';
 
 		return $this->outcome(
 			status: 'configured',

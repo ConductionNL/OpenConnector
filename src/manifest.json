@@ -827,7 +827,7 @@
     },
     {
       "id": "AppConnections",
-      "route": "/connections/apps",
+      "route": "/connections",
       "type": "index",
       "title": "App connections",
       "permission": "admin",

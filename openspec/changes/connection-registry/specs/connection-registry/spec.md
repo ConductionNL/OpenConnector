@@ -89,13 +89,20 @@ Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first ru
 - WHEN the resolver runs
 - THEN the status is `error` and `checkedAt` is 11:00
 
+#### Scenario: a declared unconfigured message replaces the default
+
+- GIVEN the brp declaration carries `unconfiguredMessage` naming `integration.brp.mode`
+- AND the row has no probe, no report and no required settings
+- WHEN the resolver runs
+- THEN the status is `unconfigured` with the declared message
+
 #### Scenario: saved settings show configured
 
 - GIVEN the declaration requires `register` and `case_schema`
 - AND both hold values in the app's config
 - AND the row has no probe and no report
 - WHEN the resolver runs
-- THEN the status is `configured` with "Saved in the admin settings."
+- THEN the status is `configured` with "Required settings are filled."
 
 ### Requirement: Apps report and refresh through two typed events (REQ-CONN-004)
 
@@ -137,7 +144,7 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 
 ### Requirement: Integriq shows all connections on one admin page (REQ-CONN-006)
 
-Integriq SHALL render an admin-only `index` page over `integriq/connection` under the Connections menu group, with `app` as a column and as the folder sidebar field. The page MUST NOT offer the built-in add, edit, copy or import actions.
+Integriq SHALL render an admin-only `index` page at `/connections` over `integriq/connection` under the Connections menu group, with `app` as a column and as the folder sidebar field. The page MUST NOT offer the built-in add, edit, copy or import actions.
 
 #### Scenario: the overview lists connection rows with their app
 
@@ -162,7 +169,7 @@ The overview SHALL offer "Add integration", which opens `LinkSourceDialog`. The 
 
 #### Scenario: the link query opens the dialog pre-filtered
 
-- WHEN an admin opens App connections with `?app=dossiq&link=1`
+- WHEN an admin opens `/apps/integriq/connections?app=dossiq&link=1`
 - THEN the link a source dialog opens
 - AND its app filter is dossiq
 

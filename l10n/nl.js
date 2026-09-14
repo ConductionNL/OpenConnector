@@ -1091,7 +1091,8 @@ OC.L10N.register(
         "This source does not exist.": "Deze bron bestaat niet.",
         "This connection already has a source.": "Deze koppeling heeft al een bron.",
         "This connection declares no source template.": "Deze koppeling declareert geen bronsjabloon.",
-        "The source template for this connection was not found.": "Het bronsjabloon voor deze koppeling is niet gevonden."
+        "The source template for this connection was not found.": "Het bronsjabloon voor deze koppeling is niet gevonden.",
+        "Shown while nothing is known about the connection yet. Default: Not checked yet.": "Getoond zolang er nog niets over de koppeling bekend is. Standaard: Not checked yet."
     },
     "nplurals=2; plural=(n != 1);"
 )

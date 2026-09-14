@@ -1094,7 +1094,8 @@ OC.L10N.register(
         "This source does not exist.": "This source does not exist.",
         "This connection already has a source.": "This connection already has a source.",
         "This connection declares no source template.": "This connection declares no source template.",
-        "The source template for this connection was not found.": "The source template for this connection was not found."
+        "The source template for this connection was not found.": "The source template for this connection was not found.",
+        "Shown while nothing is known about the connection yet. Default: Not checked yet.": "Shown while nothing is known about the connection yet. Default: Not checked yet."
     },
     "nplurals=2; plural=(n != 1);"
 )

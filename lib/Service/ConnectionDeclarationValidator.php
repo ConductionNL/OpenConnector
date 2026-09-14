@@ -63,6 +63,7 @@ class ConnectionDeclarationValidator {
 		'adapter' => [false, 'object'],
 		'available' => [false, 'boolean'],
 		'unavailableMessage' => [false, 'string'],
+		'unconfiguredMessage' => [false, 'string'],
 		'sourceTemplate' => [false, 'nonEmptyString'],
 	];
 

@@ -24,7 +24,7 @@ test.describe('App connections overview (connection-registry)', () => {
 	// @e2e connection-registry::the-overview-lists-connection-rows-with-their-app
 	test('the overview shows the connection columns, app included', async ({ page }) => {
 		const sink = trackErrors(page)
-		await navTo(page, 'App connections', '/connections/apps')
+		await navTo(page, 'App connections', '/connections')
 
 		for (const column of ['App', 'Connection', 'Status', 'Status message', 'Last checked', 'Settings']) {
 			await expect(
@@ -39,7 +39,7 @@ test.describe('App connections overview (connection-registry)', () => {
 	// @e2e connection-registry::the-overview-offers-no-free-form-row
 	test('the overview offers no Add button', async ({ page }) => {
 		const sink = trackErrors(page)
-		await navTo(page, 'App connections', '/connections/apps')
+		await navTo(page, 'App connections', '/connections')
 
 		await expect(page.getByRole('button', { name: /Actions/i }).first()).toBeVisible({ timeout: 15_000 })
 		await expect(page.getByRole('button', { name: /^\s*Add\b/i })).toHaveCount(0)
@@ -52,7 +52,7 @@ test.describe('Add integration (connection-registry)', () => {
 	// @e2e connection-registry::add-integration-opens-the-dialog
 	test('Add integration opens the link a source dialog, without a key field', async ({ page }) => {
 		const sink = trackErrors(page)
-		await navTo(page, 'App connections', '/connections/apps')
+		await navTo(page, 'App connections', '/connections')
 
 		await page.getByRole('button', { name: /Actions/i }).first().click()
 		await page.getByRole('menuitem', { name: /Add integration/i }).first().click()
@@ -73,7 +73,7 @@ test.describe('Add integration (connection-registry)', () => {
 	// @e2e connection-registry::the-link-query-opens-the-dialog-pre-filtered
 	test('?app=dossiq&link=1 opens the dialog pre-filtered and drops link from the URL', async ({ page }) => {
 		const sink = trackErrors(page)
-		await page.goto(`${APP_BASE}/connections/apps?app=dossiq&link=1`, { waitUntil: 'domcontentloaded' })
+		await page.goto(`${APP_BASE}/connections?app=dossiq&link=1`, { waitUntil: 'domcontentloaded' })
 
 		const dialog = appDialog(page)
 		await expect(dialog).toBeVisible({ timeout: 20_000 })

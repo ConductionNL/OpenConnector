@@ -54,6 +54,7 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 					'title' => 'Berichtenbox',
 					'adapter' => ['configKey' => 'berichtenbox_adapter', 'simulatedMessage' => 'A mock answers.'],
 					'sourceTemplate' => 'berichtenbox',
+					'unconfiguredMessage' => 'Set berichtenbox_adapter first.',
 				],
 				[
 					'key' => 'kvk',
@@ -97,6 +98,9 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 		$noApp = $valid;
 		unset($noApp['app']);
 
+		$badUnconfigured = $valid;
+		$badUnconfigured['connections'][1]['unconfiguredMessage'] = ['not', 'a', 'string'];
+
 		$badAvailable = $valid;
 		$badAvailable['connections'][2]['available'] = 'no';
 
@@ -113,6 +117,7 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 			'unknown adapter field' => [$badAdapter, false],
 			'no app' => [$noApp, false],
 			'available not boolean' => [$badAvailable, false],
+			'unconfiguredMessage not a string' => [$badUnconfigured, false],
 			'list instead of object' => [[1, 2], false],
 		];
 	}//end fixtures()

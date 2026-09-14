@@ -85,6 +85,10 @@
           "type": "string",
           "description": "Why the connection is not usable."
         },
+        "unconfiguredMessage": {
+          "type": "string",
+          "description": "Shown while nothing is known about the connection yet. Default: Not checked yet."
+        },
         "sourceTemplate": {
           "type": "string",
           "minLength": 1,

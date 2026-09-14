@@ -248,7 +248,7 @@ class ConnectionStatusResolverTest extends TestCase {
 		$outcome = $this->makeResolver(['dossiq.register' => 'dossiq', 'dossiq.case_schema' => 'case'])->resolve($row, true);
 
 		$this->assertSame('configured', $outcome['status']);
-		$this->assertSame('Saved in the admin settings.', $outcome['statusMessage']);
+		$this->assertSame('Required settings are filled.', $outcome['statusMessage']);
 		$this->assertSame(self::NOW, $outcome['checkedAt']);
 		$this->assertSame(5, $outcome['rule']);
 	}//end testRuleFiveSavedSettingsShowConfigured()
@@ -279,6 +279,24 @@ class ConnectionStatusResolverTest extends TestCase {
 		$this->assertNull($outcome['checkedAt']);
 		$this->assertSame(6, $outcome['rule']);
 	}//end testRuleSixNotCheckedYet()
+
+	/**
+	 * Rule 6 uses the declared unconfiguredMessage when there is one.
+	 *
+	 * @return void
+	 */
+	public function testRuleSixUsesDeclaredUnconfiguredMessage(): void {
+		$row = [
+			'app' => 'dossiq',
+			'declaration' => ['key' => 'brp', 'unconfiguredMessage' => 'Set integration.brp.mode to use the BRP.'],
+		];
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame('unconfigured', $outcome['status']);
+		$this->assertSame('Set integration.brp.mode to use the BRP.', $outcome['statusMessage']);
+		$this->assertNull($outcome['checkedAt']);
+	}//end testRuleSixUsesDeclaredUnconfiguredMessage()
 
 	/**
 	 * A value stored under another type counts as filled.

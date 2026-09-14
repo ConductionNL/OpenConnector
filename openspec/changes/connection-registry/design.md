@@ -12,7 +12,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 | D5 sync | `lib/Service/ConnectionRegistryService.php`, `lib/Repair/SyncConnectionDeclarations.php`, `lib/EventListener/ConnectionAppLifecycleListener.php` |
 | D6 events | `lib/Event/ConnectionStatusReportedEvent.php`, `lib/Event/ConnectionRefreshRequestedEvent.php` and their listeners |
 | D7 health job | `lib/BackgroundJob/ConnectionHealthJob.php`, `lib/Service/SourceTestService.php` |
-| D8 overview page | `src/manifest.json` page `AppConnections`, `src/services/formatters.js` |
+| D8 overview page | `src/manifest.json` page `AppConnections`, `src/formatters.js` |
 | D9 add integration | `src/dialogs/LinkSourceDialog.vue`, `lib/Controller/ConnectionsController.php` |
 
 ## Choices the umbrella leaves open
@@ -24,6 +24,8 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 **A key that left the file while a source is linked.** The sync keeps the row and sets its stored `declaration.available` to `false` with `unavailableMessage` "No longer declared by {app}." Rule 2 then gives the D5 status and message on every later resolve, so a probe cannot turn the row green again. When the key comes back, the next sync writes the declared entry over it.
 
 **A file that disappears.** When an enabled app that has rows no longer ships `connections.json`, the sync treats it as an empty declaration. Unlinked rows go, linked rows stay as above.
+
+**Amendments from dossiq#2715, adopted in the umbrella.** A declaration may carry `unconfiguredMessage`, which D4 rule 6 shows instead of "Not checked yet.". Rule 5 says "Required settings are filled.", because a register import can fill the keys without an admin saving anything.
 
 **Tie between a report and a probe.** When `lastReport.at` equals `lastProbe.at`, the probe wins. It is integriq's own observation.
 
@@ -37,4 +39,4 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 **Link and probe in one request.** The dialog posts to `POST /api/connections/{id}/link`. The endpoint is admin-only. It links an existing source, or creates one from the connection's `sourceTemplate` by reusing a source with that slug or the seed payload the catalog uses. It then probes, resolves and returns the row and the probe. A connection that already has a source is refused with 409, because the dialog only offers connections without one.
 
-**Overview page.** Placed under the existing Connections group as "App connections", beside Sources, so the menu gains no top-level entry (ADR-097). The built-in add, edit, copy, delete and import actions are off: a row nothing declared has nothing to check, and a hand edit would be overwritten by the next resolve. `?app=<id>&link=1` opens the dialog, pre-filtered, from `ModalHost`, which already sits outside the routed view.
+**Overview page.** Route `/connections`, so an adopting app's "Add integration" can link to `/apps/integriq/connections?app=<id>&link=1`. Placed under the existing Connections group as "App connections", beside Sources, so the menu gains no top-level entry (ADR-097). The built-in add, edit, copy, delete and import actions are off: a row nothing declared has nothing to check, and a hand edit would be overwritten by the next resolve. `?app=<id>&link=1` opens the dialog, pre-filtered, from `ModalHost`, which already sits outside the routed view.
