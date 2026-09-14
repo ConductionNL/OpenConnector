@@ -45,3 +45,11 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 - [x] 6.2 `ConnectionRegistryService::refreshRequested()` stamps `refreshedAt` on the requested row, or every row of the app for a null key, then resolves. The refresh listener calls it.
 - [x] 6.3 Rules 4a and 4b skip a report or probe older than `refreshedAt`. An equal time counts.
 - [x] 6.4 PHPUnit for both spec scenarios, equal times, a null key, a probe newer than the refresh, and a sync, report and plain resolve that keep `refreshedAt`. The older-than comparison is mutation-checked.
+
+## 7. What counts as a filled setting (umbrella D2, D4, D12 items 6 and 7)
+
+- [x] 7.1 `requiredConfig.items` in `connections.schema.json` is a non-empty key or `{configKey, jsonPath}` with no other fields, and the validator mirrors it.
+- [x] 7.2 `ConnectionConfigReader` reads each entry, a dotted string as one key, and an object through the `adapter.jsonPath` walk.
+- [x] 7.3 A value is empty when it reads as `""`, `false` or `0`, or is `null` or a missing path. A typed key is read with the getter for its type.
+- [x] 7.4 PHPUnit for the three spec scenarios, each empty value, `"no"` and `"00"` as filled, object and dotted entries in the validator and the schema, and unchanged string declarations. Removing `false` from the empty values turns the switch scenario red on its assertion.
+

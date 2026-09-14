@@ -20,6 +20,8 @@ namespace OCA\Integriq\Tests\Unit\Service;
 use DateTimeImmutable;
 use OCA\Integriq\Service\ConnectionStatusResolver;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\Exceptions\AppConfigTypeConflictException;
+use OCP\Exceptions\AppConfigUnknownKeyException;
 use OCP\IAppConfig;
 use PHPUnit\Framework\TestCase;
 
@@ -38,7 +40,11 @@ class ConnectionStatusResolverTest extends TestCase {
 	/**
 	 * Build a resolver over a fixed config map and clock.
 	 *
-	 * @param array<string,string> $config Key => value in the declaring app's config.
+	 * A string value is stored under the string type. A bool, int, float or
+	 * array value is stored under its own type, so getValueString() refuses it
+	 * the way Nextcloud does.
+	 *
+	 * @param array<string,mixed> $config Key => value in the declaring app's config.
 	 *
 	 * @return ConnectionStatusResolver
 	 */
@@ -46,9 +52,28 @@ class ConnectionStatusResolverTest extends TestCase {
 		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
 		$appConfig->method('getValueString')->willReturnCallback(
 			static function (string $app, string $key, string $default = '', bool $lazy = false) use ($config): string {
-				return $config[$app . '.' . $key] ?? $default;
+				$value = $config[$app . '.' . $key] ?? $default;
+				if (is_string($value) === false) {
+					throw new AppConfigTypeConflictException('conflict with value type from database');
+				}
+
+				return $value;
 			}
 		);
+		$appConfig->method('getValueType')->willReturnCallback(
+			static fn (string $app, string $key, ?bool $lazy = null): int => match (get_debug_type($config[$app . '.' . $key] ?? '')) {
+				'bool' => IAppConfig::VALUE_BOOL,
+				'int' => IAppConfig::VALUE_INT,
+				'float' => IAppConfig::VALUE_FLOAT,
+				'array' => IAppConfig::VALUE_ARRAY,
+				default => IAppConfig::VALUE_STRING,
+			}
+		);
+		$typed = static fn (string $app, string $key): mixed => $config[$app . '.' . $key];
+		$appConfig->method('getValueBool')->willReturnCallback($typed);
+		$appConfig->method('getValueInt')->willReturnCallback($typed);
+		$appConfig->method('getValueFloat')->willReturnCallback($typed);
+		$appConfig->method('getValueArray')->willReturnCallback($typed);
 
 		$time = $this->createMock(originalClassName: ITimeFactory::class);
 		$time->method('now')->willReturn(new DateTimeImmutable(self::NOW));
@@ -757,4 +782,209 @@ class ConnectionStatusResolverTest extends TestCase {
 			$this->assertSame(expected: '2026-09-14T10:00:00+00:00', actual: $outcome['checkedAt']);
 		}
 	}//end testMissingOrUnreadableRefreshRetiresNothing()
+
+	/**
+	 * A switch stored as a boolean false is not a filled setting.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-switch-stored-as-false-is-not-filled
+	 */
+	public function testSwitchStoredAsFalseIsNotFilled(): void {
+		$row = ['app' => 'stackiq', 'declaration' => ['key' => 'federation', 'requiredConfig' => ['federation_enabled']]];
+
+		$outcome = $this->makeResolver(config: ['stackiq.federation_enabled' => false])->resolve($row, true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+	}//end testSwitchStoredAsFalseIsNotFilled()
+
+	/**
+	 * The control for the scenario above: the same switch stored as true is filled.
+	 *
+	 * @return void
+	 */
+	public function testSwitchStoredAsTrueIsFilled(): void {
+		$row = ['app' => 'stackiq', 'declaration' => ['key' => 'federation', 'requiredConfig' => ['federation_enabled']]];
+
+		$outcome = $this->makeResolver(config: ['stackiq.federation_enabled' => true])->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 5, actual: $outcome['rule']);
+	}//end testSwitchStoredAsTrueIsFilled()
+
+	/**
+	 * A `{configKey, jsonPath}` entry reads one value inside a JSON setting.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-required-value-inside-a-json-setting
+	 */
+	public function testRequiredValueInsideAJsonSetting(): void {
+		$row = [
+			'app' => 'stackiq',
+			'declaration' => ['key' => 'eol-feed', 'requiredConfig' => [['configKey' => 'eolSync', 'jsonPath' => 'enabled']]],
+		];
+
+		$outcome = $this->makeResolver(config: ['stackiq.eolSync' => '{"enabled": true, "interval": 24}'])->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 'Required settings are filled.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: 5, actual: $outcome['rule']);
+	}//end testRequiredValueInsideAJsonSetting()
+
+	/**
+	 * A JSON setting stored under the array type is read through getValueArray, like the adapter path.
+	 *
+	 * @return void
+	 */
+	public function testRequiredValueInsideAnArrayTypedSetting(): void {
+		$row = [
+			'app' => 'stackiq',
+			'declaration' => ['requiredConfig' => [['configKey' => 'eolSync', 'jsonPath' => 'sync.enabled']]],
+		];
+
+		$on = $this->makeResolver(config: ['stackiq.eolSync' => ['sync' => ['enabled' => true]]])->resolve($row, true);
+		$this->assertSame(expected: 'configured', actual: $on['status']);
+
+		$off = $this->makeResolver(config: ['stackiq.eolSync' => ['sync' => ['enabled' => false]]])->resolve($row, true);
+		$this->assertSame(expected: 'unconfigured', actual: $off['status']);
+	}//end testRequiredValueInsideAnArrayTypedSetting()
+
+	/**
+	 * A string entry with dots is the whole key, never a path into a shorter key.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-dotted-key-is-read-as-one-key
+	 */
+	public function testDottedKeyIsReadAsOneKey(): void {
+		$row = ['app' => 'dossiq', 'declaration' => ['key' => 'brp', 'requiredConfig' => ['integration.brp.mode']]];
+
+		$outcome = $this->makeResolver(config: ['dossiq.integration.brp.mode' => 'live'])->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+		$this->assertSame(expected: 5, actual: $outcome['rule']);
+	}//end testDottedKeyIsReadAsOneKey()
+
+	/**
+	 * A dotted string entry does not walk into a JSON setting under its first segment.
+	 *
+	 * @return void
+	 */
+	public function testDottedKeyDoesNotReadInsideAShorterKey(): void {
+		$row = ['app' => 'dossiq', 'declaration' => ['key' => 'brp', 'requiredConfig' => ['integration.brp.mode']]];
+
+		$outcome = $this->makeResolver(config: ['dossiq.integration' => '{"brp": {"mode": "live"}}'])->resolve($row, true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+	}//end testDottedKeyDoesNotReadInsideAShorterKey()
+
+	/**
+	 * Emptiness cases: [stored value, or null for nothing stored, entry, expected filled].
+	 *
+	 * @return array<string,array{0:mixed,1:mixed,2:bool}>
+	 */
+	public static function emptinessCases(): array {
+		$onPath = ['configKey' => 'blob', 'jsonPath' => 'on'];
+
+		return [
+			'empty string is empty' => ['', 'setting', false],
+			'whitespace is empty' => ['   ', 'setting', false],
+			'"false" is empty' => ['false', 'setting', false],
+			'"FALSE" is empty' => ['FALSE', 'setting', false],
+			'"0" is empty' => ['0', 'setting', false],
+			'"0" with whitespace is empty' => [' 0 ', 'setting', false],
+			'nothing stored is empty' => [null, 'setting', false],
+			'boolean false under the bool type is empty' => [false, 'setting', false],
+			'0 under the int type is empty' => [0, 'setting', false],
+			'0.0 under the float type is empty' => [0.0, 'setting', false],
+			'JSON false at the path is empty' => ['{"on": false}', $onPath, false],
+			'JSON 0 at the path is empty' => ['{"on": 0}', $onPath, false],
+			'JSON null at the path is empty' => ['{"on": null}', $onPath, false],
+			'JSON "False " at the path is empty' => ['{"on": "False "}', $onPath, false],
+			'JSON whitespace at the path is empty' => ['{"on": "  "}', $onPath, false],
+			'a missing path is empty' => ['{"other": true}', $onPath, false],
+			'invalid JSON is empty' => ['{on: true', $onPath, false],
+			'an entry that is neither string nor object is empty' => ['live', 42, false],
+			'an object entry without jsonPath is empty' => ['{"on": true}', ['configKey' => 'blob'], false],
+			'a value is filled' => ['live', 'setting', true],
+			'"true" is filled' => ['true', 'setting', true],
+			'1 under the int type is filled' => [1, 'setting', true],
+			'a list under the array type is filled' => [['a'], 'setting', true],
+			'JSON true at the path is filled' => ['{"on": true}', $onPath, true],
+			'JSON 24 at the path is filled' => ['{"on": 24}', $onPath, true],
+			'an object at the path is filled' => ['{"on": {"mode": "live"}}', $onPath, true],
+		];
+	}//end emptinessCases()
+
+	/**
+	 * Rule 5 applies exactly when the entry's value is filled.
+	 *
+	 * @param mixed $stored The stored value, or null for nothing stored.
+	 * @param mixed $entry The requiredConfig entry.
+	 * @param bool $filled Whether the value counts as filled.
+	 *
+	 * @return void
+	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider('emptinessCases')]
+	public function testWhatCountsAsFilled(mixed $stored, mixed $entry, bool $filled): void {
+		$config = [];
+		if ($stored !== null) {
+			$config = ['dossiq.setting' => $stored, 'dossiq.blob' => $stored];
+		}
+
+		$outcome = $this->makeResolver(config: $config)->resolve(['app' => 'dossiq', 'declaration' => ['requiredConfig' => [$entry]]], true);
+
+		$this->assertSame(expected: $filled, actual: $outcome['rule'] === 5);
+	}//end testWhatCountsAsFilled()
+
+	/**
+	 * "no", "00" and "off" count as filled, because only "", "false" and "0" are listed as empty.
+	 *
+	 * @return void
+	 */
+	public function testNoAndDoubleZeroAreFilledBecauseOnlyTheListedValuesAreEmpty(): void {
+		$row = ['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['setting']]];
+
+		foreach (['no', '00', 'off'] as $value) {
+			$outcome = $this->makeResolver(config: ['dossiq.setting' => $value])->resolve($row, true);
+			$this->assertSame(expected: 'configured', actual: $outcome['status'], message: 'value "' . $value . '"');
+		}
+	}//end testNoAndDoubleZeroAreFilledBecauseOnlyTheListedValuesAreEmpty()
+
+	/**
+	 * String and object entries mix, and one empty entry keeps rule 5 off.
+	 *
+	 * @return void
+	 */
+	public function testMixedEntriesNeedEveryOneFilled(): void {
+		$row = [
+			'app' => 'stackiq',
+			'declaration' => ['requiredConfig' => ['register', ['configKey' => 'eolSync', 'jsonPath' => 'enabled']]],
+		];
+
+		$both = $this->makeResolver(config: ['stackiq.register' => 'catalog', 'stackiq.eolSync' => '{"enabled": true}'])->resolve($row, true);
+		$this->assertSame(expected: 'configured', actual: $both['status']);
+
+		$oneOff = $this->makeResolver(config: ['stackiq.register' => 'catalog', 'stackiq.eolSync' => '{"enabled": false}'])->resolve($row, true);
+		$this->assertSame(expected: 'unconfigured', actual: $oneOff['status']);
+	}//end testMixedEntriesNeedEveryOneFilled()
+
+	/**
+	 * A key whose type Nextcloud cannot name still holds a value, so it counts as filled.
+	 *
+	 * @return void
+	 */
+	public function testUnknownTypedKeyCountsAsFilled(): void {
+		$appConfig = $this->createMock(originalClassName: IAppConfig::class);
+		$appConfig->method('getValueString')->willThrowException(new AppConfigTypeConflictException('conflict with value type from database'));
+		$appConfig->method('getValueType')->willThrowException(new AppConfigUnknownKeyException('unknown config key'));
+		$time = $this->createMock(originalClassName: ITimeFactory::class);
+		$time->method('now')->willReturn(new DateTimeImmutable(self::NOW));
+
+		$resolver = new ConnectionStatusResolver(appConfig: $appConfig, timeFactory: $time);
+		$outcome = $resolver->resolve(['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['retries']]], true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+	}//end testUnknownTypedKeyCountsAsFilled()
 }//end class

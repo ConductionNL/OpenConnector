@@ -55,10 +55,33 @@
         },
         "requiredConfig": {
           "type": "array",
-          "description": "App-config keys of the declaring app. All non-empty means the settings are saved.",
+          "description": "Settings of the declaring app that must all be filled. Each entry is an app-config key, always read as the whole key even when it contains dots, or {configKey, jsonPath} to read one value inside a JSON setting. An empty string, false, 0, null or a missing path reads as not filled.",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "An app-config key of the declaring app."
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["configKey", "jsonPath"],
+                "description": "One value inside a JSON setting.",
+                "properties": {
+                  "configKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "App-config key that holds the JSON object."
+                  },
+                  "jsonPath": {
+                    "type": "string",
+                    "pattern": "^[^.]+(\\.[^.]+)*$",
+                    "description": "Dot path to the value, such as enabled or sync.enabled."
+                  }
+                }
+              }
+            ]
           }
         },
         "adapter": {

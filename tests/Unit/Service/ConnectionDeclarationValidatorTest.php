@@ -81,6 +81,20 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 	}//end withAdapter()
 
 	/**
+	 * The valid file with the zgw requiredConfig replaced.
+	 *
+	 * @param mixed $required The requiredConfig value.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function withRequired(mixed $required): array {
+		$file = self::validFile();
+		$file['connections'][0]['requiredConfig'] = $required;
+
+		return $file;
+	}//end withRequired()
+
+	/**
 	 * Fixtures: name => [data, expected valid].
 	 *
 	 * @return array<string,array{0:mixed,1:bool}>
@@ -144,6 +158,8 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 		$badReportedOnly = $valid;
 		$badReportedOnly['connections'][0]['reportedOnly'] = 'yes';
 
+		$jsonEntry = ['configKey' => 'eolSync', 'jsonPath' => 'sync.enabled'];
+
 		return [
 			'valid file' => [$valid, true],
 			'empty connections' => [['app' => 'dossiq', 'connections' => []], true],
@@ -167,6 +183,17 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 			'simulatedValues not a list' => [$simulatedNotList, false],
 			'simulatedValues holding a number' => [$simulatedNotStrings, false],
 			'reportedOnly not boolean' => [$badReportedOnly, false],
+			'requiredConfig with a {configKey, jsonPath} entry' => [self::withRequired(required: ['register', $jsonEntry]), true],
+			'requiredConfig with a dotted key' => [self::withRequired(required: ['integration.brp.mode']), true],
+			'required object without jsonPath' => [self::withRequired(required: [['configKey' => 'eolSync']]), false],
+			'required object without configKey' => [self::withRequired(required: [['jsonPath' => 'enabled']]), false],
+			'required object with an extra field' => [self::withRequired(required: [$jsonEntry + ['simulatedValues' => []]]), false],
+			'required object with an empty configKey' => [self::withRequired(required: [['configKey' => '', 'jsonPath' => 'enabled']]), false],
+			'required object with an empty path segment' => [self::withRequired(required: [['configKey' => 'eolSync', 'jsonPath' => 'sync..enabled']]), false],
+			'required object with a numeric jsonPath' => [self::withRequired(required: [['configKey' => 'eolSync', 'jsonPath' => 1]]), false],
+			'required empty object' => [self::withRequired(required: [[]]), false],
+			'required number' => [self::withRequired(required: ['register', 5]), false],
+			'requiredConfig as an object, not a list' => [self::withRequired(required: $jsonEntry), false],
 		];
 	}//end fixtures()
 
@@ -201,6 +228,20 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 
 		$this->assertSame(expected: ['/connections/1/title: is required'], actual: $errors);
 	}//end testErrorNamesTheFailingPath()
+
+	/**
+	 * A bad requiredConfig entry names the requiredConfig path.
+	 *
+	 * @return void
+	 */
+	public function testBadRequiredEntryNamesThePath(): void {
+		$errors = (new ConnectionDeclarationValidator())->validate(self::withRequired(required: [['configKey' => 'eolSync']]));
+
+		$this->assertSame(
+			expected: ['/connections/0/requiredConfig: must be an array of non-empty strings or {configKey, jsonPath} objects'],
+			actual: $errors
+		);
+	}//end testBadRequiredEntryNamesThePath()
 
 	/**
 	 * A duplicate key is refused, which JSON Schema cannot express.
