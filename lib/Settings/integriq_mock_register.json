@@ -11170,6 +11170,80 @@
             "to": "end"
           }
         ]
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "connection",
+          "slug": "connection-voorbeeld-zgw"
+        },
+        "slug": "connection-voorbeeld-zgw",
+        "app": "voorbeeld",
+        "key": "zgw",
+        "title": "ZGW APIs",
+        "description": "Demo data, safe to delete. A connection whose required settings are filled.",
+        "order": 10,
+        "settingsUrl": "/settings/admin/voorbeeld#section-zgw",
+        "declaration": {
+          "key": "zgw",
+          "title": "ZGW APIs",
+          "order": 10,
+          "requiredConfig": [
+            "register"
+          ]
+        },
+        "declaredVersion": "1.0.0",
+        "status": "configured",
+        "statusMessage": "Required settings are filled.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "connection",
+          "slug": "connection-voorbeeld-berichtenbox"
+        },
+        "slug": "connection-voorbeeld-berichtenbox",
+        "app": "voorbeeld",
+        "key": "berichtenbox",
+        "title": "Berichtenbox",
+        "description": "Demo data, safe to delete. A connection a mock adapter answers for.",
+        "order": 20,
+        "declaration": {
+          "key": "berichtenbox",
+          "title": "Berichtenbox",
+          "order": 20,
+          "adapter": {
+            "configKey": "berichtenbox_adapter"
+          }
+        },
+        "declaredVersion": "1.0.0",
+        "status": "simulated",
+        "statusMessage": "A mock adapter answers here. Set berichtenbox_adapter to a real adapter.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
+      },
+      {
+        "@self": {
+          "register": "integriq",
+          "schema": "connection",
+          "slug": "connection-voorbeeld-kvk"
+        },
+        "slug": "connection-voorbeeld-kvk",
+        "app": "voorbeeld",
+        "key": "kvk",
+        "title": "KvK",
+        "description": "Demo data, safe to delete. A connection that is declared and not built yet.",
+        "order": 30,
+        "declaration": {
+          "key": "kvk",
+          "title": "KvK",
+          "order": 30,
+          "available": false
+        },
+        "declaredVersion": "1.0.0",
+        "status": "unavailable",
+        "statusMessage": "Declared, not built yet.",
+        "checkedAt": "2026-09-14T09:00:00+00:00"
       }
     ]
   }

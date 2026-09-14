@@ -186,7 +186,7 @@ class ConnectionStore {
 	 *
 	 * @return void
 	 *
-	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-removed-key-without-a-source-is-deleted
+	 * @spec exclude Backend-only persistence seam for the declaration sync (REQ-CONN-002, a removed key without a source). No controller or frontend reaches it, so it is not the ADR-022 pass-through gate 17 looks for.
 	 */
 	public function delete(string $uuid): void {
 		$this->asSystem(
