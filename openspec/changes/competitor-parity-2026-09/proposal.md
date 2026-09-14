@@ -174,7 +174,9 @@ driven. All four are answered above.
 - **Cluster 60, outbound sender identity and deliverability.** It now builds
   on a Nextcloud Mail account rather than an integriq one, which is the
   re-read wave 1 asked for. `outbound-communication-log` adds the sender
-  identity as one more field on its record when cluster 60 lands.
+  identity as one more field on its record when cluster 60 lands. The
+  re-read is done and the cluster opens in wave 4 below, where the gap
+  register numbers it 61.
 - **Cluster 26 and CT-5** are wave 1's `registry-backed-field-source`, merged
   as integriq#1997. Wave 3 adds nothing to them.
 
@@ -216,3 +218,37 @@ none of them is rediscovered.
   documented passers of six, and D21's own "waits on it" line names it first:
   "The statutory gateways (five of six passers documented)". Every documented
   passer in wave 3 is labelled and none is counted in a driven tally.
+
+## Discovery wave 4 (2026-09-14)
+
+Wave 4 closes the last cluster integriq recorded and did not open. The
+re-read wave 1 asked for is done: decision D12, as Ruben answered it, puts
+the mail account in Nextcloud Mail, so a sender identity is a face on an
+account somebody else owns rather than an account of integriq's own.
+
+| change | cluster | candidates | size | decision | dossiq consumer |
+|---|---|---|---|---|---|
+| `outbound-sender-identity-and-deliverability` | 61 "Outbound sender identity and deliverability", numbered 60 in `build-plan.md` | C-communication-24, 26, 43, 44, 45, 50, 51, 65, 66 | M | D12, D21 | needs a dossiq change: the sender identity declared per team on the case type, replacing the single `EmailSettings.php` instance address |
+
+The cluster's own mechanism line reads "extend integriq's outbound mail
+path; dossiq declares the sender per team on the case type". The change
+extends `outbound-communication-log`: a message's identity is the field the
+wave 3 index promised that log would gain.
+
+### A numbering note
+
+`build-plan.md` calls this cluster 60 and the gap register calls it 61. The
+register is the later document and its cluster table names the same nine
+candidates, so 61 is used in the change and both numbers are recorded here.
+
+### What still stays closed
+
+- **Cluster 28, mail accounts, OAuth2 and alias domains.** D12. Unchanged
+  by wave 4: an identity references a Nextcloud Mail account and never
+  holds a credential.
+
+### What other apps owe wave 4
+
+- **dossiq**: the sender declaration per team or per case type. Its
+  `inbound-mail-filters` is the inbound sibling and is unaffected.
+- **Nextcloud Mail**: the account and its OAuth 2.0 flow, per D12.
