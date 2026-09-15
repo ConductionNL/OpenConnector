@@ -1121,7 +1121,16 @@ OC.L10N.register(
         "Whether the connection works, works in part or not at all, as integriq last worked it out.": "Of de koppeling werkt, deels werkt of niet werkt, zoals Integriq het laatst heeft vastgesteld.",
         "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "De laatste status die de app meldde: status, melding en tijd. Een melding van simulated gaat voor elke test.",
         "Last refresh": "Laatst vernieuwd",
-        "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.": "Wanneer de app na het opslaan van instellingen om een nieuwe status vroeg. Oudere meldingen en tests tellen dan niet meer mee."
+        "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.": "Wanneer de app na het opslaan van instellingen om een nieuwe status vroeg. Oudere meldingen en tests tellen dan niet meer mee.",
+        "Switched off": "Uitgeschakeld",
+        "The setting an admin uses to turn the connection off. Without offValues the connection is off when the value is empty. With offValues it is off only when the value is one of them.": "De instelling waarmee een beheerder de koppeling uitzet. Zonder offValues staat de koppeling uit als de waarde leeg is. Met offValues staat ze alleen uit als de waarde daar een van is.",
+        "App-config key that holds the switch.": "App-configuratiesleutel die de schakelaar bevat.",
+        "Dot path to the switch when configKey holds a JSON object, such as breach.enabled. A missing path reads as empty.": "Pad met punten naar de schakelaar als configKey een JSON-object bevat, zoals breach.enabled. Een ontbrekend pad telt als leeg.",
+        "The values that mean the connection is off. Compared case-insensitively after trimming. An unset key is off only when an empty string is listed.": "De waarden die betekenen dat de koppeling uit staat. Hoofdletters en spaties aan de randen tellen niet mee. Een lege sleutel staat alleen uit als een lege tekst in de lijst staat.",
+        "Shown while the connection is switched off. Default: Switched off in the app's settings.": "Getoond zolang de koppeling uitgeschakeld is. Standaard: Switched off in the app's settings.",
+        "App-config key that holds the JSON object.": "App-configuratiesleutel die het JSON-object bevat.",
+        "Dot path to the value, such as enabled or sync.enabled.": "Pad met punten naar de waarde, zoals enabled of sync.enabled.",
+        "Settings of the declaring app that must all be filled. Each entry is an app-config key, always read as the whole key even when it contains dots, or {configKey, jsonPath} to read one value inside a JSON setting. An empty string, false, 0, null, an empty JSON list or object, or a missing path reads as not filled.": "Instellingen van de declarerende app die allemaal gevuld moeten zijn. Elk item is een app-configuratiesleutel, altijd gelezen als de hele sleutel, ook met punten erin, of {configKey, jsonPath} om één waarde in een JSON-instelling te lezen. Een lege tekst, false, 0, null, een lege JSON-lijst of een leeg JSON-object, of een ontbrekend pad telt als niet gevuld."
     },
     "nplurals=2; plural=(n != 1);"
 )

@@ -499,6 +499,48 @@ class ConnectionRegistryServiceTest extends TestCase {
 	}//end testLimitedReportIsAccepted()
 
 	/**
+	 * A report may carry disabled, for a switch the app keeps outside app config.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-app-reports-a-switch-it-keeps-elsewhere
+	 */
+	public function testDisabledReportIsAccepted(): void {
+		$declaration = ['app' => 'keepiq', 'connections' => [['key' => 'siem', 'title' => 'SIEM', 'reportedOnly' => true]]];
+		$service = $this->makeService(appPaths: ['keepiq' => $this->appDir(declaration: $declaration)]);
+		$service->sync();
+		$this->saves = [];
+
+		$message = 'Every SIEM sink is switched off.';
+		$this->assertTrue(condition: $service->report('keepiq', 'siem', 'disabled', $message));
+
+		$this->assertCount(expectedCount: 1, haystack: $this->saves);
+		$this->assertSame(expected: 'disabled', actual: $this->saves[0][1]['lastReport']['status']);
+		$this->assertSame(expected: 'disabled', actual: $this->saves[0][1]['status']);
+		$this->assertSame(expected: $message, actual: $this->saves[0][1]['statusMessage']);
+	}//end testDisabledReportIsAccepted()
+
+	/**
+	 * A declaration with a switch syncs, and the row reads disabled while the switch is off.
+	 *
+	 * @return void
+	 */
+	public function testSwitchedOffDeclarationSyncsToDisabled(): void {
+		$declaration = [
+			'app' => 'keepiq',
+			'connections' => [['key' => 'hibp', 'title' => 'Have I Been Pwned', 'switch' => ['configKey' => 'breach_check_enabled']]],
+		];
+		$service = $this->makeService(appPaths: ['keepiq' => $this->appDir(declaration: $declaration)], config: ['keepiq.breach_check_enabled' => 'false']);
+
+		$service->sync();
+
+		$this->assertCount(expectedCount: 1, haystack: $this->rows);
+		$row = array_values($this->rows)[0];
+		$this->assertSame(expected: 'disabled', actual: $row['status']);
+		$this->assertSame(expected: "Switched off in keepiq's settings.", actual: $row['statusMessage']);
+	}//end testSwitchedOffDeclarationSyncsToDisabled()
+
+	/**
 	 * A key set with occ, which sends no refresh event, shows on the next refresh of an unlinked row.
 	 *
 	 * @return void

@@ -1125,7 +1125,16 @@ OC.L10N.register(
         "Whether the connection works, works in part or not at all, as integriq last worked it out.": "Whether the connection works, works in part or not at all, as integriq last worked it out.",
         "The last status the app reported: status, message and time. A report of simulated stands against any probe.": "The last status the app reported: status, message and time. A report of simulated stands against any probe.",
         "Last refresh": "Last refresh",
-        "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.": "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count."
+        "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.": "When the app last asked for a fresh status after a settings save. Older reports and probes no longer count.",
+        "Switched off": "Switched off",
+        "The setting an admin uses to turn the connection off. Without offValues the connection is off when the value is empty. With offValues it is off only when the value is one of them.": "The setting an admin uses to turn the connection off. Without offValues the connection is off when the value is empty. With offValues it is off only when the value is one of them.",
+        "App-config key that holds the switch.": "App-config key that holds the switch.",
+        "Dot path to the switch when configKey holds a JSON object, such as breach.enabled. A missing path reads as empty.": "Dot path to the switch when configKey holds a JSON object, such as breach.enabled. A missing path reads as empty.",
+        "The values that mean the connection is off. Compared case-insensitively after trimming. An unset key is off only when an empty string is listed.": "The values that mean the connection is off. Compared case-insensitively after trimming. An unset key is off only when an empty string is listed.",
+        "Shown while the connection is switched off. Default: Switched off in the app's settings.": "Shown while the connection is switched off. Default: Switched off in the app's settings.",
+        "App-config key that holds the JSON object.": "App-config key that holds the JSON object.",
+        "Dot path to the value, such as enabled or sync.enabled.": "Dot path to the value, such as enabled or sync.enabled.",
+        "Settings of the declaring app that must all be filled. Each entry is an app-config key, always read as the whole key even when it contains dots, or {configKey, jsonPath} to read one value inside a JSON setting. An empty string, false, 0, null, an empty JSON list or object, or a missing path reads as not filled.": "Settings of the declaring app that must all be filled. Each entry is an app-config key, always read as the whole key even when it contains dots, or {configKey, jsonPath} to read one value inside a JSON setting. An empty string, false, 0, null, an empty JSON list or object, or a missing path reads as not filled."
     },
     "nplurals=2; plural=(n != 1);"
 )

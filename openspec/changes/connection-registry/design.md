@@ -67,10 +67,22 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 **One reader for both amendments.** `ConnectionConfigReader::allFilled()` resolves each `requiredConfig` entry. A string is read as the whole key, dots included. An object walks its `jsonPath` with the same path walk and the same array-type fallback that `adapter.jsonPath` uses. The resolver only passes the entries on, so it stays under the complexity limit.
 
-**How emptiness is checked.** Every scalar is turned into text the way the adapter path already does: `true` and `false` as words, numbers as digits, `null` as the empty string. That text is trimmed, lowercased and compared with `EMPTY_VALUES`, which is `""`, `false` and `0`. So one list decides for a stored string, a JSON value and a typed value alike. An object or a list at the key or the path counts as filled, because the umbrella lists only scalars as empty. `"no"`, `"off"` and `"00"` count as filled too.
+**How emptiness is checked.** Every scalar is turned into text the way the adapter path already does: `true` and `false` as words, numbers as digits, `null` as the empty string. That text is trimmed, lowercased and compared with `EMPTY_VALUES`, which is `""`, `false` and `0`. So one list decides for a stored string, a JSON value and a typed value alike. A non-empty object or list at the key or the path counts as filled. An empty one used to count as filled too, until the amendment below. `"no"`, `"off"` and `"00"` count as filled too.
 
 **A value stored under another type.** Stackiq stores `federation_enabled` with `setValueBool`, and `getValueString` refuses such a key. The reader then asks `getValueType` and reads the value with `getValueBool`, `getValueInt`, `getValueFloat` or `getValueArray`. A boolean `false` therefore reads as empty. Before this amendment such a key always counted as filled. A type the reader cannot name, or a key `getValueType` does not know, still counts as filled, as before.
 
 **An invalid entry.** The validator refuses a file with one, so the resolver only meets it in a row written before the file changed. Such an entry reads as empty, as a non-string entry did before.
 
 **What stays the same.** The adapter value is still read as before, including a typed key. The `app_connection` schema stores `declaration` as an untyped object, so it does not move.
+
+## Amendment: switched off, and empty JSON lists (umbrella D2, D3, D4 rule 2b, D12 items 8 and 9, hydra#677)
+
+**Where the switch is read.** `ConnectionConfigReader::isSwitchedOff()` turns the switch into a `requiredConfig` entry and reads it with the same path walk. Without `offValues` it asks the same emptiness check. With `offValues` it compares the value as text, the way `simulatedValues` is compared. Judging a value moved into `ConnectionConfigValue`: filled or empty, one of a list, and scalar as text. With the switch added, phpmd rated the reader at 55 and the resolver at 51, against a limit of 50. After the split they sit at 45 and 49. A stored switch without a string `configKey` never reads as off.
+
+**A list or object and `offValues`.** A non-empty list or object never equals an off value. An empty one reads as the empty string, so it is off only when `""` is listed.
+
+**Rule number and time.** Rule 2b reports rule number 2, as rules 4a and 4b both report 4. Its time is now, kept while status and message stay the same, as rule 5 does. A sync over a row that stays off then writes nothing.
+
+**Empty JSON as text.** Only text that starts with `[` or `{` is decoded. `[ ]` is an empty JSON array, so it counts as empty, and `[0]` holds a value, so it counts as filled. `null` as text is not decoded and stays filled, as before. A text `[]` inside a JSON setting counts as empty too, because every value runs through one check.
+
+**Where `disabled` lives.** `ConnectionStatusResolver::STATUSES` gains `disabled`, which is also the report allow-list. The `app_connection` enum gains it with the label Switched off, the schema moves to 1.3.0 and the app version moves, so the register import picks up the new value on upgrade. The `connectionStatus` formatter shows Switched off, Uitgeschakeld in Dutch.
