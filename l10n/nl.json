@@ -1126,7 +1126,10 @@
         "App-config key that holds the switch.": "App-configuratiesleutel die de schakelaar bevat.",
         "Dot path to the switch when configKey holds a JSON object, such as breach.enabled. A missing path reads as empty.": "Pad met punten naar de schakelaar als configKey een JSON-object bevat, zoals breach.enabled. Een ontbrekend pad telt als leeg.",
         "The values that mean the connection is off. Compared case-insensitively after trimming. An unset key is off only when an empty string is listed.": "De waarden die betekenen dat de koppeling uit staat. Hoofdletters en spaties aan de randen tellen niet mee. Een lege sleutel staat alleen uit als een lege tekst in de lijst staat.",
-        "Shown while the connection is switched off. Default: Switched off in the app's settings.": "Getoond zolang de koppeling uitgeschakeld is. Standaard: Switched off in the app's settings."
+        "Shown while the connection is switched off. Default: Switched off in the app's settings.": "Getoond zolang de koppeling uitgeschakeld is. Standaard: Switched off in the app's settings.",
+        "App-config key that holds the JSON object.": "App-configuratiesleutel die het JSON-object bevat.",
+        "Dot path to the value, such as enabled or sync.enabled.": "Pad met punten naar de waarde, zoals enabled of sync.enabled.",
+        "Settings of the declaring app that must all be filled. Each entry is an app-config key, always read as the whole key even when it contains dots, or {configKey, jsonPath} to read one value inside a JSON setting. An empty string, false, 0, null, an empty JSON list or object, or a missing path reads as not filled.": "Instellingen van de declarerende app die allemaal gevuld moeten zijn. Elk item is een app-configuratiesleutel, altijd gelezen als de hele sleutel, ook met punten erin, of {configKey, jsonPath} om één waarde in een JSON-instelling te lezen. Een lege tekst, false, 0, null, een lege JSON-lijst of een leeg JSON-object, of een ontbrekend pad telt als niet gevuld."
     },
     "plurals": {}
 }
