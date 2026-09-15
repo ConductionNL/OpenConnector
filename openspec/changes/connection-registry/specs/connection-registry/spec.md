@@ -58,15 +58,17 @@ The sync SHALL upsert by app and key. It SHALL delete a row whose key left the d
 
 ### Requirement: The resolver applies the D4 rules in order (REQ-CONN-003)
 
-Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, an adapter value in `adapter.simulatedValues`, a simulated report, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`, and a value stored under another type through the getter for that type.
+Integriq SHALL resolve `status`, `statusMessage` and `checkedAt` by the first rule of umbrella design D4 that applies: app disabled, declared unavailable, a switch that reads as off, an adapter value in `adapter.simulatedValues`, a simulated report, newest observation, required settings filled, otherwise not checked. It MUST read the declaring app's settings through `IAppConfig::getValueString`, and a value stored under another type through the getter for that type.
 
 The adapter value SHALL be the config value at `adapter.configKey`, or, when `adapter.jsonPath` is set, the scalar at that dot path inside the JSON object the key holds. A missing path, invalid JSON or a non-scalar value MUST read as the empty string. `adapter.simulatedValues` SHALL be compared case-insensitively after trimming and SHALL default to `[""]`, so a declaration without it keeps its meaning. A row whose declaration carries `reportedOnly: true` MUST skip the adapter rule and the required settings rule. A `lastReport` with status `simulated` SHALL win over any probe, with `checkedAt` set to the report's `at`. No rule SHALL produce `limited` from a declaration.
 
-A `requiredConfig` entry SHALL be an app-config key, read as the whole key even when it contains dots, or `{configKey, jsonPath}`, read through the same path walk as `adapter.jsonPath`. A value MUST count as empty when, after trimming, it is `""`, `false` or `0` (case-insensitive), when it is a JSON or stored `false`, `0` or `null`, or when the path is missing. Every other value SHALL count as filled.
+A `requiredConfig` entry SHALL be an app-config key, read as the whole key even when it contains dots, or `{configKey, jsonPath}`, read through the same path walk as `adapter.jsonPath`. A value MUST count as empty when, after trimming, it is `""`, `false` or `0` (case-insensitive), when it is a JSON or stored `false`, `0` or `null`, when it is an empty JSON array or object (decoded, stored under the array type, or text such as `[]` or `{}`), or when the path is missing. Every other value SHALL count as filled, `[0]` included.
+
+A declaration MAY carry `switch` `{configKey, jsonPath?, offValues?}` and `disabledMessage`. The switch value SHALL be read the way a `requiredConfig` entry is. Without `offValues` the switch MUST read as off when that value is empty. With `offValues` it MUST read as off only when the trimmed value equals one of them case-insensitively, so an unset key is off only when `""` is listed. A switch that reads as off SHALL give `disabled` with `disabledMessage`, else "Switched off in {app}'s settings." This rule SHALL sit below the declared-unavailable rule and above the adapter rule and both observation rules, and it MUST apply to `reportedOnly` rows too. A declaration without `switch` SHALL resolve as before.
 
 Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not older than the row's `refreshedAt`. An `at` equal to `refreshedAt` MUST count. A row without `refreshedAt` retires nothing.
 
-@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases, the unchanged defaults, every observation a refresh retires and each value that counts as empty for `requiredConfig`.
+@e2e exclude The resolver is a pure backend rule set. ConnectionStatusResolverTest asserts every D4 row, both orderings, rule 4a against a newer probe, the JSON path edge cases, the unchanged defaults, every observation a refresh retires, each value that counts as empty for `requiredConfig`, and the switch against a newer probe, a mock adapter, a JSON path and unset keys.
 
 #### Scenario: a disabled app shows unavailable
 
@@ -139,6 +141,36 @@ Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not
 - WHEN the resolver runs
 - THEN the status is `configured` with "Required settings are filled."
 
+#### Scenario: an empty JSON list is not filled
+
+- GIVEN the live-tiles declaration requires `live_tile_allowed_hosts`
+- AND launchpad's app config holds `[]` for it
+- AND the row has no probe and no report
+- WHEN the resolver runs
+- THEN the status is `unconfigured`
+
+#### Scenario: a connection switched off reads disabled
+
+- GIVEN the hibp declaration carries `switch` `{"configKey": "breach_check_enabled"}`
+- AND keepiq's app config holds `false` for it
+- AND the row's last report says `error` at 10:00
+- WHEN the resolver runs
+- THEN the status is `disabled` with "Switched off in keepiq's settings."
+
+#### Scenario: off values leave a working default alone
+
+- GIVEN the geo-db declaration carries `switch` `{"configKey": "traffic.geo.provider", "offValues": ["none"]}`
+- AND portaliq's app config holds no value for `traffic.geo.provider`
+- WHEN the resolver runs
+- THEN rule 2b does not apply to the row
+
+#### Scenario: an off value switches the connection off
+
+- GIVEN the same geo-db declaration
+- AND the app config holds `None` for `traffic.geo.provider`
+- WHEN the resolver runs
+- THEN the status is `disabled`
+
 #### Scenario: a switch stored as false is not filled
 
 - GIVEN the federation declaration requires `federation_enabled`
@@ -164,7 +196,7 @@ Rules 4a and 4b SHALL count only a `lastReport` or `lastProbe` whose `at` is not
 
 ### Requirement: Apps report and refresh through two typed events (REQ-CONN-004)
 
-Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. A report MAY carry any of the six statuses `configured`, `limited`, `unconfigured`, `simulated`, `unavailable` and `error`. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. The refresh listener SHALL write `refreshedAt` as the current time on the requested row, or on every row of the app when the key is null, and then resolve those rows. No other path SHALL write `refreshedAt`: a sync, a report, a probe and the hourly resolve MUST keep the stored value. A refresh MUST NOT delete `lastReport` or `lastProbe`. Neither listener SHALL throw into the sender.
+Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and `OCA\Integriq\Event\ConnectionRefreshRequestedEvent`. A report MAY carry any of the seven statuses `configured`, `limited`, `unconfigured`, `simulated`, `disabled`, `unavailable` and `error`, and `disabled` MUST be accepted like the others. The report listener MUST refuse an unknown status or an undeclared app and key with a warning. It SHALL write `lastReport` and resolve the row. The refresh listener SHALL write `refreshedAt` as the current time on the requested row, or on every row of the app when the key is null, and then resolve those rows. No other path SHALL write `refreshedAt`: a sync, a report, a probe and the hourly resolve MUST keep the stored value. A refresh MUST NOT delete `lastReport` or `lastProbe`. Neither listener SHALL throw into the sender.
 
 @e2e exclude An in-process event exchange with no browser surface. ConnectionEventListenersTest and ConnectionRegistryServiceTest prove it.
 
@@ -173,6 +205,12 @@ Integriq SHALL listen for `OCA\Integriq\Event\ConnectionStatusReportedEvent` and
 - WHEN dossiq sends `ConnectionStatusReportedEvent('dossiq', 'mailbox', 'configured', 'Logged in')`
 - THEN the mailbox row's `lastReport` holds that status and message
 - AND the row has been resolved
+
+#### Scenario: an app reports a switch it keeps elsewhere
+
+- GIVEN the siem declaration is `reportedOnly` and has no `switch`
+- WHEN keepiq sends `ConnectionStatusReportedEvent('keepiq', 'siem', 'disabled', 'Every SIEM sink is switched off.')`
+- THEN the row's status is `disabled` with that message
 
 #### Scenario: an app reports a connection that works in part
 

@@ -53,3 +53,11 @@ Contract: hydra umbrella `openspec/changes/connection-registry/design.md`, branc
 - [x] 7.3 A value is empty when it reads as `""`, `false` or `0`, or is `null` or a missing path. A typed key is read with the getter for its type.
 - [x] 7.4 PHPUnit for the three spec scenarios, each empty value, `"no"` and `"00"` as filled, object and dotted entries in the validator and the schema, and unchanged string declarations. Removing `false` from the empty values turns the switch scenario red on its assertion.
 
+## 8. Switched off, and empty JSON lists (umbrella D2, D3, D4 rule 2b, D12 items 8 and 9)
+
+- [x] 8.1 `switch` `{configKey, jsonPath?, offValues?}` and `disabledMessage` in `connections.schema.json`, and the validator mirrors them.
+- [x] 8.2 `ConnectionConfigReader::isSwitchedOff()` reads the switch through the `requiredConfig` path walk and emptiness check.
+- [x] 8.3 Rule 2b in the resolver, below rule 2 and above rules 3, 4a and 4b, for `reportedOnly` rows too.
+- [x] 8.4 An empty JSON array or object counts as empty, decoded, typed or as text.
+- [x] 8.5 `disabled` in `STATUSES`, the `app_connection` enum (schema 1.3.0), the `connectionStatus` formatter and the English and Dutch catalogues.
+- [x] 8.6 PHPUnit for the five spec scenarios, an off switch above a newer probe and a mock adapter, a switch with `jsonPath`, unset keys with and without `offValues`, a reported `disabled`, `[]`, `{}`, `[ ]` and `[0]`, and unchanged declarations without a switch. Rule 2b's place and the empty list are mutation-checked.
