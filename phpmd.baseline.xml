@@ -318,4 +318,10 @@
   <violation rule="PHPMD\Rule\Naming\ShortVariable" file="lib/Service/WebhookSignatureService.php"/>
   <violation rule="PHPMD\Rule\Naming\LongVariable" file="lib/Twig/MappingRuntime.php"/>
   <violation rule="PHPMD\Rule\Naming\LongVariable" file="lib/Twig/MappingRuntimeLoader.php"/>
+  <violation rule="PHPMD\Rule\CleanCode\BooleanArgumentFlag" file="lib/Directory/DirectoryEntry.php"/>
+  <violation rule="PHPMD\Rule\CleanCode\BooleanArgumentFlag" file="lib/Directory/DirectorySnapshot.php"/>
+  <violation rule="PHPMD\Rule\CleanCode\StaticAccess" file="lib/Directory/DirectorySource.php"/>
+  <violation rule="PHPMD\Rule\CleanCode\BooleanArgumentFlag" file="lib/Directory/DirectorySyncService.php"/>
+  <violation rule="PHPMD\Rule\CleanCode\BooleanArgumentFlag" file="lib/Directory/GroupMappingResolver.php"/>
+  <violation rule="PHPMD\Rule\UnusedFormalParameter" file="lib/BackgroundJob/DirectorySyncJob.php"/>
 </phpmd-baseline>

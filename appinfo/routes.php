@@ -58,6 +58,29 @@ return [
 		// signature (HMAC), not an NC session; see PeppolController::inbound().
 		['name' => 'peppol#inbound', 'url' => '/api/peppol/inbound', 'verb' => 'POST'],
 
+		// Directory and group synchronisation
+		// (openspec/changes/directory-and-group-sync). The admin surface below is
+		// session- and CSRF-protected; the SCIM endpoints that follow are not,
+		// because an identity system carries its own credential rather than a
+		// Nextcloud session — the credential check is the auth body of every SCIM
+		// route and runs before any account is read.
+		['name' => 'directorySync#connections', 'url' => '/api/directory/connections', 'verb' => 'GET'],
+		['name' => 'directorySync#run', 'url' => '/api/directory/connections/{id}/run', 'verb' => 'POST'],
+		['name' => 'directorySync#runs', 'url' => '/api/directory/runs', 'verb' => 'GET'],
+
+		// SCIM 2.0 provisioning. `Users` and `Groups` only: a deactivation
+		// disables the Nextcloud account and never deletes it, so DELETE on a
+		// user is a deprovision, not a removal.
+		['name' => 'scim#listUsers', 'url' => '/api/scim/v2/Users', 'verb' => 'GET'],
+		['name' => 'scim#createUser', 'url' => '/api/scim/v2/Users', 'verb' => 'POST'],
+		['name' => 'scim#getUser', 'url' => '/api/scim/v2/Users/{id}', 'verb' => 'GET'],
+		['name' => 'scim#updateUser', 'url' => '/api/scim/v2/Users/{id}', 'verb' => 'PUT'],
+		['name' => 'scim#updateUser', 'url' => '/api/scim/v2/Users/{id}', 'verb' => 'PATCH', 'postfix' => 'patch'],
+		['name' => 'scim#deleteUser', 'url' => '/api/scim/v2/Users/{id}', 'verb' => 'DELETE'],
+		['name' => 'scim#listGroups', 'url' => '/api/scim/v2/Groups', 'verb' => 'GET'],
+		['name' => 'scim#updateGroup', 'url' => '/api/scim/v2/Groups/{id}', 'verb' => 'PATCH'],
+		['name' => 'scim#updateGroup', 'url' => '/api/scim/v2/Groups/{id}', 'verb' => 'PUT', 'postfix' => 'put'],
+
 		// Live payment providers connector (openspec/changes/live-payment-providers).
 		// Payment creation is an authenticated NC-session call (production binding
 		// for shillinq's MolliePaymentAdapterInterface::createPayment, a follow-up
@@ -403,6 +426,11 @@ return [
 		// See openspec/changes/archive/2026-07-14-connector-catalog-ui/contract.md
 		['name' => 'catalog#status', 'url' => '/api/catalog/items/{id}/status', 'verb' => 'GET'],
 		['name' => 'catalog#instantiate', 'url' => '/api/catalog/items/{id}/instantiate', 'verb' => 'POST'],
+
+		// Connection registry (connection-registry D9): link a source to a
+		// declared connection and probe it at once. Listing goes through OR's
+		// generic /api/objects/integriq/app_connection (ADR-022).
+		['name' => 'connections#link', 'url' => '/api/connections/{id}/link', 'verb' => 'POST'],
 
 		// Configuration import/export UI endpoints (connector-catalog-ui) — a
 		// thin, routed wrapper over the existing, already-tested
