@@ -95,6 +95,21 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 	}//end withRequired()
 
 	/**
+	 * The valid file with a switch and, optionally, other fields on the zgw entry.
+	 *
+	 * @param mixed $switch The switch value.
+	 * @param array<string,mixed> $extra Other entry fields to set.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function withSwitch(mixed $switch, array $extra = []): array {
+		$file = self::validFile();
+		$file['connections'][0] = array_merge($file['connections'][0], ['switch' => $switch], $extra);
+
+		return $file;
+	}//end withSwitch()
+
+	/**
 	 * Fixtures: name => [data, expected valid].
 	 *
 	 * @return array<string,array{0:mixed,1:bool}>
@@ -194,6 +209,24 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 			'required empty object' => [self::withRequired(required: [[]]), false],
 			'required number' => [self::withRequired(required: ['register', 5]), false],
 			'requiredConfig as an object, not a list' => [self::withRequired(required: $jsonEntry), false],
+			'switch with only configKey' => [self::withSwitch(switch: ['configKey' => 'breach_check_enabled']), true],
+			'switch with jsonPath, offValues and a disabledMessage' => [
+				self::withSwitch(
+					switch: ['configKey' => 'traffic', 'jsonPath' => 'geo.provider', 'offValues' => ['none', '']],
+					extra: ['disabledMessage' => 'Geography is off.']
+				),
+				true,
+			],
+			'switch with an empty offValues list' => [self::withSwitch(switch: ['configKey' => 'x', 'offValues' => []]), true],
+			'switch without configKey' => [self::withSwitch(switch: ['offValues' => ['none']]), false],
+			'switch as an empty object' => [self::withSwitch(switch: []), false],
+			'switch with an unknown key' => [self::withSwitch(switch: ['configKey' => 'x', 'simulatedValues' => ['none']]), false],
+			'switch with an empty configKey' => [self::withSwitch(switch: ['configKey' => '']), false],
+			'switch with an empty path segment' => [self::withSwitch(switch: ['configKey' => 'x', 'jsonPath' => 'geo..provider']), false],
+			'switch offValues not a list' => [self::withSwitch(switch: ['configKey' => 'x', 'offValues' => 'none']), false],
+			'switch offValues holding a boolean' => [self::withSwitch(switch: ['configKey' => 'x', 'offValues' => [false]]), false],
+			'switch as a string' => [self::withSwitch(switch: 'breach_check_enabled'), false],
+			'disabledMessage not a string' => [self::withSwitch(switch: ['configKey' => 'x'], extra: ['disabledMessage' => false]), false],
 		];
 	}//end fixtures()
 
@@ -242,6 +275,24 @@ class ConnectionDeclarationValidatorTest extends TestCase {
 			actual: $errors
 		);
 	}//end testBadRequiredEntryNamesThePath()
+
+	/**
+	 * A switch missing configKey or carrying an unknown key names the switch path.
+	 *
+	 * @return void
+	 */
+	public function testBadSwitchNamesThePath(): void {
+		$validator = new ConnectionDeclarationValidator();
+
+		$this->assertSame(
+			expected: ['/connections/0/switch/configKey: is required'],
+			actual: $validator->validate(self::withSwitch(switch: ['offValues' => ['none']]))
+		);
+		$this->assertSame(
+			expected: ['/connections/0/switch/className: is not allowed'],
+			actual: $validator->validate(self::withSwitch(switch: ['configKey' => 'x', 'className' => 'y']))
+		);
+	}//end testBadSwitchNamesThePath()
 
 	/**
 	 * A duplicate key is refused, which JSON Schema cannot express.

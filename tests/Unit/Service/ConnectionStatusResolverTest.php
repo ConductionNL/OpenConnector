@@ -914,6 +914,20 @@ class ConnectionStatusResolverTest extends TestCase {
 			'JSON true at the path is filled' => ['{"on": true}', $onPath, true],
 			'JSON 24 at the path is filled' => ['{"on": 24}', $onPath, true],
 			'an object at the path is filled' => ['{"on": {"mode": "live"}}', $onPath, true],
+			'"[]" is empty' => ['[]', 'setting', false],
+			'"{}" is empty' => ['{}', 'setting', false],
+			'" [] " with whitespace around it is empty' => [' [] ', 'setting', false],
+			'"[ ]" is empty, because JSON allows whitespace inside' => ['[ ]', 'setting', false],
+			'"{ }" is empty, because JSON allows whitespace inside' => ['{ }', 'setting', false],
+			'"[0]" is filled, because a list holding a zero is not empty' => ['[0]', 'setting', true],
+			'"[\"\"]" is filled, because a list holding an empty string is not empty' => ['[""]', 'setting', true],
+			'"[" is filled, because it is text, not JSON' => ['[', 'setting', true],
+			'an empty list under the array type is empty' => [[], 'setting', false],
+			'JSON [] at the path is empty' => ['{"on": []}', $onPath, false],
+			'JSON {} at the path is empty' => ['{"on": {}}', $onPath, false],
+			'JSON [0] at the path is filled' => ['{"on": [0]}', $onPath, true],
+			'the text "[]" at the path is empty' => ['{"on": "[]"}', $onPath, false],
+			'"null" stays filled, because only text starting with [ or { is decoded' => ['null', 'setting', true],
 		];
 	}//end emptinessCases()
 
@@ -987,4 +1001,312 @@ class ConnectionStatusResolverTest extends TestCase {
 
 		$this->assertSame(expected: 'configured', actual: $outcome['status']);
 	}//end testUnknownTypedKeyCountsAsFilled()
+
+	/**
+	 * An empty JSON list does not count as a filled setting.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-empty-json-list-is-not-filled
+	 */
+	public function testEmptyJsonListIsNotFilled(): void {
+		$row = ['app' => 'launchpad', 'declaration' => ['key' => 'live-tiles', 'requiredConfig' => ['live_tile_allowed_hosts']]];
+
+		$outcome = $this->makeResolver(config: ['launchpad.live_tile_allowed_hosts' => '[]'])->resolve($row, true);
+
+		$this->assertSame(expected: 'unconfigured', actual: $outcome['status']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
+	}//end testEmptyJsonListIsNotFilled()
+
+	/**
+	 * The control for the scenario above: a list with one host is filled.
+	 *
+	 * @return void
+	 */
+	public function testJsonListWithAHostIsFilled(): void {
+		$row = ['app' => 'launchpad', 'declaration' => ['key' => 'live-tiles', 'requiredConfig' => ['live_tile_allowed_hosts']]];
+
+		$outcome = $this->makeResolver(config: ['launchpad.live_tile_allowed_hosts' => '["tiles.example.nl"]'])->resolve($row, true);
+
+		$this->assertSame(expected: 'configured', actual: $outcome['status']);
+	}//end testJsonListWithAHostIsFilled()
+
+	/**
+	 * The keepiq hibp row, switched off and carrying an old error report.
+	 *
+	 * @param array<string,mixed> $declaration Declaration fields to add or replace.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function hibpRow(array $declaration = []): array {
+		return [
+			'app' => 'keepiq',
+			'declaration' => array_merge(['key' => 'hibp', 'switch' => ['configKey' => 'breach_check_enabled']], $declaration),
+			'lastReport' => ['status' => 'error', 'message' => 'HIBP answered 503.', 'at' => '2026-09-14T10:00:00+00:00'],
+		];
+	}//end hibpRow()
+
+	/**
+	 * Rule 2b: a switch that reads as off gives disabled, above an old error report.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-connection-switched-off-reads-disabled
+	 */
+	public function testConnectionSwitchedOffReadsDisabled(): void {
+		$outcome = $this->makeResolver(config: ['keepiq.breach_check_enabled' => false])->resolve($this->hibpRow(), true);
+
+		$this->assertSame(expected: 'disabled', actual: $outcome['status']);
+		$this->assertSame(expected: "Switched off in keepiq's settings.", actual: $outcome['statusMessage']);
+		$this->assertSame(expected: self::NOW, actual: $outcome['checkedAt']);
+		$this->assertSame(expected: 2, actual: $outcome['rule']);
+	}//end testConnectionSwitchedOffReadsDisabled()
+
+	/**
+	 * The control for the scenario above: the switch on lets the error report show.
+	 *
+	 * @return void
+	 */
+	public function testSwitchOnLeavesTheReportStanding(): void {
+		$outcome = $this->makeResolver(config: ['keepiq.breach_check_enabled' => true])->resolve($this->hibpRow(), true);
+
+		$this->assertSame(expected: 'error', actual: $outcome['status']);
+		$this->assertSame(expected: 4, actual: $outcome['rule']);
+	}//end testSwitchOnLeavesTheReportStanding()
+
+	/**
+	 * The declared disabledMessage replaces the default, and the time is kept while nothing changed.
+	 *
+	 * @return void
+	 */
+	public function testDisabledMessageAndKeptTime(): void {
+		$config = ['keepiq.breach_check_enabled' => 'false'];
+		$row = $this->hibpRow(declaration: ['disabledMessage' => 'Breach checks are off.']);
+
+		$first = $this->makeResolver(config: $config)->resolve($row, true);
+		$this->assertSame(expected: 'Breach checks are off.', actual: $first['statusMessage']);
+		$this->assertSame(expected: self::NOW, actual: $first['checkedAt']);
+
+		$row = array_merge($row, ['status' => 'disabled', 'statusMessage' => 'Breach checks are off.', 'checkedAt' => '2026-09-01T08:00:00+00:00']);
+		$again = $this->makeResolver(config: $config)->resolve($row, true);
+		$this->assertSame(expected: '2026-09-01T08:00:00+00:00', actual: $again['checkedAt']);
+	}//end testDisabledMessageAndKeptTime()
+
+	/**
+	 * The portaliq geo-db declaration: off only when the provider is none.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function geoRow(): array {
+		return [
+			'app' => 'portaliq',
+			'declaration' => ['key' => 'geo-db', 'switch' => ['configKey' => 'traffic.geo.provider', 'offValues' => ['none']]],
+		];
+	}//end geoRow()
+
+	/**
+	 * With offValues, an unset key is a working default, not a switched-off connection.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-off-values-leave-a-working-default-alone
+	 */
+	public function testOffValuesLeaveAWorkingDefaultAlone(): void {
+		$outcome = $this->makeResolver()->resolve($this->geoRow(), true);
+
+		$this->assertNotSame(expected: 'disabled', actual: $outcome['status']);
+		$this->assertSame(expected: 6, actual: $outcome['rule']);
+	}//end testOffValuesLeaveAWorkingDefaultAlone()
+
+	/**
+	 * An off value switches the connection off, compared case-insensitively after trimming.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-off-value-switches-the-connection-off
+	 */
+	public function testAnOffValueSwitchesTheConnectionOff(): void {
+		$outcome = $this->makeResolver(config: ['portaliq.traffic.geo.provider' => 'None'])->resolve($this->geoRow(), true);
+
+		$this->assertSame(expected: 'disabled', actual: $outcome['status']);
+		$this->assertSame(expected: "Switched off in portaliq's settings.", actual: $outcome['statusMessage']);
+
+		$padded = $this->makeResolver(config: ['portaliq.traffic.geo.provider' => ' NONE '])->resolve($this->geoRow(), true);
+		$this->assertSame(expected: 'disabled', actual: $padded['status']);
+
+		$dbip = $this->makeResolver(config: ['portaliq.traffic.geo.provider' => 'dbip'])->resolve($this->geoRow(), true);
+		$this->assertSame(expected: 'unconfigured', actual: $dbip['status']);
+	}//end testAnOffValueSwitchesTheConnectionOff()
+
+	/**
+	 * An unset key without offValues is empty, so the switch reads as off.
+	 *
+	 * @return void
+	 */
+	public function testUnsetKeyWithoutOffValuesIsOff(): void {
+		$row = ['app' => 'keepiq', 'declaration' => ['switch' => ['configKey' => 'breach_check_enabled']]];
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'disabled', actual: $outcome['status']);
+	}//end testUnsetKeyWithoutOffValuesIsOff()
+
+	/**
+	 * An unset key with offValues is off only when the empty string is listed.
+	 *
+	 * @return void
+	 */
+	public function testUnsetKeyWithOffValuesIsOffOnlyWhenEmptyIsListed(): void {
+		$without = ['app' => 'portaliq', 'declaration' => ['switch' => ['configKey' => 'provider', 'offValues' => ['none']]]];
+		$this->assertSame(expected: 'unconfigured', actual: $this->makeResolver()->resolve($without, true)['status']);
+
+		$with = ['app' => 'portaliq', 'declaration' => ['switch' => ['configKey' => 'provider', 'offValues' => ['none', '']]]];
+		$this->assertSame(expected: 'disabled', actual: $this->makeResolver()->resolve($with, true)['status']);
+
+		$emptyList = ['app' => 'portaliq', 'declaration' => ['switch' => ['configKey' => 'provider', 'offValues' => []]]];
+		$this->assertSame(expected: 'unconfigured', actual: $this->makeResolver()->resolve($emptyList, true)['status']);
+	}//end testUnsetKeyWithOffValuesIsOffOnlyWhenEmptyIsListed()
+
+	/**
+	 * A switch with jsonPath reads inside a JSON setting, stored as text or under the array type.
+	 *
+	 * @return void
+	 */
+	public function testSwitchWithJsonPath(): void {
+		$row = ['app' => 'keepiq', 'declaration' => ['switch' => ['configKey' => 'breach', 'jsonPath' => 'check.enabled']]];
+
+		$off = $this->makeResolver(config: ['keepiq.breach' => '{"check": {"enabled": false}}'])->resolve($row, true);
+		$this->assertSame(expected: 'disabled', actual: $off['status']);
+
+		$on = $this->makeResolver(config: ['keepiq.breach' => '{"check": {"enabled": true}}'])->resolve($row, true);
+		$this->assertSame(expected: 'unconfigured', actual: $on['status']);
+
+		$missing = $this->makeResolver(config: ['keepiq.breach' => '{"check": {}}'])->resolve($row, true);
+		$this->assertSame(expected: 'disabled', actual: $missing['status']);
+
+		$typed = $this->makeResolver(config: ['keepiq.breach' => ['check' => ['enabled' => false]]])->resolve($row, true);
+		$this->assertSame(expected: 'disabled', actual: $typed['status']);
+
+		$offValue = ['app' => 'portaliq', 'declaration' => ['switch' => ['configKey' => 'geo', 'jsonPath' => 'provider', 'offValues' => ['none']]]];
+		$named = $this->makeResolver(config: ['portaliq.geo' => '{"provider": "none"}'])->resolve($offValue, true);
+		$this->assertSame(expected: 'disabled', actual: $named['status']);
+
+		$list = $this->makeResolver(config: ['portaliq.geo' => '{"provider": ["none"]}'])->resolve($offValue, true);
+		$this->assertSame(expected: 'unconfigured', actual: $list['status']);
+	}//end testSwitchWithJsonPath()
+
+	/**
+	 * An off switch outranks a newer passing probe, a simulated report and a mock adapter.
+	 *
+	 * @return void
+	 */
+	public function testOffSwitchOutranksANewerProbeAndASimulatedAdapter(): void {
+		$row = [
+			'app' => 'keepiq',
+			'declaration' => [
+				'switch' => ['configKey' => 'breach_check_enabled'],
+				'adapter' => ['configKey' => 'breach_adapter'],
+				'requiredConfig' => ['breach_api_key'],
+			],
+			'lastProbe' => ['status' => 'ok', 'message' => 'fine', 'at' => '2026-09-14T11:59:00+00:00'],
+			'lastReport' => ['status' => 'simulated', 'message' => 'A mock answers.', 'at' => '2026-09-14T11:00:00+00:00'],
+		];
+		$config = ['keepiq.breach_check_enabled' => '0', 'keepiq.breach_api_key' => 'secret'];
+
+		$outcome = $this->makeResolver(config: $config)->resolve($row, true);
+
+		$this->assertSame(expected: 'disabled', actual: $outcome['status']);
+		$this->assertSame(expected: 2, actual: $outcome['rule']);
+
+		$config['keepiq.breach_check_enabled'] = '1';
+		$this->assertSame(expected: 'simulated', actual: $this->makeResolver(config: $config)->resolve($row, true)['status']);
+	}//end testOffSwitchOutranksANewerProbeAndASimulatedAdapter()
+
+	/**
+	 * Rule 2b applies to a reportedOnly row, and rules 1 and 2 stay above it.
+	 *
+	 * @return void
+	 */
+	public function testSwitchAppliesToReportedOnlyRowsBelowRulesOneAndTwo(): void {
+		$row = [
+			'app' => 'keepiq',
+			'declaration' => ['reportedOnly' => true, 'switch' => ['configKey' => 'siem_enabled']],
+			'lastReport' => ['status' => 'configured', 'message' => 'Sending.', 'at' => '2026-09-14T11:00:00+00:00'],
+		];
+		$resolver = $this->makeResolver(config: ['keepiq.siem_enabled' => 'false']);
+
+		$this->assertSame(expected: 'disabled', actual: $resolver->resolve($row, true)['status']);
+		$this->assertSame(expected: 1, actual: $resolver->resolve($row, false)['rule']);
+
+		$row['declaration']['available'] = false;
+		$declared = $resolver->resolve($row, true);
+		$this->assertSame(expected: 'unavailable', actual: $declared['status']);
+		$this->assertSame(expected: 2, actual: $declared['rule']);
+	}//end testSwitchAppliesToReportedOnlyRowsBelowRulesOneAndTwo()
+
+	/**
+	 * A reported disabled is a valid report status and shows through rule 4b.
+	 *
+	 * @return void
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-app-reports-a-switch-it-keeps-elsewhere
+	 */
+	public function testReportedDisabledIsShown(): void {
+		$row = [
+			'app' => 'keepiq',
+			'declaration' => ['key' => 'siem', 'reportedOnly' => true],
+			'lastReport' => ['status' => 'disabled', 'message' => 'Every SIEM sink is switched off.', 'at' => '2026-09-14T11:00:00+00:00'],
+		];
+
+		$outcome = $this->makeResolver()->resolve($row, true);
+
+		$this->assertSame(expected: 'disabled', actual: $outcome['status']);
+		$this->assertSame(expected: 'Every SIEM sink is switched off.', actual: $outcome['statusMessage']);
+		$this->assertSame(expected: 4, actual: $outcome['rule']);
+	}//end testReportedDisabledIsShown()
+
+	/**
+	 * Declarations without a switch resolve exactly as before, and a switch that reads on changes nothing.
+	 *
+	 * @return void
+	 */
+	public function testDeclarationsWithoutSwitchResolveAsBefore(): void {
+		$config = ['dossiq.register' => 'cases', 'dossiq.adapter' => '', 'dossiq.on' => 'true'];
+		$rows = [
+			'required' => ['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['register']]],
+			'simulated' => ['app' => 'dossiq', 'declaration' => ['adapter' => ['configKey' => 'adapter']]],
+			'probe' => ['app' => 'dossiq', 'declaration' => [], 'lastProbe' => ['status' => 'error', 'message' => 'down', 'at' => '2026-09-14T11:00:00+00:00']],
+			'nothing' => ['app' => 'dossiq', 'declaration' => ['unconfiguredMessage' => 'Set it.']],
+			'unavailable' => ['app' => 'dossiq', 'declaration' => ['available' => false]],
+		];
+		$expected = [
+			'required' => ['configured', 5],
+			'simulated' => ['simulated', 3],
+			'probe' => ['error', 4],
+			'nothing' => ['unconfigured', 6],
+			'unavailable' => ['unavailable', 2],
+		];
+		$resolver = $this->makeResolver(config: $config);
+
+		foreach ($rows as $name => $row) {
+			$plain = $resolver->resolve($row, true);
+			$this->assertSame(expected: $expected[$name], actual: [$plain['status'], $plain['rule']], message: $name);
+
+			$row['declaration']['disabledMessage'] = 'Off.';
+			$this->assertSame(expected: $plain, actual: $resolver->resolve($row, true), message: $name . ' with only a disabledMessage');
+
+			$row['declaration']['switch'] = ['configKey' => 'on'];
+			$this->assertSame(expected: $plain, actual: $resolver->resolve($row, true), message: $name . ' with a switch that reads on');
+		}
+	}//end testDeclarationsWithoutSwitchResolveAsBefore()
+
+	/**
+	 * disabled is one of the stored statuses.
+	 *
+	 * @return void
+	 */
+	public function testDisabledIsAStoredStatus(): void {
+		$this->assertContains(needle: 'disabled', haystack: ConnectionStatusResolver::STATUSES);
+		$this->assertCount(expectedCount: 7, haystack: ConnectionStatusResolver::STATUSES);
+	}//end testDisabledIsAStoredStatus()
 }//end class
