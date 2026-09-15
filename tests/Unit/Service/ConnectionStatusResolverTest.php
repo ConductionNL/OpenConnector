@@ -1275,7 +1275,11 @@ class ConnectionStatusResolverTest extends TestCase {
 		$rows = [
 			'required' => ['app' => 'dossiq', 'declaration' => ['requiredConfig' => ['register']]],
 			'simulated' => ['app' => 'dossiq', 'declaration' => ['adapter' => ['configKey' => 'adapter']]],
-			'probe' => ['app' => 'dossiq', 'declaration' => [], 'lastProbe' => ['status' => 'error', 'message' => 'down', 'at' => '2026-09-14T11:00:00+00:00']],
+			'probe' => [
+				'app' => 'dossiq',
+				'declaration' => [],
+				'lastProbe' => ['status' => 'error', 'message' => 'down', 'at' => '2026-09-14T11:00:00+00:00'],
+			],
 			'nothing' => ['app' => 'dossiq', 'declaration' => ['unconfiguredMessage' => 'Set it.']],
 			'unavailable' => ['app' => 'dossiq', 'declaration' => ['available' => false]],
 		];
