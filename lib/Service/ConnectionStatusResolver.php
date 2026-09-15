@@ -200,9 +200,8 @@ class ConnectionStatusResolver {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-connection-switched-off-reads-disabled
 	 */
 	private function ruleSwitchedOff(array $row, array $declaration, string $now): ?array {
-		$switch = $declaration['switch'] ?? null;
 		$app = (string)($row['app'] ?? '');
-		if (is_array($switch) === false || $this->config->isSwitchedOff(app: $app, switch: $switch) === false) {
+		if ($this->config->isSwitchedOff(app: $app, switch: $declaration['switch'] ?? null) === false) {
 			return null;
 		}
 
@@ -233,10 +232,11 @@ class ConnectionStatusResolver {
 			return null;
 		}
 
-		$configKey = (string)($adapter['configKey'] ?? '');
-		if ($configKey === '' || $this->config->isSimulated(app: (string)($row['app'] ?? ''), adapter: $adapter) === false) {
+		if ($this->config->isSimulated(app: (string)($row['app'] ?? ''), adapter: $adapter) === false) {
 			return null;
 		}
+
+		$configKey = (string)($adapter['configKey'] ?? '');
 
 		$message = $this->nonEmptyString(
 			value: $adapter['simulatedMessage'] ?? null,

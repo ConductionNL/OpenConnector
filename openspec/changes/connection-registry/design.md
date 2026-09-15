@@ -77,7 +77,7 @@ The contract is the hydra umbrella design, `openspec/changes/connection-registry
 
 ## Amendment: switched off, and empty JSON lists (umbrella D2, D3, D4 rule 2b, D12 items 8 and 9, hydra#677)
 
-**Where the switch is read.** `ConnectionConfigReader::isSwitchedOff()` turns the switch into a `requiredConfig` entry and reads it with the same path walk. Without `offValues` it asks the same emptiness check. With `offValues` it compares the value as text, the way `simulatedValues` is compared. The resolver adds one rule method, so it stays under the complexity limit.
+**Where the switch is read.** `ConnectionConfigReader::isSwitchedOff()` turns the switch into a `requiredConfig` entry and reads it with the same path walk. Without `offValues` it asks the same emptiness check. With `offValues` it compares the value as text, the way `simulatedValues` is compared. Judging a value moved into `ConnectionConfigValue`: filled or empty, one of a list, and scalar as text. With the switch added, phpmd rated the reader at 55 and the resolver at 51, against a limit of 50. After the split they sit at 45 and 49. A stored switch without a string `configKey` never reads as off.
 
 **A list or object and `offValues`.** A non-empty list or object never equals an off value. An empty one reads as the empty string, so it is off only when `""` is listed.
 

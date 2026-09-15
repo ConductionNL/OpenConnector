@@ -15,9 +15,8 @@
  *
  * A `requiredConfig` entry is a whole app-config key, dots included, or
  * `{configKey, jsonPath}`, read through the same path walk as the adapter.
- * A value is empty when it reads as `""`, `false` or `0` after trimming,
- * case-insensitively. A JSON `false`, `0` or `null`, an empty JSON array or
- * object, and a missing path read that way too. Everything else is filled.
+ * What a value then means, filled or empty, and whether it equals a declared
+ * value, lives in {@see ConnectionConfigValue}.
  *
  * A `switch` is read through the same path walk. Without `offValues` it is
  * off when its value is empty. With `offValues` it is off only when its value
@@ -64,11 +63,11 @@ class ConnectionConfigReader {
 	public const DEFAULT_SIMULATED_VALUES = [''];
 
 	/**
-	 * The values, lowercased and trimmed, that leave a required setting empty.
+	 * Judges the values this class reads.
 	 *
-	 * @var string[]
+	 * @var ConnectionConfigValue
 	 */
-	public const EMPTY_VALUES = ['', 'false', '0'];
+	private readonly ConnectionConfigValue $value;
 
 	/**
 	 * Constructor.
@@ -78,6 +77,7 @@ class ConnectionConfigReader {
 	public function __construct(
 		private readonly IAppConfig $appConfig,
 	) {
+		$this->value = new ConnectionConfigValue();
 	}//end __construct()
 
 	/**
@@ -92,14 +92,19 @@ class ConnectionConfigReader {
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-json-path-reads-inside-a-settings-blob
 	 */
 	public function isSimulated(string $app, array $adapter): bool {
-		$value = $this->adapterValue(app: $app, configKey: (string)($adapter['configKey'] ?? ''), jsonPath: $adapter['jsonPath'] ?? null);
+		$configKey = (string)($adapter['configKey'] ?? '');
+		if ($configKey === '') {
+			return false;
+		}
 
 		$simulatedValues = $adapter['simulatedValues'] ?? null;
 		if (is_array($simulatedValues) === false) {
 			$simulatedValues = self::DEFAULT_SIMULATED_VALUES;
 		}
 
-		return $this->isOneOf(text: $value, candidates: $simulatedValues);
+		$text = $this->adapterValue(app: $app, configKey: $configKey, jsonPath: $adapter['jsonPath'] ?? null);
+
+		return $this->value->isOneOf(value: $text, candidates: $simulatedValues);
 	}//end isSimulated()
 
 	/**
@@ -112,57 +117,43 @@ class ConnectionConfigReader {
 	 * list or object never equals an off value.
 	 *
 	 * @param string $app The declaring app id.
-	 * @param array<string|int,mixed> $switch The declared switch object.
+	 * @param mixed $switch The declared switch object, if any.
 	 *
-	 * @return bool False when the switch has no usable `configKey`.
+	 * @return bool False when there is no switch, or it has no usable `configKey`.
 	 *
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-connection-switched-off-reads-disabled
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-off-values-leave-a-working-default-alone
 	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-an-off-value-switches-the-connection-off
 	 */
-	public function isSwitchedOff(string $app, array $switch): bool {
-		$configKey = $switch['configKey'] ?? null;
-		if (is_string($configKey) === false || $configKey === '') {
+	public function isSwitchedOff(string $app, mixed $switch): bool {
+		if (is_array($switch) === false || is_string($switch['configKey'] ?? null) === false || $switch['configKey'] === '') {
 			return false;
 		}
 
-		$entry = $configKey;
-		$jsonPath = $switch['jsonPath'] ?? null;
-		if (is_string($jsonPath) === true && $jsonPath !== '') {
-			$entry = ['configKey' => $configKey, 'jsonPath' => $jsonPath];
-		}
-
-		$value = $this->requiredValue(app: $app, entry: $entry);
+		$value = $this->requiredValue(app: $app, entry: $this->switchEntry(switch: $switch));
 		$offValues = $switch['offValues'] ?? null;
 		if (is_array($offValues) === false) {
-			return $this->isFilled(value: $value) === false;
+			return $this->value->isFilled(value: $value) === false;
 		}
 
-		if (is_array($value) === true && $value !== []) {
-			return false;
-		}
-
-		return $this->isOneOf(text: $this->scalarText(value: $value), candidates: $offValues);
+		return $this->value->isOneOf(value: $value, candidates: $offValues);
 	}//end isSwitchedOff()
 
 	/**
-	 * Whether a text equals one of the candidates, trimmed and case-insensitively.
+	 * The switch as a `requiredConfig` entry: a key, or a key and a dot path.
 	 *
-	 * @param string $text The trimmed text.
-	 * @param array<int|string,mixed> $candidates The declared values; non-strings never match.
+	 * @param array<string|int,mixed> $switch The declared switch object.
 	 *
-	 * @return bool
+	 * @return mixed
 	 */
-	private function isOneOf(string $text, array $candidates): bool {
-		$needle = mb_strtolower($text);
-		foreach ($candidates as $candidate) {
-			if (is_string($candidate) === true && mb_strtolower(trim($candidate)) === $needle) {
-				return true;
-			}
+	private function switchEntry(array $switch): mixed {
+		$jsonPath = $switch['jsonPath'] ?? null;
+		if (is_string($jsonPath) === true && $jsonPath !== '') {
+			return ['configKey' => $switch['configKey'], 'jsonPath' => $jsonPath];
 		}
 
-		return false;
-	}//end isOneOf()
+		return $switch['configKey'];
+	}//end switchEntry()
 
 	/**
 	 * Whether every required entry holds a filled value in the app's config.
@@ -179,7 +170,7 @@ class ConnectionConfigReader {
 	 */
 	public function allFilled(string $app, array $entries): bool {
 		foreach ($entries as $entry) {
-			if ($this->isFilled(value: $this->requiredValue(app: $app, entry: $entry)) === false) {
+			if ($this->value->isFilled(value: $this->requiredValue(app: $app, entry: $entry)) === false) {
 				return false;
 			}
 		}
@@ -216,51 +207,6 @@ class ConnectionConfigReader {
 
 		return $this->valueAtPath(tree: $this->readObject(app: $app, key: $configKey), path: $jsonPath);
 	}//end requiredValue()
-
-	/**
-	 * Whether a required value counts as filled.
-	 *
-	 * A list or an object holds a value unless it is empty. Text that decodes
-	 * as an empty JSON array or object, such as `[]`, `{}` or `[ ]`, is empty
-	 * too, so a list setting stored as a string reads the same as one stored
-	 * under the array type. Every other value is compared as text against
-	 * EMPTY_VALUES, so `false`, `0` and `null` read as empty in any form they
-	 * are stored in.
-	 *
-	 * @param mixed $value The value.
-	 *
-	 * @return bool
-	 */
-	private function isFilled(mixed $value): bool {
-		if (is_array($value) === true) {
-			return $value !== [];
-		}
-
-		$text = $this->scalarText(value: $value);
-		if ($this->isEmptyJsonText(text: $text) === true) {
-			return false;
-		}
-
-		return in_array(mb_strtolower($text), self::EMPTY_VALUES, true) === false;
-	}//end isFilled()
-
-	/**
-	 * Whether trimmed text is an empty JSON array or object.
-	 *
-	 * Only text that starts with `[` or `{` is decoded, so `null`, `0` and
-	 * `false` keep the meaning EMPTY_VALUES gives them.
-	 *
-	 * @param string $text The trimmed text.
-	 *
-	 * @return bool
-	 */
-	private function isEmptyJsonText(string $text): bool {
-		if (str_starts_with($text, '[') === false && str_starts_with($text, '{') === false) {
-			return false;
-		}
-
-		return json_decode($text, true) === [];
-	}//end isEmptyJsonText()
 
 	/**
 	 * The value that selects the adapter, trimmed.
@@ -400,7 +346,7 @@ class ConnectionConfigReader {
 	 * @return string The value, or '' when the path is missing or the value is not a scalar.
 	 */
 	private function scalarAtPath(mixed $tree, string $path): string {
-		return $this->scalarText(value: $this->valueAtPath(tree: $tree, path: $path));
+		return $this->value->text(value: $this->valueAtPath(tree: $tree, path: $path));
 	}//end scalarAtPath()
 
 	/**
@@ -423,21 +369,4 @@ class ConnectionConfigReader {
 		return $tree;
 	}//end valueAtPath()
 
-	/**
-	 * A scalar as trimmed text.
-	 *
-	 * Booleans read as `true` or `false`, so a declaration can list them.
-	 *
-	 * @param mixed $value The value.
-	 *
-	 * @return string The text, or '' when the value is null, an object or a list.
-	 */
-	private function scalarText(mixed $value): string {
-		return match (true) {
-			$value === true => 'true',
-			$value === false => 'false',
-			is_string($value), is_int($value), is_float($value) => trim((string)$value),
-			default => '',
-		};
-	}//end scalarText()
 }//end class

@@ -1168,6 +1168,20 @@ class ConnectionStatusResolverTest extends TestCase {
 	}//end testUnsetKeyWithOffValuesIsOffOnlyWhenEmptyIsListed()
 
 	/**
+	 * A stored switch without a usable configKey, written before validation, never reads as off.
+	 *
+	 * @return void
+	 */
+	public function testSwitchWithoutAUsableConfigKeyIsIgnored(): void {
+		$resolver = $this->makeResolver();
+
+		foreach ([[], ['configKey' => ''], ['configKey' => 5], 'breach_check_enabled'] as $switch) {
+			$row = ['app' => 'keepiq', 'declaration' => ['switch' => $switch]];
+			$this->assertSame(expected: 'unconfigured', actual: $resolver->resolve($row, true)['status'], message: (string)json_encode($switch));
+		}
+	}//end testSwitchWithoutAUsableConfigKeyIsIgnored()
+
+	/**
 	 * A switch with jsonPath reads inside a JSON setting, stored as text or under the array type.
 	 *
 	 * @return void
