@@ -14,7 +14,7 @@
 
 import { translate as t } from '@nextcloud/l10n'
 
-// The six stored status values and their English source labels. The label is
+// The seven stored status values and their English source labels. The label is
 // translated on each call rather than here: a module-level t() runs before the
 // catalogue is registered and would freeze every label in English.
 const CONNECTION_STATUS_LABELS = {
@@ -22,6 +22,7 @@ const CONNECTION_STATUS_LABELS = {
 	limited: 'Limited',
 	unconfigured: 'Not configured',
 	simulated: 'Simulated',
+	disabled: 'Switched off',
 	unavailable: 'Not available',
 	error: 'Error',
 }

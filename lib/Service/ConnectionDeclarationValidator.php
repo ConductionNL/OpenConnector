@@ -63,6 +63,8 @@ class ConnectionDeclarationValidator {
 		'adapter' => [false, 'object'],
 		'available' => [false, 'boolean'],
 		'unavailableMessage' => [false, 'string'],
+		'switch' => [false, 'object'],
+		'disabledMessage' => [false, 'string'],
 		'unconfiguredMessage' => [false, 'string'],
 		'sourceTemplate' => [false, 'nonEmptyString'],
 		'reportedOnly' => [false, 'boolean'],
@@ -78,6 +80,17 @@ class ConnectionDeclarationValidator {
 		'jsonPath' => [false, 'dotPath'],
 		'simulatedValues' => [false, 'anyStringList'],
 		'simulatedMessage' => [false, 'string'],
+	];
+
+	/**
+	 * Switch object fields: name => [required, type].
+	 *
+	 * @var array<string,array{0:bool,1:string}>
+	 */
+	private const SWITCH_FIELDS = [
+		'configKey' => [true, 'nonEmptyString'],
+		'jsonPath' => [false, 'dotPath'],
+		'offValues' => [false, 'anyStringList'],
 	];
 
 	/**
@@ -161,11 +174,10 @@ class ConnectionDeclarationValidator {
 		}
 
 		$errors = $this->checkObject(data: $entry, fields: self::ENTRY_FIELDS, path: $path);
-		if ($this->isObject(value: $entry['adapter'] ?? null) === true) {
-			$errors = array_merge(
-				$errors,
-				$this->checkObject(data: $entry['adapter'], fields: self::ADAPTER_FIELDS, path: $path . '/adapter')
-			);
+		foreach (['adapter' => self::ADAPTER_FIELDS, 'switch' => self::SWITCH_FIELDS] as $name => $fields) {
+			if ($this->isObject(value: $entry[$name] ?? null) === true) {
+				$errors = array_merge($errors, $this->checkObject(data: $entry[$name], fields: $fields, path: $path . '/' . $name));
+			}
 		}
 
 		return $errors;

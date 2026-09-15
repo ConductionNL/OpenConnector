@@ -8,6 +8,7 @@
  *
  *   1.  the declaring app is disabled                  -> unavailable, now
  *   2.  the declaration says `available: false`        -> unavailable, sync time
+ *   2b. `switch` is set and reads as off               -> disabled, now
  *   3.  not `reportedOnly`, and the adapter value is
  *       one of `adapter.simulatedValues`               -> simulated, sync time
  *   4a. `lastReport.status` is `simulated`, and the
@@ -25,6 +26,11 @@
  * Rule 3 sits above rule 4 on purpose. A mock adapter never calls the source,
  * so a green probe says nothing about what the app actually sends. Rule 4a
  * applies the same reasoning to the app's own report (umbrella D12).
+ *
+ * Rule 2b sits above rules 3 and 4, and applies to `reportedOnly` rows too.
+ * An admin turned the connection off on purpose, so an old error or a mock
+ * adapter says nothing about it (umbrella D4, D12 item 9). Its outcome carries
+ * rule number 2, like rule 2.
  *
  * Rules 4a and 4b count only a report or probe that is not older than the
  * row's `refreshedAt`. A refresh follows a settings save, so an observation
@@ -68,11 +74,11 @@ use OCP\IAppConfig;
 class ConnectionStatusResolver {
 
 	/**
-	 * The six stored status values.
+	 * The seven stored status values.
 	 *
 	 * @var string[]
 	 */
-	public const STATUSES = ['configured', 'limited', 'unconfigured', 'simulated', 'unavailable', 'error'];
+	public const STATUSES = ['configured', 'limited', 'unconfigured', 'simulated', 'disabled', 'unavailable', 'error'];
 
 	/**
 	 * Reads the declaring app's settings.
@@ -97,7 +103,7 @@ class ConnectionStatusResolver {
 	/**
 	 * Resolve one row.
 	 *
-	 * The returned `checkedAt` for rules 2, 3 and 5 keeps the row's stored
+	 * The returned `checkedAt` for rules 2, 2b, 3 and 5 keeps the row's stored
 	 * value while its status and message stay the same. That is how "sync time"
 	 * is read here: the time of the sync that first gave the row this status.
 	 * Re-running a sync then changes nothing.
@@ -119,6 +125,7 @@ class ConnectionStatusResolver {
 
 		return $this->ruleAppDisabled(row: $row, appEnabled: $appEnabled, now: $now)
 			?? $this->ruleDeclaredUnavailable(row: $row, declaration: $declaration, now: $now)
+			?? $this->ruleSwitchedOff(row: $row, declaration: $declaration, now: $now)
 			?? $this->ruleSimulated(row: $row, declaration: $declaration, now: $now)
 			?? $this->ruleReportedSimulated(row: $row)
 			?? $this->ruleObserved(row: $row)
@@ -176,6 +183,38 @@ class ConnectionStatusResolver {
 			rule: 2
 		);
 	}//end ruleDeclaredUnavailable()
+
+	/**
+	 * Rule 2b: the declared switch reads as off, so an admin turned the connection off.
+	 *
+	 * Applies to a `reportedOnly` row too: the switch is a fact integriq can read.
+	 * "Now" keeps the stored time while status and message stay the same, as
+	 * rule 5 does, so a sync over a row that stays off changes nothing.
+	 *
+	 * @param array<string,mixed> $row The stored row data.
+	 * @param array<string,mixed> $declaration The declaration entry.
+	 * @param string $now The current time.
+	 *
+	 * @return array{status:string,statusMessage:string,checkedAt:?string,rule:int}|null
+	 *
+	 * @spec openspec/changes/connection-registry/specs/connection-registry/spec.md#scenario-a-connection-switched-off-reads-disabled
+	 */
+	private function ruleSwitchedOff(array $row, array $declaration, string $now): ?array {
+		$switch = $declaration['switch'] ?? null;
+		$app = (string)($row['app'] ?? '');
+		if (is_array($switch) === false || $this->config->isSwitchedOff(app: $app, switch: $switch) === false) {
+			return null;
+		}
+
+		$message = $this->nonEmptyString(value: $declaration['disabledMessage'] ?? null, fallback: 'Switched off in ' . $app . "'s settings.");
+
+		return $this->outcome(
+			status: 'disabled',
+			message: $message,
+			checkedAt: $this->keepOrNow(row: $row, status: 'disabled', message: $message, now: $now),
+			rule: 2
+		);
+	}//end ruleSwitchedOff()
 
 	/**
 	 * Rule 3: the adapter value is one of the simulated values, so a mock answers.
@@ -328,7 +367,7 @@ class ConnectionStatusResolver {
 	 *
 	 * @param array<string,mixed> $row The stored row data.
 	 * @param string $property The row property, `lastProbe` or `lastReport`.
-	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the six statuses).
+	 * @param bool $isProbe Whether this is a probe (ok|error) or a report (the seven statuses).
 	 *
 	 * @return array{status:string,message:string,at:?string,time:int}|null
 	 *
